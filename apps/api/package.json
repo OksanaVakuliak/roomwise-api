@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "vitest run --dir test/e2e"
+    "test:e2e": "vitest run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.5",
