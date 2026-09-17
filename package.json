@@ -12,7 +12,7 @@
     "test": "vitest run",
     "build": "pnpm --filter api run build",
     "commit": "cz",
-    "prepare": "lefthook install || exit 0"
+    "prepare": "git config core.hooksPath .git/hooks && lefthook install --force || echo 'lefthook install failed — git hooks are NOT active'"
   },
   "config": {
     "commitizen": {
