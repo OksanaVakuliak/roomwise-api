@@ -46,7 +46,7 @@
         "noExplicitAny": "error"
       },
       "correctness": {
-        "noUnusedImports": "warn"
+        "noUnusedImports": "error"
       }
     }
   },
