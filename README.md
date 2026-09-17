@@ -18,7 +18,13 @@ calculations, and an admin panel.
 ```bash
 pnpm install
 docker compose up -d
-pnpm --filter api exec cp .env.example .env
+```
+
+Copy `apps/api/.env.example` to `apps/api/.env` and set
+`DATABASE_URL=postgresql://roomwise:roomwise@localhost:5432/roomwise` to match
+`docker-compose.yml`.
+
+```bash
 pnpm --filter api start:dev
 ```
 
