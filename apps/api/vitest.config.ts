@@ -8,6 +8,7 @@ export default defineConfig({
     root: import.meta.dirname,
     include: ['src/**/*.test.ts'],
     passWithNoTests: true,
+    setupFiles: [resolve(import.meta.dirname, './test/setup-env.ts')],
   },
   plugins: [
     swc.vite({
