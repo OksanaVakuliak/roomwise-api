@@ -1,0 +1,41 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{js,jsx,ts,tsx,json,jsonc}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+
+prepare-commit-msg:
+  commands:
+    commitizen:
+      interactive: true
+      run: |
+        case "{2}" in
+          message|template|merge|squash|commit) exit 0 ;;
+        esac
+        pnpm exec cz --hook
+      env:
+        LEFTHOOK: "0"
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  commands:
+    block-protected-branch:
+      priority: 1
+      skip_empty: false
+      run: |
+        branch=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$branch" = main ] || [ "$branch" = develop ]; then
+          echo 'Direct push to' ${branch} 'is not allowed.'
+          echo 'Create a branch (feat/, fix/ or chore/) and open a Pull Request into develop.'
+          exit 1
+        fi
+    typecheck:
+      priority: 2
+      skip_empty: false
+      run: pnpm run typecheck
