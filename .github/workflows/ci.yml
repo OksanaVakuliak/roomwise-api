@@ -17,6 +17,19 @@ jobs:
   quality:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://roomwise:roomwise@localhost:5432/roomwise_test
+      DIRECT_URL: postgresql://roomwise:roomwise@localhost:5432/roomwise_test
+      JWT_SECRET: test-jwt-secret-with-at-least-32-characters
+      CORS_ORIGIN: http://localhost:3000
+      CLOUDINARY_URL: cloudinary://key:secret@test
+      MAINTENANCE_TOKEN: test-maintenance-token-with-32-characters
+      DEMO_ADMIN_LOGIN: demo
+      DEMO_ADMIN_PASSWORD: test-demo-password
+      SANDBOX_RESET_TIME: 03:00
+      SANDBOX_TIMEZONE: Europe/Kyiv
+      PORT: 4000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,11 +49,20 @@ jobs:
       - name: Lint
         run: pnpm exec biome ci .
 
+      - name: Generate Prisma Client
+        run: pnpm --filter api prisma:generate
+
       - name: Typecheck
         run: pnpm typecheck
 
       - name: Test
         run: pnpm test
 
+      - name: Test e2e
+        run: pnpm --filter api test:e2e
+
       - name: Build
         run: pnpm build
+
+      - name: Check OpenAPI
+        run: pnpm --filter api openapi:check

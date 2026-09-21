@@ -1,0 +1,48 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PublicationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SurfaceKind {
+  NONE
+  FLOOR
+  WALLS
+  CEILING
+}
+
+enum ProductUnit {
+  SQM
+  LINEAR_M
+  PIECE
+}
+
+enum OptionUnit {
+  PIECE
+  ROOM_SQM
+  ROOM
+  PROJECT
+}
+
+enum OptionKind {
+  ENGINEERING
+  ADDITIONAL
+}
+
+enum RoomTypeCode {
+  LIVING_ROOM
+  BEDROOM
+  KITCHEN
+  KITCHEN_LIVING
+  BATHROOM
+}
