@@ -1,5 +1,5 @@
 import type { ArgumentsHost } from '@nestjs/common';
-import { HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { ThrottlerException } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
@@ -92,6 +92,101 @@ describe('HttpExceptionFilter', () => {
       error: {
         code: 'RATE_LIMITED',
         params: { retryAfterSeconds: 42 },
+      },
+    });
+  });
+
+  it('maps a plain HttpException status to its error class, not a business code', () => {
+    const cases: Array<[HttpStatus, string]> = [
+      [HttpStatus.UNPROCESSABLE_ENTITY, 'UNPROCESSABLE'],
+      [HttpStatus.FORBIDDEN, 'FORBIDDEN'],
+      [HttpStatus.CONFLICT, 'CONFLICT'],
+    ];
+
+    for (const [status, code] of cases) {
+      const { host, response } = createHost();
+      const filter = new HttpExceptionFilter();
+
+      filter.catch(new HttpException('irrelevant message', status), host);
+
+      expect(response.status).toHaveBeenCalledWith(status);
+      expect(response.json).toHaveBeenCalledWith({
+        error: { code },
+      });
+    }
+  });
+
+  it.each([
+    ['an Error instance', new Error('db connection lost')],
+    ['a thrown string', 'raw string throw'],
+    ['a thrown null', null],
+  ])(
+    'maps %s to a 500 INTERNAL envelope without leaking details',
+    (_label, exception) => {
+      const { host, response } = createHost();
+      const filter = new HttpExceptionFilter();
+
+      filter.catch(exception, host);
+
+      expect(response.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      expect(response.json).toHaveBeenCalledWith({
+        error: { code: 'INTERNAL' },
+      });
+    },
+  );
+
+  it('maps a numeric too_small issue to TOO_SMALL, not TOO_SHORT', () => {
+    const { host, response } = createHost();
+    const filter = new HttpExceptionFilter();
+    const result = z.object({ count: z.number().min(1) }).safeParse({
+      count: 0,
+    });
+
+    if (result.success) {
+      throw new Error('Expected validation to fail');
+    }
+
+    filter.catch(new ZodValidationException(result.error), host);
+
+    expect(response.json).toHaveBeenCalledWith({
+      error: {
+        code: 'VALIDATION_FAILED',
+        fields: [
+          {
+            path: 'count',
+            code: 'TOO_SMALL',
+            params: { min: 1 },
+          },
+        ],
+      },
+    });
+  });
+
+  it('maps an array too_small issue to TOO_FEW', () => {
+    const { host, response } = createHost();
+    const filter = new HttpExceptionFilter();
+    const result = z.object({ tags: z.array(z.string()).min(1) }).safeParse({
+      tags: [],
+    });
+
+    if (result.success) {
+      throw new Error('Expected validation to fail');
+    }
+
+    filter.catch(new ZodValidationException(result.error), host);
+
+    expect(response.json).toHaveBeenCalledWith({
+      error: {
+        code: 'VALIDATION_FAILED',
+        fields: [
+          {
+            path: 'tags',
+            code: 'TOO_FEW',
+            params: { min: 1 },
+          },
+        ],
       },
     });
   });

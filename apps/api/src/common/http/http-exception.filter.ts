@@ -33,25 +33,35 @@ const ERROR_STATUS: Record<ErrorCode, number> = {
   TRANSLATION_MISSING: HttpStatus.UNPROCESSABLE_ENTITY,
   RATE_LIMITED: HttpStatus.TOO_MANY_REQUESTS,
   INTERNAL: HttpStatus.INTERNAL_SERVER_ERROR,
+  FORBIDDEN: HttpStatus.FORBIDDEN,
+  CONFLICT: HttpStatus.CONFLICT,
+  UNPROCESSABLE: HttpStatus.UNPROCESSABLE_ENTITY,
 };
 
 const HTTP_STATUS_CODE: Partial<Record<number, ErrorCode>> = {
   [HttpStatus.BAD_REQUEST]: ERROR_CODES.VALIDATION_FAILED,
   [HttpStatus.UNAUTHORIZED]: ERROR_CODES.UNAUTHENTICATED,
-  [HttpStatus.FORBIDDEN]: ERROR_CODES.DEMO_FORBIDDEN,
+  [HttpStatus.FORBIDDEN]: ERROR_CODES.FORBIDDEN,
   [HttpStatus.NOT_FOUND]: ERROR_CODES.NOT_FOUND,
-  [HttpStatus.CONFLICT]: ERROR_CODES.STALE_REVISION,
+  [HttpStatus.CONFLICT]: ERROR_CODES.CONFLICT,
   [HttpStatus.PAYLOAD_TOO_LARGE]: ERROR_CODES.PAYLOAD_TOO_LARGE,
+  [HttpStatus.UNPROCESSABLE_ENTITY]: ERROR_CODES.UNPROCESSABLE,
   [HttpStatus.TOO_MANY_REQUESTS]: ERROR_CODES.RATE_LIMITED,
 };
 
 function zodIssueCode(issue: ZodIssue): string {
-  if (issue.code === 'too_small') {
-    return 'TOO_SHORT';
-  }
+  if (issue.code === 'too_small' || issue.code === 'too_big') {
+    const tooSmall = issue.code === 'too_small';
 
-  if (issue.code === 'too_big') {
-    return 'TOO_LONG';
+    if (issue.origin === 'string') {
+      return tooSmall ? 'TOO_SHORT' : 'TOO_LONG';
+    }
+
+    if (issue.origin === 'array' || issue.origin === 'set') {
+      return tooSmall ? 'TOO_FEW' : 'TOO_MANY';
+    }
+
+    return tooSmall ? 'TOO_SMALL' : 'TOO_BIG';
   }
 
   return issue.code.toUpperCase();
@@ -149,7 +159,12 @@ export class HttpExceptionFilter
     }
 
     Sentry.captureException(exception);
-    this.logger.error('Unhandled exception');
+    this.logger.error(
+      exception instanceof Error
+        ? exception.message
+        : `Unhandled non-error exception: ${String(exception)}`,
+      exception instanceof Error ? exception.stack : undefined,
+    );
     this.send(response, HttpStatus.INTERNAL_SERVER_ERROR, {
       error: { code: ERROR_CODES.INTERNAL },
     });
