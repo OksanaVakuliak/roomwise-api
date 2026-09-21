@@ -7,6 +7,7 @@ export default defineConfig({
     globals: true,
     root: import.meta.dirname,
     include: ['test/e2e/**/*.e2e-spec.ts'],
+    passWithNoTests: true,
     setupFiles: [resolve(import.meta.dirname, './test/setup-env.ts')],
   },
   plugins: [

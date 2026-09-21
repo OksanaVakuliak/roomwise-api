@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
@@ -8,6 +9,9 @@ import { HttpExceptionFilter } from './common/http/http-exception.filter';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env';
 import { pinoHttpOptions } from './config/logger';
+
+const RATE_LIMIT_TTL_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 100;
 
 @Module({
   imports: [
@@ -21,6 +25,9 @@ import { pinoHttpOptions } from './config/logger';
     }),
     PrismaModule,
     SentryModule.forRoot(),
+    ThrottlerModule.forRoot([
+      { ttl: RATE_LIMIT_TTL_MS, limit: RATE_LIMIT_MAX_REQUESTS },
+    ]),
   ],
   providers: [
     {
@@ -34,6 +41,10 @@ import { pinoHttpOptions } from './config/logger';
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

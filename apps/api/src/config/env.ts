@@ -16,9 +16,22 @@ const postgresUrlSchema = requiredStringSchema.refine((value) => {
   }
 }, 'Must be a PostgreSQL URL');
 
+const emptyStringToUndefined = (value: unknown) =>
+  value === '' ? undefined : value;
+
 const optionalUrlSchema = z.preprocess(
-  (value) => (value === '' ? undefined : value),
+  emptyStringToUndefined,
   z.url().optional(),
+);
+
+const nodeEnvSchema = z.preprocess(
+  emptyStringToUndefined,
+  z.enum(['development', 'test', 'production']).default('development'),
+);
+
+const portSchema = z.preprocess(
+  emptyStringToUndefined,
+  z.coerce.number().int().min(1).max(MAX_PORT).default(3000),
 );
 
 const timezoneSchema = requiredStringSchema.refine((value) => {
@@ -31,6 +44,7 @@ const timezoneSchema = requiredStringSchema.refine((value) => {
 }, 'Must be an IANA timezone');
 
 export const envSchema = z.object({
+  NODE_ENV: nodeEnvSchema,
   DATABASE_URL: postgresUrlSchema,
   DIRECT_URL: postgresUrlSchema,
   JWT_SECRET: z.string().min(REQUIRED_SECRET_LENGTH),
@@ -61,7 +75,7 @@ export const envSchema = z.object({
   DEMO_ADMIN_PASSWORD: z.string().min(MIN_PASSWORD_LENGTH),
   SANDBOX_RESET_TIME: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
   SANDBOX_TIMEZONE: timezoneSchema,
-  PORT: z.coerce.number().int().min(1).max(MAX_PORT).default(3000),
+  PORT: portSchema,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

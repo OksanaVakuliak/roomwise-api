@@ -11,6 +11,7 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     .setTitle('Roomwise API')
     .setDescription('API for the Roomwise renovation cost configurator')
     .setVersion('1.0')
+    .setOpenAPIVersion('3.1.0')
     .build();
 
   return cleanupOpenApiDoc(SwaggerModule.createDocument(app, config), {

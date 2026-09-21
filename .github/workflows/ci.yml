@@ -18,6 +18,7 @@ jobs:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
     env:
+      NODE_ENV: test
       DATABASE_URL: postgresql://roomwise:roomwise@localhost:5432/roomwise_test
       DIRECT_URL: postgresql://roomwise:roomwise@localhost:5432/roomwise_test
       JWT_SECRET: test-jwt-secret-with-at-least-32-characters
@@ -56,6 +57,9 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Test e2e
+        run: pnpm --filter api test:e2e
 
       - name: Build
         run: pnpm build

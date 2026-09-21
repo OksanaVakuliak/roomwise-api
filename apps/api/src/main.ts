@@ -34,23 +34,32 @@ async function bootstrap(): Promise<void> {
   const app = await createApplication();
   const config = app.get<AppConfigService>(ConfigService);
 
-  setupOpenApi(app);
+  app.enableShutdownHooks();
+
+  if (config.get('NODE_ENV', { infer: true }) !== 'production') {
+    setupOpenApi(app);
+  }
 
   await app.listen(config.get('PORT', { infer: true }));
 }
 
-if (require.main === module) {
-  bootstrap().catch((error) => {
-    const message =
-      error instanceof EnvValidationError
-        ? error.message
-        : 'Application failed to start.';
+const SENTRY_FLUSH_TIMEOUT_MS = 2000;
 
-    if (!(error instanceof EnvValidationError)) {
-      Sentry.captureException(error);
+if (require.main === module) {
+  bootstrap().catch(async (error) => {
+    if (error instanceof EnvValidationError) {
+      process.stderr.write(`${error.message}\n`);
+      process.exit(1);
+      return;
     }
 
-    process.stderr.write(`${message}\n`);
+    Sentry.captureException(error);
+    await Sentry.flush(SENTRY_FLUSH_TIMEOUT_MS);
+
+    const details =
+      error instanceof Error ? (error.stack ?? error.message) : String(error);
+
+    process.stderr.write(`Application failed to start.\n${details}\n`);
     process.exit(1);
   });
 }
