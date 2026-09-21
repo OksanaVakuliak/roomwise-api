@@ -36,6 +36,9 @@ export async function updateWithRevision(
 
   if (count === 0) {
     const currentRevision = await options.readCurrentRevision(options.id);
+    if (currentRevision === null) {
+      throw new AppError(ERROR_CODES.NOT_FOUND);
+    }
     throw new AppError(ERROR_CODES.STALE_REVISION, {
       params: { currentRevision },
     });

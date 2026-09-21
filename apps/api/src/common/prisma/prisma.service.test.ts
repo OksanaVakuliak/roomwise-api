@@ -19,6 +19,13 @@ describe('PrismaService', () => {
 
     expect(connect).not.toHaveBeenCalled();
     expect(config.get).toHaveBeenCalledWith('DATABASE_URL', { infer: true });
+
+    const disconnect = vi
+      .spyOn(PrismaClient.prototype, '$disconnect')
+      .mockResolvedValue(undefined);
+
     await prisma.onModuleDestroy();
+
+    expect(disconnect).toHaveBeenCalledTimes(1);
   });
 });
