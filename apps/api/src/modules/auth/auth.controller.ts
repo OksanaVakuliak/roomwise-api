@@ -5,11 +5,12 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   Res,
 } from '@nestjs/common';
 import { ApiBody, ApiCookieAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { ZodResponse } from 'nestjs-zod';
 import {
   type AdminMe,
@@ -27,8 +28,14 @@ import { Public } from './public.decorator';
 import { SessionService } from './session.service';
 import { SESSION_COOKIE_NAME, SessionCookieService } from './session-cookie';
 
-const LOGIN_RATE_LIMIT = 10;
-const LOGIN_RATE_LIMIT_WINDOW_MS = 900_000;
+const CREDENTIALS_RATE_LIMIT = 10;
+const CREDENTIALS_RATE_LIMIT_WINDOW_MS = 900_000;
+const CREDENTIALS_THROTTLE = {
+  default: {
+    limit: CREDENTIALS_RATE_LIMIT,
+    ttl: CREDENTIALS_RATE_LIMIT_WINDOW_MS,
+  },
+};
 
 @Controller('admin/auth')
 export class AuthController {
@@ -40,9 +47,7 @@ export class AuthController {
 
   @Public()
   @HttpCode(HttpStatus.OK)
-  @Throttle({
-    default: { limit: LOGIN_RATE_LIMIT, ttl: LOGIN_RATE_LIMIT_WINDOW_MS },
-  })
+  @Throttle(CREDENTIALS_THROTTLE)
   @Post('login')
   @ApiBody({ type: LoginDto })
   @ZodResponse({ status: HttpStatus.OK, type: AdminMeDto })
@@ -56,14 +61,19 @@ export class AuthController {
     return result.admin;
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiCookieAuth(SESSION_COOKIE_NAME)
   async logout(
-    @CurrentAdmin() admin: AuthenticatedAdmin,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
-    await this.sessionService.delete(admin.sessionId);
+    const sid = await this.sessionCookieService.readSid(request);
+    if (sid) {
+      await this.sessionService.delete(sid);
+    }
+
     this.sessionCookieService.clear(response);
   }
 
@@ -77,6 +87,7 @@ export class AuthController {
   @Post('password')
   @HttpCode(HttpStatus.NO_CONTENT)
   @DenyDemo('change-password')
+  @Throttle(CREDENTIALS_THROTTLE)
   @ApiCookieAuth(SESSION_COOKIE_NAME)
   @ApiBody({ type: ChangePasswordDto })
   async changePassword(

@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import type { Admin, AdminSession } from '../../generated/prisma/client';
+import type {
+  Admin,
+  AdminSession,
+  Prisma,
+} from '../../generated/prisma/client';
 import { Clock } from './clock';
 
 const SESSION_ABSOLUTE_TTL_MS = 604_800_000;
@@ -49,8 +53,12 @@ export class SessionService {
     await this.prisma.adminSession.deleteMany({ where: { id: sid } });
   }
 
-  async deleteAllForAdmin(adminId: string, exceptSid?: string): Promise<void> {
-    await this.prisma.adminSession.deleteMany({
+  async deleteAllForAdmin(
+    adminId: string,
+    exceptSid?: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await tx.adminSession.deleteMany({
       where: {
         adminId,
         ...(exceptSid ? { id: { not: exceptSid } } : {}),

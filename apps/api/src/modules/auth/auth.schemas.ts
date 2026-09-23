@@ -22,6 +22,13 @@ export const adminPasswordSchema = z
   .min(ADMIN_PASSWORD_MIN_LENGTH)
   .max(ADMIN_PASSWORD_MAX_LENGTH);
 
+export function isPasswordSameAsLogin(
+  password: string,
+  login: string,
+): boolean {
+  return password.toLowerCase() === login.toLowerCase();
+}
+
 export const loginSchema = z.object({
   login: z.string().trim().toLowerCase().max(ADMIN_LOGIN_MAX_LENGTH),
   password: z.string().max(ADMIN_PASSWORD_MAX_LENGTH),

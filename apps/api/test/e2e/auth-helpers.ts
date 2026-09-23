@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
-import * as bcrypt from 'bcryptjs';
 import request, { type Response as SupertestResponse } from 'supertest';
 import type { PrismaService } from '../../src/common/prisma/prisma.service';
+import { hashPassword } from '../../src/modules/auth/password-hasher';
 import { SESSION_COOKIE_NAME } from '../../src/modules/auth/session-cookie';
 
 const LOW_BCRYPT_COST = 4;
@@ -28,7 +28,7 @@ export async function createAdmin(
   const login = options.login ?? `admin-${randomUUID().slice(0, 8)}`;
   const password = options.password ?? DEFAULT_PASSWORD;
   const isDemo = options.isDemo ?? false;
-  const passwordHash = await bcrypt.hash(password, LOW_BCRYPT_COST);
+  const passwordHash = await hashPassword(password, LOW_BCRYPT_COST);
 
   const admin = await prisma.admin.create({
     data: { login, passwordHash, isDemo },

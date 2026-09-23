@@ -164,6 +164,19 @@ describe('SessionService', () => {
     });
   });
 
+  it('deletes all sessions for an admin through the given transaction client', async () => {
+    const prisma = createPrisma(null);
+    const tx = createPrisma(null);
+    const service = new SessionService(prisma, createClock(new Date()));
+
+    await service.deleteAllForAdmin(ADMIN_ID, SESSION_ID, tx);
+
+    expect(tx.adminSession.deleteMany).toHaveBeenCalledWith({
+      where: { adminId: ADMIN_ID, id: { not: SESSION_ID } },
+    });
+    expect(prisma.adminSession.deleteMany).not.toHaveBeenCalled();
+  });
+
   it('deletes all sessions for an admin when no exception is given', async () => {
     const prisma = createPrisma(null);
     const service = new SessionService(prisma, createClock(new Date()));

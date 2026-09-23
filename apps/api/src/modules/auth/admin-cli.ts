@@ -5,6 +5,7 @@ import {
   ADMIN_PASSWORD_MIN_LENGTH,
   adminLoginSchema,
   adminPasswordSchema,
+  isPasswordSameAsLogin,
 } from './auth.schemas';
 
 export const USAGE_MESSAGE =
@@ -64,7 +65,7 @@ export function validateCredentials(
   if (
     loginResult.success &&
     passwordResult.success &&
-    password.toLowerCase() === loginResult.data.toLowerCase()
+    isPasswordSameAsLogin(password, loginResult.data)
   ) {
     errors.push('Password must not be the same as the login.');
   }
