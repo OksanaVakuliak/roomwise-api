@@ -5,6 +5,7 @@ import {
   SwaggerModule,
 } from '@nestjs/swagger';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
+import { SESSION_COOKIE_NAME } from '../../modules/auth/session-cookie';
 
 export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
@@ -12,6 +13,7 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     .setDescription('API for the Roomwise renovation cost configurator')
     .setVersion('1.0')
     .setOpenAPIVersion('3.1.0')
+    .addCookieAuth(SESSION_COOKIE_NAME)
     .build();
 
   return cleanupOpenApiDoc(SwaggerModule.createDocument(app, config), {
