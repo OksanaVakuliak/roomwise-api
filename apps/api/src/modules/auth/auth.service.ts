@@ -1,14 +1,13 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
 import { AppError } from '../../common/http/app-error';
 import { ERROR_CODES } from '../../common/http/error-codes';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { Admin } from '../../generated/prisma/client';
 import type { AdminMe } from './auth.schemas';
 import { Clock } from './clock';
+import { hashPassword, verifyPassword } from './password-hasher';
 import { SessionService } from './session.service';
 
-const BCRYPT_COST = 12;
 const DUMMY_PASSWORD = 'roomwise-dummy-password-for-timing-safety';
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 900_000;
@@ -42,14 +41,14 @@ export class AuthService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    this.dummyHash = await bcrypt.hash(DUMMY_PASSWORD, BCRYPT_COST);
+    this.dummyHash = await hashPassword(DUMMY_PASSWORD);
   }
 
   async login(login: string, password: string): Promise<LoginResult> {
     const admin = await this.prisma.admin.findUnique({ where: { login } });
 
     if (!admin) {
-      await bcrypt.compare(password, this.dummyHash);
+      await verifyPassword(password, this.dummyHash);
       throw new AppError(ERROR_CODES.INVALID_CREDENTIALS);
     }
 
@@ -63,7 +62,7 @@ export class AuthService implements OnModuleInit {
       });
     }
 
-    const passwordMatches = await bcrypt.compare(password, admin.passwordHash);
+    const passwordMatches = await verifyPassword(password, admin.passwordHash);
     if (!passwordMatches) {
       await this.registerFailedLogin(admin.id, now);
       throw new AppError(ERROR_CODES.INVALID_CREDENTIALS);
@@ -93,7 +92,7 @@ export class AuthService implements OnModuleInit {
       throw new AppError(ERROR_CODES.UNAUTHENTICATED);
     }
 
-    const passwordMatches = await bcrypt.compare(
+    const passwordMatches = await verifyPassword(
       currentPassword,
       admin.passwordHash,
     );
@@ -101,7 +100,7 @@ export class AuthService implements OnModuleInit {
       throw new AppError(ERROR_CODES.INVALID_CREDENTIALS);
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
+    const passwordHash = await hashPassword(newPassword);
     await this.prisma.admin.update({
       where: { id: adminId },
       data: { passwordHash },
