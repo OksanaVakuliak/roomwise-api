@@ -66,6 +66,48 @@ describe('MaintenanceRegistry', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error));
   });
 
+  it('reports failure and continues with the next task when isDue throws synchronously', async () => {
+    const failing = createTask({
+      name: 'failing',
+      isDue: vi.fn(() => {
+        throw new Error('boom');
+      }),
+    });
+    const succeeding = createTask({ name: 'succeeding' });
+    const registry = new MaintenanceRegistry(
+      createDiscovery([failing, succeeding]),
+    );
+
+    const results = await registry.runDue(new Date());
+
+    expect(results).toEqual([
+      { name: 'failing', status: 'FAILED' },
+      { name: 'succeeding', status: 'SUCCESS' },
+    ]);
+    expect(failing.run).not.toHaveBeenCalled();
+    expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error));
+  });
+
+  it('reports failure and continues with the next task when isDue rejects', async () => {
+    const failing = createTask({
+      name: 'failing',
+      isDue: vi.fn().mockRejectedValue(new Error('boom')),
+    });
+    const succeeding = createTask({ name: 'succeeding' });
+    const registry = new MaintenanceRegistry(
+      createDiscovery([failing, succeeding]),
+    );
+
+    const results = await registry.runDue(new Date());
+
+    expect(results).toEqual([
+      { name: 'failing', status: 'FAILED' },
+      { name: 'succeeding', status: 'SUCCESS' },
+    ]);
+    expect(failing.run).not.toHaveBeenCalled();
+    expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error));
+  });
+
   it('throws at discovery time when task names collide', () => {
     const registry = new MaintenanceRegistry(
       createDiscovery([

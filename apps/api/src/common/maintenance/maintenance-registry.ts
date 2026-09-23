@@ -65,16 +65,16 @@ export class MaintenanceRegistry implements OnModuleInit {
     task: MaintenanceTask,
     now: Date,
   ): Promise<MaintenanceTaskResult> {
-    const isDue = await task.isDue(now);
-
-    if (!isDue) {
-      return {
-        name: task.name,
-        status: MAINTENANCE_TASK_STATUS.SKIPPED_NOT_DUE,
-      };
-    }
-
     try {
+      const isDue = await task.isDue(now);
+
+      if (!isDue) {
+        return {
+          name: task.name,
+          status: MAINTENANCE_TASK_STATUS.SKIPPED_NOT_DUE,
+        };
+      }
+
       await task.run(now);
 
       return { name: task.name, status: MAINTENANCE_TASK_STATUS.SUCCESS };
