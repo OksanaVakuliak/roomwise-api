@@ -14,6 +14,16 @@ const EXIT_FAILURE = 1;
 const SIGINT_EXIT_CODE = 130;
 const PRISMA_UNIQUE_CONSTRAINT_ERROR_CODE = 'P2002';
 
+function isReservedDemoLogin(login: string): boolean {
+  const demoLogin = process.env.DEMO_ADMIN_LOGIN;
+
+  if (demoLogin === undefined) {
+    return false;
+  }
+
+  return demoLogin.trim().toLowerCase() === login;
+}
+
 const databaseUrlSchema = z
   .string()
   .trim()
@@ -153,6 +163,14 @@ async function main(): Promise<void> {
     for (const error of validation.errors) {
       process.stderr.write(`${error}\n`);
     }
+    process.exitCode = EXIT_FAILURE;
+    return;
+  }
+
+  if (isReservedDemoLogin(validation.login)) {
+    process.stderr.write(
+      `Login "${validation.login}" is reserved for the demo account\n`,
+    );
     process.exitCode = EXIT_FAILURE;
     return;
   }
