@@ -1,7 +1,8 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  moduleFormat    = "cjs"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -45,4 +46,263 @@ enum RoomTypeCode {
   KITCHEN
   KITCHEN_LIVING
   BATHROOM
+}
+
+model Admin {
+  id               String    @id @default(uuid()) @db.Uuid
+  login            String    @unique
+  passwordHash     String    @map("password_hash")
+  isDemo           Boolean   @default(false) @map("is_demo")
+  failedLoginCount Int       @default(0) @map("failed_login_count")
+  lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  sessions                      AdminSession[]
+  roomTypeUpdates               RoomType[]               @relation("RoomTypeUpdatedBy")
+  categoryUpdates               Category[]               @relation("CategoryUpdatedBy")
+  materialTypeUpdates           MaterialType[]           @relation("MaterialTypeUpdatedBy")
+  productUpdates                Product[]                @relation("ProductUpdatedBy")
+  styleUpdates                  Style[]                  @relation("StyleUpdatedBy")
+  engineeringPackageItemUpdates EngineeringPackageItem[] @relation("EngineeringPackageItemUpdatedBy")
+  optionUpdates                 Option[]                 @relation("OptionUpdatedBy")
+  createdImages                 Image[]                  @relation("ImageCreatedBy")
+
+  @@unique([isDemo], where: { isDemo: true })
+  @@map("admins")
+}
+
+model AdminSession {
+  id         String   @id @default(uuid()) @db.Uuid
+  adminId    String   @map("admin_id") @db.Uuid
+  admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+
+  @@index([adminId])
+  @@map("admin_sessions")
+}
+
+model RoomType {
+  id          String       @id @default(uuid()) @db.Uuid
+  code        RoomTypeCode @unique
+  name        Json         @db.JsonB
+  sortOrder   Int          @map("sort_order")
+  revision    String       @default(uuid()) @db.Uuid
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById String?      @map("updated_by_id") @db.Uuid
+  updatedBy   Admin?       @relation("RoomTypeUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  categories            RoomTypeCategory[]
+  optionRoomTypes       OptionRoomType[]
+  styleDefaultMaterials StyleDefaultMaterial[]
+
+  @@map("room_types")
+}
+
+model Category {
+  id           String            @id @default(uuid()) @db.Uuid
+  name         Json              @db.JsonB
+  wastePercent Decimal           @map("waste_percent") @db.Decimal(5, 2)
+  surface      SurfaceKind
+  status       PublicationStatus @default(DRAFT)
+  revision     String            @default(uuid()) @db.Uuid
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById  String?           @map("updated_by_id") @db.Uuid
+  updatedBy    Admin?            @relation("CategoryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  roomTypeCategories    RoomTypeCategory[]
+  products              Product[]
+  styleDefaultMaterials StyleDefaultMaterial[]
+
+  @@map("categories")
+}
+
+model RoomTypeCategory {
+  roomTypeId String   @map("room_type_id") @db.Uuid
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  categoryId String   @map("category_id") @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  sortOrder  Int      @map("sort_order")
+
+  @@id([roomTypeId, categoryId])
+  @@unique([roomTypeId, sortOrder])
+  @@map("room_type_categories")
+}
+
+model MaterialType {
+  id          String            @id @default(uuid()) @db.Uuid
+  code        String            @unique
+  name        Json              @db.JsonB
+  status      PublicationStatus @default(DRAFT)
+  revision    String            @default(uuid()) @db.Uuid
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById String?           @map("updated_by_id") @db.Uuid
+  updatedBy   Admin?            @relation("MaterialTypeUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  products Product[]
+
+  @@map("material_types")
+}
+
+model Product {
+  id                    String            @id @default(uuid()) @db.Uuid
+  categoryId            String            @map("category_id") @db.Uuid
+  category              Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  materialTypeId        String            @map("material_type_id") @db.Uuid
+  materialType          MaterialType      @relation(fields: [materialTypeId], references: [id], onDelete: Restrict)
+  name                  Json              @db.JsonB
+  description           Json              @db.JsonB
+  brand                 String
+  manufacturer          String
+  color                 Json              @db.JsonB
+  size                  Json              @db.JsonB
+  priceCents            Int               @map("price_cents")
+  unit                  ProductUnit
+  wastePercentOverride  Decimal?          @map("waste_percent_override") @db.Decimal(5, 2)
+  heatedFloorCompatible Boolean           @default(false) @map("heated_floor_compatible")
+  textureImageId        String?           @map("texture_image_id") @db.Uuid
+  textureImage          Image?            @relation("ProductTextureImage", fields: [textureImageId], references: [id], onDelete: SetNull)
+  tileWidthMm           Int?              @map("tile_width_mm")
+  tileLengthMm          Int?              @map("tile_length_mm")
+  fallbackColor         String?           @map("fallback_color")
+  status                PublicationStatus @default(DRAFT)
+  revision              String            @default(uuid()) @db.Uuid
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById           String?           @map("updated_by_id") @db.Uuid
+  updatedBy             Admin?            @relation("ProductUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  images                ProductImage[]
+  attributes            ProductAttribute[]
+  styleDefaultMaterials StyleDefaultMaterial[]
+
+  @@index([categoryId, status])
+  @@map("products")
+}
+
+model ProductImage {
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  imageId   String  @map("image_id") @db.Uuid
+  image     Image   @relation("ProductImageImage", fields: [imageId], references: [id], onDelete: Restrict)
+  sortOrder Int     @map("sort_order")
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  @@id([productId, imageId])
+  @@unique([productId], where: { isPrimary: true })
+  @@map("product_images")
+}
+
+model ProductAttribute {
+  id        String  @id @default(uuid()) @db.Uuid
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      Json    @db.JsonB
+  value     Json    @db.JsonB
+  sortOrder Int     @map("sort_order")
+
+  @@index([productId])
+  @@map("product_attributes")
+}
+
+model Image {
+  id          String   @id @default(uuid()) @db.Uuid
+  publicId    String   @unique @map("public_id")
+  width       Int
+  height      Int
+  bytes       Int
+  format      String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdById String?  @map("created_by_id") @db.Uuid
+  createdBy   Admin?   @relation("ImageCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  products      Product[]      @relation("ProductTextureImage")
+  productImages ProductImage[] @relation("ProductImageImage")
+  styles        Style[]        @relation("StyleImage")
+  options       Option[]       @relation("OptionImage")
+
+  @@map("images")
+}
+
+model Style {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        Json              @db.JsonB
+  description Json              @db.JsonB
+  imageId     String?           @map("image_id") @db.Uuid
+  image       Image?            @relation("StyleImage", fields: [imageId], references: [id], onDelete: SetNull)
+  sortOrder   Int               @map("sort_order")
+  status      PublicationStatus @default(DRAFT)
+  revision    String            @default(uuid()) @db.Uuid
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById String?           @map("updated_by_id") @db.Uuid
+  updatedBy   Admin?            @relation("StyleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  styleDefaultMaterials StyleDefaultMaterial[]
+
+  @@map("styles")
+}
+
+model StyleDefaultMaterial {
+  styleId    String   @map("style_id") @db.Uuid
+  style      Style    @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  roomTypeId String   @map("room_type_id") @db.Uuid
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  categoryId String   @map("category_id") @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  productId  String   @map("product_id") @db.Uuid
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@id([styleId, roomTypeId, categoryId])
+  @@index([productId])
+  @@map("style_default_materials")
+}
+
+model EngineeringPackageItem {
+  id             String            @id @default(uuid()) @db.Uuid
+  name           Json              @db.JsonB
+  description    Json              @db.JsonB
+  includedInBase Boolean           @map("included_in_base")
+  priceCents     Int?              @map("price_cents")
+  unit           OptionUnit?
+  sortOrder      Int               @map("sort_order")
+  status         PublicationStatus @default(DRAFT)
+  revision       String            @default(uuid()) @db.Uuid
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById    String?           @map("updated_by_id") @db.Uuid
+  updatedBy      Admin?            @relation("EngineeringPackageItemUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("engineering_package_items")
+}
+
+model Option {
+  id          String            @id @default(uuid()) @db.Uuid
+  kind        OptionKind
+  name        Json              @db.JsonB
+  description Json              @db.JsonB
+  imageId     String?           @map("image_id") @db.Uuid
+  image       Image?            @relation("OptionImage", fields: [imageId], references: [id], onDelete: SetNull)
+  priceCents  Int               @map("price_cents")
+  unit        OptionUnit
+  minQuantity Int?              @map("min_quantity")
+  maxQuantity Int?              @map("max_quantity")
+  sortOrder   Int               @map("sort_order")
+  status      PublicationStatus @default(DRAFT)
+  revision    String            @default(uuid()) @db.Uuid
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById String?           @map("updated_by_id") @db.Uuid
+  updatedBy   Admin?            @relation("OptionUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  optionRoomTypes OptionRoomType[]
+
+  @@unique([kind, sortOrder])
+  @@map("options")
+}
+
+model OptionRoomType {
+  optionId   String   @map("option_id") @db.Uuid
+  option     Option   @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  roomTypeId String   @map("room_type_id") @db.Uuid
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@id([optionId, roomTypeId])
+  @@map("option_room_types")
 }
