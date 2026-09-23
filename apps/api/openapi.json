@@ -1,6 +1,49 @@
 {
   "openapi": "3.1.0",
-  "paths": {},
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/internal/maintenance/run": {
+      "post": {
+        "operationId": "MaintenanceController_run",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRunResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      }
+    }
+  },
   "info": {
     "title": "Roomwise API",
     "description": "API for the Roomwise renovation cost configurator",
@@ -10,6 +53,61 @@
   "tags": [],
   "servers": [],
   "components": {
-    "schemas": {}
+    "schemas": {
+      "HealthResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "const": "up"
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ]
+          }
+        },
+        "required": [
+          "service",
+          "database"
+        ],
+        "additionalProperties": false
+      },
+      "MaintenanceRunResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "SKIPPED_NOT_DUE",
+                    "SUCCESS",
+                    "FAILED"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "tasks"
+        ],
+        "additionalProperties": false
+      }
+    }
   }
 }
