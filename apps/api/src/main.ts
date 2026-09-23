@@ -14,7 +14,7 @@ export function configureApplication(
   app: NestExpressApplication,
   config: AppConfigService,
 ): void {
-  app.set('trust proxy', 1);
+  app.set('trust proxy', config.get('TRUST_PROXY_HOPS', { infer: true }));
   app.setGlobalPrefix('api/v1');
   app.use(cookieParser());
   app.enableCors({
