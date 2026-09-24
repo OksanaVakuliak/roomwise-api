@@ -357,8 +357,8 @@ describe('ProductsService.create', () => {
     await expect(
       service.create(createProductInput(), ADMIN_ID),
     ).rejects.toMatchObject({
-      code: ERROR_CODES.UNPROCESSABLE,
-      params: { field: 'materialTypeId' },
+      code: ERROR_CODES.MATERIAL_TYPE_NOT_FOUND,
+      params: { materialTypeId: MATERIAL_TYPE_ID },
     });
   });
 
@@ -371,8 +371,8 @@ describe('ProductsService.create', () => {
     await expect(
       service.create(createProductInput(), ADMIN_ID),
     ).rejects.toMatchObject({
-      code: ERROR_CODES.UNPROCESSABLE,
-      params: { field: 'images', ids: [IMAGE_ID] },
+      code: ERROR_CODES.IMAGE_NOT_FOUND,
+      params: { imageIds: [IMAGE_ID] },
     });
   });
 

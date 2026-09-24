@@ -5,11 +5,12 @@ import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { Prisma } from '../../../generated/prisma/client';
 import {
   PublicationStatus,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
-import { type ImageSource, ImageUrlBuilder } from '../images/image-urls';
+import { ImageUrlBuilder } from '../images/image-urls';
 import type {
   CreateProductInput,
   ProductAttributeInput,
@@ -42,7 +43,7 @@ const PRODUCT_ADMIN_INCLUDE = {
     orderBy: { sortOrder: 'asc' as const },
   },
   textureImage: { select: { id: true, publicId: true } },
-};
+} satisfies Prisma.ProductInclude;
 
 const PRODUCT_LIST_INCLUDE = {
   updatedBy: { select: { id: true, login: true } },
@@ -51,45 +52,15 @@ const PRODUCT_LIST_INCLUDE = {
     take: 1,
     include: { image: { select: { id: true, publicId: true } } },
   },
-};
+} satisfies Prisma.ProductInclude;
 
-interface ProductAdminRow {
-  id: string;
-  categoryId: string;
-  materialTypeId: string;
-  name: unknown;
-  description: unknown;
-  brand: string;
-  manufacturer: string;
-  color: unknown;
-  size: unknown;
-  priceCents: number;
-  unit: string;
-  wastePercentOverride: { toNumber: () => number } | null;
-  heatedFloorCompatible: boolean;
-  tileWidthMm: number | null;
-  tileLengthMm: number | null;
-  fallbackColor: string | null;
-  status: PublicationStatus;
-  revision: string;
-  updatedAt: Date;
-  updatedBy: { id: string; login: string } | null;
-  images: Array<{ isPrimary: boolean; image: ImageSource }>;
-  attributes: Array<{ name: unknown; value: unknown }>;
-  textureImage: ImageSource | null;
-}
+type ProductAdminRow = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_ADMIN_INCLUDE;
+}>;
 
-interface ProductListRow {
-  id: string;
-  name: unknown;
-  categoryId: string;
-  status: PublicationStatus;
-  priceCents: number;
-  unit: string;
-  updatedAt: Date;
-  updatedBy: { id: string; login: string } | null;
-  images: Array<{ image: ImageSource }>;
-}
+type ProductListRow = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_LIST_INCLUDE;
+}>;
 
 interface PublishableCandidate {
   name: LocalizedText;
@@ -169,12 +140,9 @@ export class ProductsService {
   ): Promise<ProductAdmin> {
     await this.assertCategoryExists(input.categoryId);
     await this.assertMaterialTypeExists(input.materialTypeId);
-    await this.assertImagesExist(
-      input.images.map((image) => image.imageId),
-      'images',
-    );
+    await this.assertImagesExist(input.images.map((image) => image.imageId));
     if (input.textureImageId) {
-      await this.assertImagesExist([input.textureImageId], 'textureImageId');
+      await this.assertImagesExist([input.textureImageId]);
     }
     this.assertZeroPriceConfirmed(input.priceCents, input.confirmZeroPrice);
 
@@ -232,13 +200,10 @@ export class ProductsService {
       await this.assertMaterialTypeExists(input.materialTypeId);
     }
     if (input.images !== undefined) {
-      await this.assertImagesExist(
-        input.images.map((image) => image.imageId),
-        'images',
-      );
+      await this.assertImagesExist(input.images.map((image) => image.imageId));
     }
     if (input.textureImageId !== undefined && input.textureImageId !== null) {
-      await this.assertImagesExist([input.textureImageId], 'textureImageId');
+      await this.assertImagesExist([input.textureImageId]);
     }
 
     const resolvedPriceCents = input.priceCents ?? existing.priceCents;
@@ -592,16 +557,13 @@ export class ProductsService {
     });
 
     if (!materialType) {
-      throw new AppError(ERROR_CODES.UNPROCESSABLE, {
-        params: { field: 'materialTypeId' },
+      throw new AppError(ERROR_CODES.MATERIAL_TYPE_NOT_FOUND, {
+        params: { materialTypeId },
       });
     }
   }
 
-  private async assertImagesExist(
-    imageIds: string[],
-    field: string,
-  ): Promise<void> {
+  private async assertImagesExist(imageIds: string[]): Promise<void> {
     if (imageIds.length === 0) {
       return;
     }
@@ -615,8 +577,8 @@ export class ProductsService {
     const missing = uniqueIds.filter((imageId) => !foundIds.has(imageId));
 
     if (missing.length > 0) {
-      throw new AppError(ERROR_CODES.UNPROCESSABLE, {
-        params: { field, ids: missing },
+      throw new AppError(ERROR_CODES.IMAGE_NOT_FOUND, {
+        params: { imageIds: missing },
       });
     }
   }
@@ -732,7 +694,7 @@ export class ProductsService {
       color: toLocalizedText(product.color),
       size: toLocalizedText(product.size),
       priceCents: product.priceCents,
-      unit: product.unit as ProductAdmin['unit'],
+      unit: product.unit,
       wastePercentOverride: product.wastePercentOverride?.toNumber() ?? null,
       heatedFloorCompatible: product.heatedFloorCompatible,
       images,
@@ -764,7 +726,7 @@ export class ProductsService {
       categoryId: product.categoryId,
       status: product.status,
       priceCents: product.priceCents,
-      unit: product.unit as ProductAdminListItem['unit'],
+      unit: product.unit,
       image: primaryImage
         ? this.imageUrls.toImageRef(primaryImage.image)
         : null,
