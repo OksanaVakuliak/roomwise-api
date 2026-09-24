@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
+import { ClockModule } from './common/clock/clock.module';
 import { HttpExceptionFilter } from './common/http/http-exception.filter';
 import { MaintenanceModule } from './common/maintenance/maintenance.module';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -12,6 +13,7 @@ import { validateEnv } from './config/env';
 import { pinoHttpOptions } from './config/logger';
 import { AdminAuthGuard } from './modules/auth/admin-auth.guard';
 import { AuthModule } from './modules/auth/auth.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
 
 const RATE_LIMIT_TTL_MS = 60_000;
@@ -28,6 +30,7 @@ const RATE_LIMIT_MAX_REQUESTS = 100;
       pinoHttp: pinoHttpOptions,
     }),
     PrismaModule,
+    ClockModule,
     SentryModule.forRoot(),
     ThrottlerModule.forRoot([
       { ttl: RATE_LIMIT_TTL_MS, limit: RATE_LIMIT_MAX_REQUESTS },
@@ -35,6 +38,7 @@ const RATE_LIMIT_MAX_REQUESTS = 100;
     HealthModule,
     MaintenanceModule,
     AuthModule,
+    CatalogModule,
   ],
   providers: [
     {

@@ -1,10 +1,10 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Clock } from '../../common/clock/clock';
 import { AppError } from '../../common/http/app-error';
 import { ERROR_CODES } from '../../common/http/error-codes';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { Admin } from '../../generated/prisma/client';
 import { type AdminMe, isPasswordSameAsLogin } from './auth.schemas';
-import { Clock } from './clock';
 import { hashPassword, verifyPassword } from './password-hasher';
 import { SessionService } from './session.service';
 

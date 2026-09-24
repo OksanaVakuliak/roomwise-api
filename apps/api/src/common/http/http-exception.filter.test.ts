@@ -1,7 +1,6 @@
 import type { ArgumentsHost } from '@nestjs/common';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ThrottlerException } from '@nestjs/throttler';
-import type { Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -9,15 +8,14 @@ import { AppError } from './app-error';
 import { ERROR_CODES } from './error-codes';
 import { HttpExceptionFilter } from './http-exception.filter';
 
-function createHost(retryAfter?: string): {
-  host: ArgumentsHost;
-  response: Pick<Response, 'getHeader' | 'json' | 'setHeader' | 'status'>;
-} {
+function createHost(retryAfter?: string, headersSent = false) {
   const response = {
     getHeader: vi.fn().mockReturnValue(retryAfter),
     json: vi.fn(),
     setHeader: vi.fn(),
+    removeHeader: vi.fn(),
     status: vi.fn(),
+    headersSent,
   };
   response.status.mockReturnValue(response);
 
@@ -179,6 +177,27 @@ describe('HttpExceptionFilter', () => {
         ],
       },
     });
+  });
+
+  it('removes an existing Cache-Control header before writing an error response', () => {
+    const { host, response } = createHost();
+    const filter = new HttpExceptionFilter();
+
+    filter.catch(new AppError(ERROR_CODES.NOT_FOUND), host);
+
+    expect(response.removeHeader).toHaveBeenCalledWith('Cache-Control');
+    expect(response.removeHeader.mock.invocationCallOrder[0]).toBeLessThan(
+      response.json.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('does not touch headers once the response has already been sent', () => {
+    const { host, response } = createHost(undefined, true);
+    const filter = new HttpExceptionFilter();
+
+    filter.catch(new AppError(ERROR_CODES.NOT_FOUND), host);
+
+    expect(response.removeHeader).not.toHaveBeenCalled();
   });
 
   it('maps an array too_small issue to TOO_FEW', () => {

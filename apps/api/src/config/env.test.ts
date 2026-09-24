@@ -125,4 +125,19 @@ describe('validateEnv', () => {
       validateEnv({ ...validEnv, TRUST_PROXY_HOPS: '6' }),
     ).toThrowError(EnvValidationError);
   });
+
+  it('rejects a CLOUDINARY_URL without a cloud name', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, CLOUDINARY_URL: 'cloudinary://key:secret@' }),
+    ).toThrowError(EnvValidationError);
+  });
+
+  it('rejects a CLOUDINARY_URL with the wrong protocol', () => {
+    expect(() =>
+      validateEnv({
+        ...validEnv,
+        CLOUDINARY_URL: 'https://key:secret@my-cloud',
+      }),
+    ).toThrowError(EnvValidationError);
+  });
 });

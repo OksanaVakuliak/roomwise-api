@@ -30,6 +30,7 @@ const ERROR_STATUS: Record<ErrorCode, number> = {
   ACCOUNT_LOCKED: HttpStatus.LOCKED,
   DEMO_FORBIDDEN: HttpStatus.FORBIDDEN,
   NOT_FOUND: HttpStatus.NOT_FOUND,
+  PRODUCT_UNAVAILABLE: HttpStatus.NOT_FOUND,
   STALE_REVISION: HttpStatus.CONFLICT,
   PAYLOAD_TOO_LARGE: HttpStatus.PAYLOAD_TOO_LARGE,
   TRANSLATION_MISSING: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -177,6 +178,9 @@ export class HttpExceptionFilter
     status: number,
     envelope: ErrorEnvelope,
   ): void {
+    if (!response.headersSent) {
+      response.removeHeader('Cache-Control');
+    }
     response.status(status).json(envelope);
   }
 }
