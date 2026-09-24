@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Clock } from '../../auth/clock';
+import { Clock } from '../../../common/clock/clock';
 
 const CATALOG_CACHE_TTL_SECONDS = 30;
 const MS_PER_SECOND = 1000;

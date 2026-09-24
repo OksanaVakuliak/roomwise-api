@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import { Clock } from '../../common/clock/clock';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { Admin, AdminSession } from '../../generated/prisma/client';
-import { Clock } from './clock';
 import { SessionService } from './session.service';
 
 const ADMIN_ID = 'admin-1';

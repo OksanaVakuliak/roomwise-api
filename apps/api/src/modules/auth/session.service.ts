@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { Clock } from '../../common/clock/clock';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type {
   Admin,
   AdminSession,
   Prisma,
 } from '../../generated/prisma/client';
-import { Clock } from './clock';
 
 const SESSION_ABSOLUTE_TTL_MS = 604_800_000;
 const SESSION_INACTIVITY_TTL_MS = 28_800_000;

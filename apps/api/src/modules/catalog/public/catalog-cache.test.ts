@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Clock } from '../../auth/clock';
+import type { Clock } from '../../../common/clock/clock';
 import { CATALOG_CACHE_TTL_MS, CatalogCache } from './catalog-cache';
 
 interface FakeClock extends Clock {

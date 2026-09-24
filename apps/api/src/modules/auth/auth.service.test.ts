@@ -1,10 +1,10 @@
 import * as bcrypt from 'bcryptjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Clock } from '../../common/clock/clock';
 import { ERROR_CODES } from '../../common/http/error-codes';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { Admin } from '../../generated/prisma/client';
 import { AuthService } from './auth.service';
-import { Clock } from './clock';
 import type { SessionService } from './session.service';
 
 vi.mock('bcryptjs', () => ({
