@@ -1,4 +1,10 @@
-export function findCloudinaryCloudName(url: string): string | null {
+export interface CloudinaryCredentials {
+  cloudName: string;
+  apiKey: string;
+  apiSecret: string;
+}
+
+export function parseCloudinaryUrl(url: string): CloudinaryCredentials | null {
   let parsed: URL;
 
   try {
@@ -7,9 +13,22 @@ export function findCloudinaryCloudName(url: string): string | null {
     return null;
   }
 
-  if (parsed.protocol !== 'cloudinary:' || !parsed.hostname) {
+  if (
+    parsed.protocol !== 'cloudinary:' ||
+    !parsed.hostname ||
+    !parsed.username ||
+    !parsed.password
+  ) {
     return null;
   }
 
-  return parsed.hostname;
+  return {
+    cloudName: parsed.hostname,
+    apiKey: decodeURIComponent(parsed.username),
+    apiSecret: decodeURIComponent(parsed.password),
+  };
+}
+
+export function findCloudinaryCloudName(url: string): string | null {
+  return parseCloudinaryUrl(url)?.cloudName ?? null;
 }

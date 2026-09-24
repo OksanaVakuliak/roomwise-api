@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
+import { parseCloudinaryUrl } from '../../../config/cloudinary-url';
 import type { AppEnv } from '../../../config/env';
 import { CLOUDINARY_UPLOAD_FOLDER } from './images.constants';
 
@@ -12,45 +13,16 @@ export interface CloudinaryUploadResult {
   bytes: number;
 }
 
-interface CloudinaryCredentials {
-  cloudName: string;
-  apiKey: string;
-  apiSecret: string;
-}
-
-export function parseCloudinaryCredentials(
-  cloudinaryUrl: string,
-): CloudinaryCredentials {
-  let parsed: URL;
-
-  try {
-    parsed = new URL(cloudinaryUrl);
-  } catch {
-    throw new Error('Invalid Cloudinary URL');
-  }
-
-  if (
-    parsed.protocol !== 'cloudinary:' ||
-    !parsed.hostname ||
-    !parsed.username ||
-    !parsed.password
-  ) {
-    throw new Error('Invalid Cloudinary URL');
-  }
-
-  return {
-    cloudName: parsed.hostname,
-    apiKey: decodeURIComponent(parsed.username),
-    apiSecret: decodeURIComponent(parsed.password),
-  };
-}
-
 @Injectable()
 export class CloudinaryService {
   constructor(@Inject(ConfigService) config: ConfigService<AppEnv, true>) {
-    const credentials = parseCloudinaryCredentials(
+    const credentials = parseCloudinaryUrl(
       config.get('CLOUDINARY_URL', { infer: true }),
     );
+
+    if (!credentials) {
+      throw new Error('Invalid Cloudinary URL');
+    }
 
     cloudinary.config({
       cloud_name: credentials.cloudName,
