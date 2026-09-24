@@ -370,6 +370,7 @@ describe('public catalog e2e', () => {
 
       expect(response.status).toBe(404);
       expect(response.body.error.code).toBe(ERROR_CODES.NOT_FOUND);
+      expect(response.headers['cache-control']).toBeUndefined();
     });
   });
 

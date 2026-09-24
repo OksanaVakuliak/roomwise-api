@@ -62,7 +62,10 @@ export class PublicCatalogService {
       }),
       this.prisma.product.groupBy({
         by: ['categoryId'],
-        where: { status: PublicationStatus.PUBLISHED },
+        where: {
+          status: PublicationStatus.PUBLISHED,
+          category: { status: PublicationStatus.PUBLISHED },
+        },
         _count: { _all: true },
       }),
     ]);
@@ -103,26 +106,27 @@ export class PublicCatalogService {
     categoryId: string,
     lang: Language,
   ): Promise<PublicProductCardsResponse> {
-    const category = await this.prisma.category.findUnique({
-      where: { id: categoryId },
-      select: { status: true },
-    });
+    const [category, products] = await Promise.all([
+      this.prisma.category.findUnique({
+        where: { id: categoryId },
+        select: { status: true },
+      }),
+      this.prisma.product.findMany({
+        where: { categoryId, status: PublicationStatus.PUBLISHED },
+        include: {
+          materialType: { select: { code: true } },
+          images: {
+            orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+            take: PRIMARY_IMAGE_TAKE,
+            include: { image: true },
+          },
+        },
+      }),
+    ]);
 
     if (!category || category.status !== PublicationStatus.PUBLISHED) {
       throw new AppError(ERROR_CODES.NOT_FOUND);
     }
-
-    const products = await this.prisma.product.findMany({
-      where: { categoryId, status: PublicationStatus.PUBLISHED },
-      include: {
-        materialType: { select: { code: true } },
-        images: {
-          where: { isPrimary: true },
-          take: PRIMARY_IMAGE_TAKE,
-          include: { image: true },
-        },
-      },
-    });
 
     const items = products.map((product) => {
       const primaryImage = product.images[0]?.image;
@@ -245,16 +249,11 @@ export class PublicCatalogService {
   async getStyleDefaultMaterials(
     styleId: string,
   ): Promise<PublicDefaultMaterialsResponse> {
-    const style = await this.prisma.style.findUnique({
-      where: { id: styleId },
-      select: { status: true },
-    });
-
-    if (!style || style.status !== PublicationStatus.PUBLISHED) {
-      throw new AppError(ERROR_CODES.NOT_FOUND);
-    }
-
-    const [categoryLinks, defaults] = await Promise.all([
+    const [style, categoryLinks, defaults] = await Promise.all([
+      this.prisma.style.findUnique({
+        where: { id: styleId },
+        select: { status: true },
+      }),
       this.prisma.roomTypeCategory.findMany({
         where: { category: { status: PublicationStatus.PUBLISHED } },
         orderBy: { sortOrder: 'asc' },
@@ -262,9 +261,15 @@ export class PublicCatalogService {
       }),
       this.prisma.styleDefaultMaterial.findMany({
         where: { styleId },
-        include: { product: { select: { id: true, status: true } } },
+        include: {
+          product: { select: { id: true, status: true, categoryId: true } },
+        },
       }),
     ]);
+
+    if (!style || style.status !== PublicationStatus.PUBLISHED) {
+      throw new AppError(ERROR_CODES.NOT_FOUND);
+    }
 
     const defaultsByPair = new Map(
       defaults.map((entry) => [
@@ -284,7 +289,8 @@ export class PublicCatalogService {
           roomTypeCode: link.roomType.code,
           categoryId: link.categoryId,
           productId:
-            defaultProduct?.status === PublicationStatus.PUBLISHED
+            defaultProduct?.status === PublicationStatus.PUBLISHED &&
+            defaultProduct.categoryId === link.categoryId
               ? defaultProduct.id
               : null,
         };
@@ -317,8 +323,8 @@ export class PublicCatalogService {
         name: pickLocalized(item.name, lang),
         description: pickLocalized(item.description, lang),
         includedInBase: item.includedInBase,
-        priceCents: item.priceCents,
-        unit: item.unit,
+        priceCents: item.includedInBase ? null : item.priceCents,
+        unit: item.includedInBase ? null : item.unit,
       })),
       options: options.map((option) => ({
         id: option.id,

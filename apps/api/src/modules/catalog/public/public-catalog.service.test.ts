@@ -156,6 +156,14 @@ describe('PublicCatalogService.listRoomTypes', () => {
       orderBy: { sortOrder: 'asc' },
       include: { category: true },
     });
+    expect(groupBy).toHaveBeenCalledWith({
+      by: ['categoryId'],
+      where: {
+        status: PublicationStatus.PUBLISHED,
+        category: { status: PublicationStatus.PUBLISHED },
+      },
+      _count: { _all: true },
+    });
     expect(result.items).toHaveLength(2);
     const living = result.items.find(
       (item) => item.code === RoomTypeCode.LIVING_ROOM,
@@ -186,7 +194,11 @@ describe('PublicCatalogService.listRoomTypes', () => {
 describe('PublicCatalogService.listCategoryProducts', () => {
   it('throws NOT_FOUND when the category does not exist', async () => {
     const findUnique = vi.fn().mockResolvedValue(null);
-    const prisma = createPrisma({ category: { findUnique } });
+    const productFindMany = vi.fn().mockResolvedValue([]);
+    const prisma = createPrisma({
+      category: { findUnique },
+      product: { findMany: productFindMany },
+    });
     const service = new PublicCatalogService(prisma, createImageUrlBuilder());
 
     await expect(
@@ -198,7 +210,11 @@ describe('PublicCatalogService.listCategoryProducts', () => {
     const findUnique = vi
       .fn()
       .mockResolvedValue({ status: PublicationStatus.DRAFT });
-    const prisma = createPrisma({ category: { findUnique } });
+    const productFindMany = vi.fn().mockResolvedValue([]);
+    const prisma = createPrisma({
+      category: { findUnique },
+      product: { findMany: productFindMany },
+    });
     const service = new PublicCatalogService(prisma, createImageUrlBuilder());
 
     await expect(
@@ -254,7 +270,7 @@ describe('PublicCatalogService.listCategoryProducts', () => {
       include: {
         materialType: { select: { code: true } },
         images: {
-          where: { isPrimary: true },
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
           take: 1,
           include: { image: true },
         },
@@ -266,6 +282,41 @@ describe('PublicCatalogService.listCategoryProducts', () => {
     ]);
     expect(result.items[0].image).toBeNull();
     expect(result.items[1].image).toEqual({
+      id: 'image-1',
+      thumb: 'thumb/roomwise/seed/a',
+      card: 'card/roomwise/seed/a',
+      zoom: 'zoom/roomwise/seed/a',
+    });
+  });
+
+  it('falls back to the first ordered image when no image is flagged primary', async () => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValue({ status: PublicationStatus.PUBLISHED });
+    const productFindMany = vi.fn().mockResolvedValue([
+      {
+        id: 'product-a',
+        name: localized('Oak Laminate', 'Дубовий ламінат'),
+        brand: 'Floorwise',
+        manufacturer: 'Floorwise Manufacturing',
+        size: localized('1380 x 193 mm', '1380 x 193 мм'),
+        color: localized('Natural Oak', 'Натуральний дуб'),
+        priceCents: 1800,
+        unit: ProductUnit.SQM,
+        heatedFloorCompatible: true,
+        materialType: { code: 'laminate' },
+        images: [{ image: { id: 'image-1', publicId: 'roomwise/seed/a' } }],
+      },
+    ]);
+    const prisma = createPrisma({
+      category: { findUnique },
+      product: { findMany: productFindMany },
+    });
+    const service = new PublicCatalogService(prisma, createImageUrlBuilder());
+
+    const result = await service.listCategoryProducts('cat-flooring', 'en');
+
+    expect(result.items[0].image).toEqual({
       id: 'image-1',
       thumb: 'thumb/roomwise/seed/a',
       card: 'card/roomwise/seed/a',
@@ -529,7 +580,11 @@ describe('PublicCatalogService.getProduct', () => {
 describe('PublicCatalogService.getStyleDefaultMaterials', () => {
   it('throws NOT_FOUND when the style does not exist', async () => {
     const findUnique = vi.fn().mockResolvedValue(null);
-    const prisma = createPrisma({ style: { findUnique } });
+    const prisma = createPrisma({
+      style: { findUnique },
+      roomTypeCategory: { findMany: vi.fn().mockResolvedValue([]) },
+      styleDefaultMaterial: { findMany: vi.fn().mockResolvedValue([]) },
+    });
     const service = new PublicCatalogService(prisma, createImageUrlBuilder());
 
     await expect(
@@ -541,7 +596,11 @@ describe('PublicCatalogService.getStyleDefaultMaterials', () => {
     const findUnique = vi
       .fn()
       .mockResolvedValue({ status: PublicationStatus.DRAFT });
-    const prisma = createPrisma({ style: { findUnique } });
+    const prisma = createPrisma({
+      style: { findUnique },
+      roomTypeCategory: { findMany: vi.fn().mockResolvedValue([]) },
+      styleDefaultMaterial: { findMany: vi.fn().mockResolvedValue([]) },
+    });
     const service = new PublicCatalogService(prisma, createImageUrlBuilder());
 
     await expect(
@@ -574,12 +633,20 @@ describe('PublicCatalogService.getStyleDefaultMaterials', () => {
       {
         roomTypeId: 'rt-living',
         categoryId: 'cat-flooring',
-        product: { id: 'product-a', status: PublicationStatus.PUBLISHED },
+        product: {
+          id: 'product-a',
+          status: PublicationStatus.PUBLISHED,
+          categoryId: 'cat-flooring',
+        },
       },
       {
         roomTypeId: 'rt-bathroom',
         categoryId: 'cat-flooring',
-        product: { id: 'product-archived', status: PublicationStatus.ARCHIVED },
+        product: {
+          id: 'product-archived',
+          status: PublicationStatus.ARCHIVED,
+          categoryId: 'cat-flooring',
+        },
       },
     ]);
     const prisma = createPrisma({
@@ -611,6 +678,46 @@ describe('PublicCatalogService.getStyleDefaultMaterials', () => {
         },
       ],
     });
+  });
+
+  it('nulls the default product when it no longer belongs to the pair category', async () => {
+    const styleFindUnique = vi
+      .fn()
+      .mockResolvedValue({ status: PublicationStatus.PUBLISHED });
+    const roomTypeCategoryFindMany = vi.fn().mockResolvedValue([
+      {
+        roomTypeId: 'rt-living',
+        categoryId: 'cat-flooring',
+        roomType: { code: RoomTypeCode.LIVING_ROOM },
+      },
+    ]);
+    const styleDefaultMaterialFindMany = vi.fn().mockResolvedValue([
+      {
+        roomTypeId: 'rt-living',
+        categoryId: 'cat-flooring',
+        product: {
+          id: 'product-recategorized',
+          status: PublicationStatus.PUBLISHED,
+          categoryId: 'cat-walls',
+        },
+      },
+    ]);
+    const prisma = createPrisma({
+      style: { findUnique: styleFindUnique },
+      roomTypeCategory: { findMany: roomTypeCategoryFindMany },
+      styleDefaultMaterial: { findMany: styleDefaultMaterialFindMany },
+    });
+    const service = new PublicCatalogService(prisma, createImageUrlBuilder());
+
+    const result = await service.getStyleDefaultMaterials('style-1');
+
+    expect(result.items).toEqual([
+      {
+        roomTypeCode: RoomTypeCode.LIVING_ROOM,
+        categoryId: 'cat-flooring',
+        productId: null,
+      },
+    ]);
   });
 });
 
@@ -735,5 +842,53 @@ describe('PublicCatalogService.getEngineering', () => {
     );
     expect(additional?.kind).toBe(OptionKind.ADDITIONAL);
     expect(additional?.perRoom).toBe(false);
+  });
+
+  it('nulls priceCents and unit for package items included in the base, even when stored', async () => {
+    const packageItemFindMany = vi.fn().mockResolvedValue([
+      {
+        id: 'item-included',
+        name: localized('Demolition', 'Демонтаж'),
+        description: localized('Removing old finishes', 'Демонтаж старого'),
+        includedInBase: true,
+        priceCents: 1200,
+        unit: OptionUnit.PIECE,
+      },
+      {
+        id: 'item-optional',
+        name: localized('Extra Finish', 'Додаткове оздоблення'),
+        description: localized('Optional add-on', 'Додатковий варіант'),
+        includedInBase: false,
+        priceCents: 800,
+        unit: OptionUnit.PIECE,
+      },
+    ]);
+    const optionFindMany = vi.fn().mockResolvedValue([]);
+    const prisma = createPrisma({
+      engineeringPackageItem: { findMany: packageItemFindMany },
+      option: { findMany: optionFindMany },
+    });
+    const service = new PublicCatalogService(prisma, createImageUrlBuilder());
+
+    const result = await service.getEngineering('en');
+
+    expect(result.packageItems).toEqual([
+      {
+        id: 'item-included',
+        name: 'Demolition',
+        description: 'Removing old finishes',
+        includedInBase: true,
+        priceCents: null,
+        unit: null,
+      },
+      {
+        id: 'item-optional',
+        name: 'Extra Finish',
+        description: 'Optional add-on',
+        includedInBase: false,
+        priceCents: 800,
+        unit: OptionUnit.PIECE,
+      },
+    ]);
   });
 });
