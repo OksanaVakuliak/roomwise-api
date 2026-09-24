@@ -1,6 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { LOCALIZED_DESCRIPTION_MAX_LENGTH } from '../../../../common/i18n/localized-text.schema';
 import {
   OptionKind,
   OptionUnit,
@@ -13,7 +12,7 @@ const QUANTITY_MAX = 100;
 export const engineeringPackageItemSchema = z.object({
   id: z.uuid(),
   name: z.string(),
-  description: z.string().max(LOCALIZED_DESCRIPTION_MAX_LENGTH),
+  description: z.string(),
   includedInBase: z.boolean(),
   priceCents: z.number().int().nonnegative().nullable(),
   unit: z.enum(OptionUnit).nullable(),
@@ -23,7 +22,7 @@ export const engineeringOptionSchema = z.object({
   id: z.uuid(),
   kind: z.enum(OptionKind),
   name: z.string(),
-  description: z.string().max(LOCALIZED_DESCRIPTION_MAX_LENGTH),
+  description: z.string(),
   image: imageRefSchema.nullable(),
   priceCents: z.number().int().nonnegative(),
   unit: z.enum(OptionUnit),

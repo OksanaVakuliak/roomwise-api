@@ -1,25 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AppEnv } from '../../../config/env';
-
-export type Uuid = string;
-export type Url = string;
+import type { ImageRef, TextureRef } from '../public/dto/image-ref.schema';
 
 export interface ImageSource {
-  id: Uuid;
+  id: string;
   publicId: string;
-}
-
-export interface ImageRef {
-  id: Uuid;
-  thumb: Url;
-  card: Url;
-  zoom: Url;
-}
-
-export interface TextureRef {
-  id: Uuid;
-  url: Url;
 }
 
 const CLOUDINARY_TRANSFORMATIONS = {
@@ -48,7 +34,7 @@ export function parseCloudinaryCloudName(cloudinaryUrl: string): string {
 export class CloudinaryUrlBuilder {
   constructor(private readonly cloudName: string) {}
 
-  build(publicId: string, transformation: string): Url {
+  build(publicId: string, transformation: string): string {
     return `https://res.cloudinary.com/${this.cloudName}/image/upload/${transformation}/${publicId}`;
   }
 

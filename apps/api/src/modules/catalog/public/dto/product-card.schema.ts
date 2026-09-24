@@ -1,12 +1,11 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { LOCALIZED_NAME_MAX_LENGTH } from '../../../../common/i18n/localized-text.schema';
 import { ProductUnit } from '../../../../generated/prisma/enums';
 import { imageRefSchema } from './image-ref.schema';
 
 export const publicProductCardSchema = z.object({
   id: z.uuid(),
-  name: z.string().max(LOCALIZED_NAME_MAX_LENGTH),
+  name: z.string(),
   brand: z.string(),
   manufacturer: z.string(),
   size: z.string(),

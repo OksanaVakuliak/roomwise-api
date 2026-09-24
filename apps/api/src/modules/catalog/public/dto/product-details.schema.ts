@@ -1,10 +1,9 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { LOCALIZED_DESCRIPTION_MAX_LENGTH } from '../../../../common/i18n/localized-text.schema';
 import { ProductUnit, SurfaceKind } from '../../../../generated/prisma/enums';
 import { imageRefSchema, textureRefSchema } from './image-ref.schema';
+import { PERCENT_MAX } from './room-type.schema';
 
-const PERCENT_MAX = 100;
 const FALLBACK_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
 
 export const productAttributeSchema = z.object({
@@ -24,7 +23,7 @@ export const publicProductDetailsSchema = z.object({
   id: z.uuid(),
   categoryId: z.uuid(),
   name: z.string(),
-  description: z.string().max(LOCALIZED_DESCRIPTION_MAX_LENGTH),
+  description: z.string(),
   brand: z.string(),
   manufacturer: z.string(),
   size: z.string(),
