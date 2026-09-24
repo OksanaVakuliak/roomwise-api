@@ -178,6 +178,9 @@ export class HttpExceptionFilter
     status: number,
     envelope: ErrorEnvelope,
   ): void {
+    if (!response.headersSent) {
+      response.removeHeader('Cache-Control');
+    }
     response.status(status).json(envelope);
   }
 }
