@@ -35,6 +35,7 @@ const PRODUCT_B_PRICE_CENTS = 220_000;
 const PRODUCT_LIGHTING_PRICE_CENTS = 45_000;
 const PRODUCT_DRAFT_PRICE_CENTS = 90_000;
 const PRODUCT_ARCHIVED_PRICE_CENTS = 150_000;
+const PRODUCT_IN_DRAFT_CATEGORY_PRICE_CENTS = 120_000;
 
 const TILE_WIDTH_MM = 193;
 const TILE_LENGTH_MM = 1380;
@@ -72,6 +73,7 @@ export interface PublicCatalogProductIds {
   lighting: string;
   draft: string;
   archived: string;
+  inDraftCategory: string;
 }
 
 export interface PublicCatalogStyleIds {
@@ -545,6 +547,28 @@ export async function createPublicCatalogFixtures(
     },
   });
 
+  const productInDraftCategory = await prisma.product.create({
+    data: {
+      categoryId: draft.id,
+      materialTypeId: materialType.id,
+      name: localized(
+        'Published Product in Draft Category',
+        'Опублікований товар у чернетковій категорії',
+      ),
+      description: localized(
+        'Published, but its category is not.',
+        'Опублікований, але його категорія — ні.',
+      ),
+      brand: 'Floorwise',
+      manufacturer: 'Floorwise Manufacturing',
+      color: localized('White', 'Білий'),
+      size: localized('600 x 600 mm', '600 x 600 мм'),
+      priceCents: PRODUCT_IN_DRAFT_CATEGORY_PRICE_CENTS,
+      unit: ProductUnit.SQM,
+      status: PublicationStatus.PUBLISHED,
+    },
+  });
+
   await Promise.all([
     prisma.productImage.create({
       data: {
@@ -837,6 +861,7 @@ export async function createPublicCatalogFixtures(
       lighting: productLighting.id,
       draft: productDraft.id,
       archived: productArchived.id,
+      inDraftCategory: productInDraftCategory.id,
     },
     styles: {
       scandinavian: scandinavianStyle.id,

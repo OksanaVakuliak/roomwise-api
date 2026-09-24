@@ -71,20 +71,30 @@ export class PublicCatalogService {
       productCounts.map((row) => [row.categoryId, row._count._all]),
     );
 
+    const categoryLinksByRoomType = new Map<string, typeof categoryLinks>();
+    for (const link of categoryLinks) {
+      const links = categoryLinksByRoomType.get(link.roomTypeId);
+      if (links) {
+        links.push(link);
+      } else {
+        categoryLinksByRoomType.set(link.roomTypeId, [link]);
+      }
+    }
+
     return {
       items: roomTypes.map((roomType) => ({
         id: roomType.id,
         code: roomType.code,
         name: pickLocalized(roomType.name, lang),
-        categories: categoryLinks
-          .filter((link) => link.roomTypeId === roomType.id)
-          .map((link) => ({
+        categories: (categoryLinksByRoomType.get(roomType.id) ?? []).map(
+          (link) => ({
             id: link.category.id,
             name: pickLocalized(link.category.name, lang),
             surface: link.category.surface,
             wastePercent: link.category.wastePercent.toNumber(),
             productCount: productCountByCategory.get(link.category.id) ?? 0,
-          })),
+          }),
+        ),
       })),
     };
   }
@@ -135,9 +145,12 @@ export class PublicCatalogService {
     });
 
     return {
-      items: items.sort((left, right) =>
-        left.name.localeCompare(right.name, lang),
-      ),
+      items: items.sort((left, right) => {
+        const nameComparison = left.name.localeCompare(right.name, lang);
+        return nameComparison !== 0
+          ? nameComparison
+          : left.id.localeCompare(right.id);
+      }),
     };
   }
 
@@ -151,7 +164,10 @@ export class PublicCatalogService {
         category: true,
         materialType: { select: { code: true } },
         textureImage: true,
-        images: { orderBy: { sortOrder: 'asc' }, include: { image: true } },
+        images: {
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+          include: { image: true },
+        },
         attributes: { orderBy: { sortOrder: 'asc' } },
       },
     });
@@ -161,6 +177,10 @@ export class PublicCatalogService {
     }
 
     if (product.status !== PublicationStatus.PUBLISHED) {
+      throw new AppError(ERROR_CODES.PRODUCT_UNAVAILABLE);
+    }
+
+    if (product.category.status !== PublicationStatus.PUBLISHED) {
       throw new AppError(ERROR_CODES.PRODUCT_UNAVAILABLE);
     }
 
@@ -284,6 +304,7 @@ export class PublicCatalogService {
         include: {
           image: true,
           optionRoomTypes: {
+            orderBy: { roomType: { sortOrder: 'asc' } },
             include: { roomType: { select: { code: true } } },
           },
         },

@@ -272,6 +272,52 @@ describe('PublicCatalogService.listCategoryProducts', () => {
       zoom: 'zoom/roomwise/seed/a',
     });
   });
+
+  it('breaks name ties by id for deterministic ordering', async () => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValue({ status: PublicationStatus.PUBLISHED });
+    const productFindMany = vi.fn().mockResolvedValue([
+      {
+        id: 'product-b',
+        name: localized('Tile', 'Плитка'),
+        brand: 'Floorwise',
+        manufacturer: 'Floorwise Manufacturing',
+        size: localized('600 x 600 mm', '600 x 600 мм'),
+        color: localized('White', 'Білий'),
+        priceCents: 1000,
+        unit: ProductUnit.SQM,
+        heatedFloorCompatible: false,
+        materialType: { code: 'tile' },
+        images: [],
+      },
+      {
+        id: 'product-a',
+        name: localized('Tile', 'Плитка'),
+        brand: 'Floorwise',
+        manufacturer: 'Floorwise Manufacturing',
+        size: localized('600 x 600 mm', '600 x 600 мм'),
+        color: localized('White', 'Білий'),
+        priceCents: 1000,
+        unit: ProductUnit.SQM,
+        heatedFloorCompatible: false,
+        materialType: { code: 'tile' },
+        images: [],
+      },
+    ]);
+    const prisma = createPrisma({
+      category: { findUnique },
+      product: { findMany: productFindMany },
+    });
+    const service = new PublicCatalogService(prisma, createImageUrlBuilder());
+
+    const result = await service.listCategoryProducts('cat-flooring', 'en');
+
+    expect(result.items.map((item) => item.id)).toEqual([
+      'product-a',
+      'product-b',
+    ]);
+  });
 });
 
 describe('PublicCatalogService.getProduct', () => {
@@ -292,6 +338,7 @@ describe('PublicCatalogService.getProduct', () => {
       status: PublicationStatus.PUBLISHED,
       wastePercentOverride: null,
       category: {
+        status: PublicationStatus.PUBLISHED,
         surface: SurfaceKind.FLOOR,
         wastePercent: { toNumber: () => 10 },
       },
@@ -328,6 +375,46 @@ describe('PublicCatalogService.getProduct', () => {
     },
   );
 
+  it('throws PRODUCT_UNAVAILABLE when the product is published but its category is not', async () => {
+    const findUnique = vi.fn().mockResolvedValue(
+      baseProduct({
+        category: {
+          status: PublicationStatus.DRAFT,
+          surface: SurfaceKind.FLOOR,
+          wastePercent: { toNumber: () => 10 },
+        },
+      }),
+    );
+    const prisma = createPrisma({ product: { findUnique } });
+    const service = new PublicCatalogService(prisma, createImageUrlBuilder());
+
+    await expect(service.getProduct('product-a', 'en')).rejects.toMatchObject({
+      code: ERROR_CODES.PRODUCT_UNAVAILABLE,
+    });
+  });
+
+  it('queries the product with images ordered primary-first, then by sortOrder', async () => {
+    const findUnique = vi.fn().mockResolvedValue(baseProduct());
+    const prisma = createPrisma({ product: { findUnique } });
+    const service = new PublicCatalogService(prisma, createImageUrlBuilder());
+
+    await service.getProduct('product-a', 'en');
+
+    expect(findUnique).toHaveBeenCalledWith({
+      where: { id: 'product-a' },
+      include: {
+        category: true,
+        materialType: { select: { code: true } },
+        textureImage: true,
+        images: {
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+          include: { image: true },
+        },
+        attributes: { orderBy: { sortOrder: 'asc' } },
+      },
+    });
+  });
+
   it('uses the category waste percent when no override is set', async () => {
     const findUnique = vi.fn().mockResolvedValue(baseProduct());
     const prisma = createPrisma({ product: { findUnique } });
@@ -356,6 +443,7 @@ describe('PublicCatalogService.getProduct', () => {
     const findUnique = vi.fn().mockResolvedValue(
       baseProduct({
         category: {
+          status: PublicationStatus.PUBLISHED,
           surface: SurfaceKind.NONE,
           wastePercent: { toNumber: () => 5 },
         },
@@ -598,6 +686,18 @@ describe('PublicCatalogService.getEngineering', () => {
     const service = new PublicCatalogService(prisma, createImageUrlBuilder());
 
     const result = await service.getEngineering('en');
+
+    expect(optionFindMany).toHaveBeenCalledWith({
+      where: { status: PublicationStatus.PUBLISHED },
+      orderBy: [{ kind: 'asc' }, { sortOrder: 'asc' }],
+      include: {
+        image: true,
+        optionRoomTypes: {
+          orderBy: { roomType: { sortOrder: 'asc' } },
+          include: { roomType: { select: { code: true } } },
+        },
+      },
+    });
 
     expect(result.packageItems).toEqual([
       {

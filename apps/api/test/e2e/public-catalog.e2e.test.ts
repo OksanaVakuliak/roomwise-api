@@ -464,6 +464,15 @@ describe('public catalog e2e', () => {
       expect(response.body.error.code).toBe('PRODUCT_UNAVAILABLE');
     });
 
+    it('returns PRODUCT_UNAVAILABLE for a published product in an unpublished category', async () => {
+      const response = await request(testApp.http).get(
+        `/api/v1/public/products/${fixtures.products.inDraftCategory}`,
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.code).toBe('PRODUCT_UNAVAILABLE');
+    });
+
     it('returns NOT_FOUND for a nonexistent product', async () => {
       const response = await request(testApp.http).get(
         `/api/v1/public/products/${RANDOM_UUID}`,
