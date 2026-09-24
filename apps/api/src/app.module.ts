@@ -12,6 +12,7 @@ import { validateEnv } from './config/env';
 import { pinoHttpOptions } from './config/logger';
 import { AdminAuthGuard } from './modules/auth/admin-auth.guard';
 import { AuthModule } from './modules/auth/auth.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
 
 const RATE_LIMIT_TTL_MS = 60_000;
@@ -35,6 +36,7 @@ const RATE_LIMIT_MAX_REQUESTS = 100;
     HealthModule,
     MaintenanceModule,
     AuthModule,
+    CatalogModule,
   ],
   providers: [
     {

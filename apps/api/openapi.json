@@ -147,6 +147,225 @@
           "Auth"
         ]
       }
+    },
+    "/api/v1/public/styles": {
+      "get": {
+        "operationId": "PublicCatalogController_listStyles",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicStylesResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCatalog"
+        ]
+      }
+    },
+    "/api/v1/public/room-types": {
+      "get": {
+        "operationId": "PublicCatalogController_listRoomTypes",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRoomTypesResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCatalog"
+        ]
+      }
+    },
+    "/api/v1/public/categories/{categoryId}/products": {
+      "get": {
+        "operationId": "PublicCatalogController_listCategoryProducts",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProductCardsResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCatalog"
+        ]
+      }
+    },
+    "/api/v1/public/products/{productId}": {
+      "get": {
+        "operationId": "PublicCatalogController_getProduct",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProductDetailsResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCatalog"
+        ]
+      }
+    },
+    "/api/v1/public/styles/{styleId}/default-materials": {
+      "get": {
+        "operationId": "PublicCatalogController_getStyleDefaultMaterials",
+        "parameters": [
+          {
+            "name": "styleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDefaultMaterialsResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCatalog"
+        ]
+      }
+    },
+    "/api/v1/public/engineering": {
+      "get": {
+        "operationId": "PublicCatalogController_getEngineering",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEngineeringResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCatalog"
+        ]
+      }
     }
   },
   "info": {
@@ -334,6 +553,712 @@
           "currentPassword",
           "newPassword"
         ]
+      },
+      "PublicStylesResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "thumb": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "card": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "zoom": {
+                          "type": "string",
+                          "format": "uri"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "thumb",
+                        "card",
+                        "zoom"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "description",
+                "image"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "PublicRoomTypesResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "LIVING_ROOM",
+                    "BEDROOM",
+                    "KITCHEN",
+                    "KITCHEN_LIVING",
+                    "BATHROOM"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "categories": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "surface": {
+                        "type": "string",
+                        "enum": [
+                          "NONE",
+                          "FLOOR",
+                          "WALLS",
+                          "CEILING"
+                        ]
+                      },
+                      "wastePercent": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "productCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "surface",
+                      "wastePercent",
+                      "productCount"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name",
+                "categories"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "PublicProductCardsResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "manufacturer": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "priceCents": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "SQM",
+                    "LINEAR_M",
+                    "PIECE"
+                  ]
+                },
+                "materialTypeCode": {
+                  "type": "string"
+                },
+                "heatedFloorCompatible": {
+                  "type": "boolean"
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "thumb": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "card": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "zoom": {
+                          "type": "string",
+                          "format": "uri"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "thumb",
+                        "card",
+                        "zoom"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "brand",
+                "manufacturer",
+                "size",
+                "color",
+                "priceCents",
+                "unit",
+                "materialTypeCode",
+                "heatedFloorCompatible",
+                "image"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "PublicProductDetailsResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "brand": {
+            "type": "string"
+          },
+          "manufacturer": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "SQM",
+              "LINEAR_M",
+              "PIECE"
+            ]
+          },
+          "materialTypeCode": {
+            "type": "string"
+          },
+          "heatedFloorCompatible": {
+            "type": "boolean"
+          },
+          "wastePercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "thumb": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "card": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "zoom": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": [
+                "id",
+                "thumb",
+                "card",
+                "zoom"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "surface": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "NONE",
+                      "FLOOR",
+                      "WALLS",
+                      "CEILING"
+                    ]
+                  },
+                  "texture": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "url": {
+                        "type": "string",
+                        "format": "uri"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "url"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "tileWidthMm": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "tileLengthMm": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "fallbackColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-F]{6}$"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "texture",
+                  "tileWidthMm",
+                  "tileLengthMm",
+                  "fallbackColor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "categoryId",
+          "name",
+          "description",
+          "brand",
+          "manufacturer",
+          "size",
+          "color",
+          "priceCents",
+          "unit",
+          "materialTypeCode",
+          "heatedFloorCompatible",
+          "wastePercent",
+          "images",
+          "attributes",
+          "surface"
+        ],
+        "additionalProperties": false
+      },
+      "PublicDefaultMaterialsResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "styleId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "roomTypeCode": {
+                  "type": "string",
+                  "enum": [
+                    "LIVING_ROOM",
+                    "BEDROOM",
+                    "KITCHEN",
+                    "KITCHEN_LIVING",
+                    "BATHROOM"
+                  ]
+                },
+                "categoryId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "productId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "roomTypeCode",
+                "categoryId",
+                "productId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "styleId",
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "PublicEngineeringResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "packageItems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "includedInBase": {
+                  "type": "boolean"
+                },
+                "priceCents": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "unit": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "PIECE",
+                        "ROOM_SQM",
+                        "ROOM",
+                        "PROJECT"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "description",
+                "includedInBase",
+                "priceCents",
+                "unit"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "ENGINEERING",
+                    "ADDITIONAL"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "image": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "thumb": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "card": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "zoom": {
+                          "type": "string",
+                          "format": "uri"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "thumb",
+                        "card",
+                        "zoom"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "priceCents": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "PIECE",
+                    "ROOM_SQM",
+                    "ROOM",
+                    "PROJECT"
+                  ]
+                },
+                "perRoom": {
+                  "type": "boolean"
+                },
+                "roomTypeCodes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "LIVING_ROOM",
+                      "BEDROOM",
+                      "KITCHEN",
+                      "KITCHEN_LIVING",
+                      "BATHROOM"
+                    ]
+                  }
+                },
+                "minQuantity": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "maxQuantity": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "name",
+                "description",
+                "image",
+                "priceCents",
+                "unit",
+                "perRoom",
+                "roomTypeCodes",
+                "minQuantity",
+                "maxQuantity"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "packageItems",
+          "options"
+        ],
+        "additionalProperties": false
       }
     }
   }

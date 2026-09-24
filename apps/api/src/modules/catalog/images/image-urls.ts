@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AppEnv } from '../../../config/env';
 import type { ImageRef, TextureRef } from '../public/dto/image-ref.schema';
@@ -59,7 +59,7 @@ export class CloudinaryUrlBuilder {
 export class ImageUrlBuilder {
   private readonly builder: CloudinaryUrlBuilder;
 
-  constructor(config: ConfigService<AppEnv, true>) {
+  constructor(@Inject(ConfigService) config: ConfigService<AppEnv, true>) {
     const cloudName = parseCloudinaryCloudName(
       config.get('CLOUDINARY_URL', { infer: true }),
     );

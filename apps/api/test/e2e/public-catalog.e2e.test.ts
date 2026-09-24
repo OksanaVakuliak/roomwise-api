@@ -1,7 +1,8 @@
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '../../src/common/http/error-codes';
 import { RoomTypeCode } from '../../src/generated/prisma/client';
+import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
 import { createTestApp, type TestApp } from './app-factory';
 import {
   createPublicCatalogFixtures,
@@ -59,6 +60,10 @@ describe('public catalog e2e', () => {
 
   afterAll(async () => {
     await testApp.close();
+  });
+
+  beforeEach(() => {
+    testApp.app.get(CatalogCache).invalidate();
   });
 
   describe('GET /api/v1/public/styles', () => {
@@ -313,6 +318,24 @@ describe('public catalog e2e', () => {
       assertImageRef(productA.image, fixtures.images.productAPrimary.publicId);
     });
 
+    it('orders products by name in the requested language', async () => {
+      const responseEn = await request(testApp.http).get(
+        `/api/v1/public/categories/${fixtures.categories.flooring}/products`,
+      );
+      const responseUk = await request(testApp.http)
+        .get(
+          `/api/v1/public/categories/${fixtures.categories.flooring}/products`,
+        )
+        .query({ lang: 'uk' });
+
+      expect(
+        responseEn.body.items.map((item: { id: string }) => item.id),
+      ).toEqual([fixtures.products.a, fixtures.products.b]);
+      expect(
+        responseUk.body.items.map((item: { id: string }) => item.id),
+      ).toEqual([fixtures.products.a, fixtures.products.b]);
+    });
+
     it('returns an empty list for a published category without products', async () => {
       const response = await request(testApp.http).get(
         `/api/v1/public/categories/${fixtures.categories.empty}/products`,
@@ -515,6 +538,24 @@ describe('public catalog e2e', () => {
           .productId,
       ).toBeNull();
     });
+
+    it('returns NOT_FOUND for a draft style', async () => {
+      const response = await request(testApp.http).get(
+        `/api/v1/public/styles/${fixtures.styles.hidden}/default-materials`,
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.code).toBe(ERROR_CODES.NOT_FOUND);
+    });
+
+    it('returns NOT_FOUND for a nonexistent style', async () => {
+      const response = await request(testApp.http).get(
+        `/api/v1/public/styles/${RANDOM_UUID}/default-materials`,
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.code).toBe(ERROR_CODES.NOT_FOUND);
+    });
   });
 
   describe('GET /api/v1/public/engineering', () => {
@@ -596,6 +637,17 @@ describe('public catalog e2e', () => {
       expect(additionalOption.kind).toBe('ADDITIONAL');
       expect(additionalOption.perRoom).toBe(false);
       expect(additionalOption.roomTypeCodes).toEqual([]);
+    });
+  });
+
+  describe('error responses', () => {
+    it('does not carry a public Cache-Control header on a 404', async () => {
+      const response = await request(testApp.http).get(
+        `/api/v1/public/products/${RANDOM_UUID}`,
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.headers['cache-control']).not.toBe(CACHE_CONTROL_HEADER);
     });
   });
 });
