@@ -1,0 +1,293 @@
+import { describe, expect, it, vi } from 'vitest';
+import { ERROR_CODES } from '../../../common/http/error-codes';
+import type { PrismaService } from '../../../common/prisma/prisma.service';
+import {
+  PublicationStatus,
+  RoomTypeCode,
+  SurfaceKind,
+} from '../../../generated/prisma/enums';
+import { RoomTypesService } from './room-types.service';
+
+const ADMIN_ID = 'admin-1';
+const ROOM_TYPE_ID = 'room-type-1';
+const CATEGORY_ID_A = 'category-a';
+const CATEGORY_ID_B = 'category-b';
+const CURRENT_REVISION = 'revision-1';
+const NEXT_REVISION = 'revision-2';
+
+function localized(en: string, uk: string) {
+  return { en, uk };
+}
+
+function roomTypeRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: ROOM_TYPE_ID,
+    code: RoomTypeCode.BEDROOM,
+    name: localized('Bedroom', 'Спальня'),
+    revision: CURRENT_REVISION,
+    updatedAt: new Date('2026-09-23T12:00:00.000Z'),
+    updatedBy: { id: ADMIN_ID, login: 'admin' },
+    categories: [
+      {
+        category: {
+          id: CATEGORY_ID_A,
+          name: localized('Floor', 'Підлога'),
+          status: PublicationStatus.PUBLISHED,
+          surface: SurfaceKind.FLOOR,
+        },
+      },
+    ],
+    ...overrides,
+  };
+}
+
+function createPrisma(overrides: Record<string, unknown> = {}) {
+  const tx = {
+    roomType: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    roomTypeCategory: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+  };
+
+  const base = {
+    roomType: {
+      findMany: vi.fn().mockResolvedValue([roomTypeRow()]),
+      findUnique: vi.fn().mockResolvedValue(roomTypeRow()),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    category: {
+      findMany: vi.fn().mockResolvedValue([
+        { id: CATEGORY_ID_A, status: PublicationStatus.PUBLISHED },
+        { id: CATEGORY_ID_B, status: PublicationStatus.PUBLISHED },
+      ]),
+    },
+    $transaction: vi.fn(async (run: (client: typeof tx) => Promise<number>) =>
+      run(tx),
+    ),
+    tx,
+  };
+
+  return { ...base, ...overrides } as unknown as PrismaService & {
+    tx: typeof tx;
+  };
+}
+
+describe('RoomTypesService.list', () => {
+  it('returns room types with ordered categories and localized names whole', async () => {
+    const prisma = createPrisma();
+    const service = new RoomTypesService(prisma);
+
+    const result = await service.list();
+
+    expect(prisma.roomType.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { sortOrder: 'asc' } }),
+    );
+    expect(result).toEqual({
+      items: [
+        {
+          id: ROOM_TYPE_ID,
+          code: RoomTypeCode.BEDROOM,
+          name: localized('Bedroom', 'Спальня'),
+          categories: [
+            {
+              id: CATEGORY_ID_A,
+              name: localized('Floor', 'Підлога'),
+              status: PublicationStatus.PUBLISHED,
+              surface: SurfaceKind.FLOOR,
+            },
+          ],
+          revision: CURRENT_REVISION,
+          updatedAt: '2026-09-23T12:00:00.000Z',
+          updatedBy: { id: ADMIN_ID, login: 'admin' },
+        },
+      ],
+    });
+  });
+});
+
+describe('RoomTypesService.updateName', () => {
+  it('bumps revision and updatedBy, then returns the reloaded room type', async () => {
+    const prisma = createPrisma();
+    const service = new RoomTypesService(prisma);
+
+    const result = await service.updateName(
+      ROOM_TYPE_ID,
+      { name: localized('Bedroom', 'Спальня'), revision: CURRENT_REVISION },
+      ADMIN_ID,
+    );
+
+    expect(prisma.roomType.updateMany).toHaveBeenCalledWith({
+      where: { id: ROOM_TYPE_ID, revision: CURRENT_REVISION },
+      data: expect.objectContaining({
+        name: localized('Bedroom', 'Спальня'),
+        updatedById: ADMIN_ID,
+        revision: expect.any(String),
+      }),
+    });
+    expect(result.id).toBe(ROOM_TYPE_ID);
+  });
+
+  it('throws STALE_REVISION when the revision no longer matches', async () => {
+    const prisma = createPrisma({
+      roomType: {
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        findUnique: vi.fn().mockResolvedValue({ revision: NEXT_REVISION }),
+        findMany: vi.fn(),
+      },
+    });
+    const service = new RoomTypesService(prisma);
+
+    await expect(
+      service.updateName(
+        ROOM_TYPE_ID,
+        { name: localized('Bedroom', 'Спальня'), revision: CURRENT_REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.STALE_REVISION,
+      params: { currentRevision: NEXT_REVISION },
+    });
+  });
+
+  it('throws NOT_FOUND when the room type no longer exists', async () => {
+    const prisma = createPrisma({
+      roomType: {
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        findUnique: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn(),
+      },
+    });
+    const service = new RoomTypesService(prisma);
+
+    await expect(
+      service.updateName(
+        ROOM_TYPE_ID,
+        { name: localized('Bedroom', 'Спальня'), revision: CURRENT_REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.NOT_FOUND });
+  });
+});
+
+describe('RoomTypesService.replaceCategories', () => {
+  it('replaces the category set and order inside one transaction, bumping revision', async () => {
+    const prisma = createPrisma();
+    const service = new RoomTypesService(prisma);
+
+    const result = await service.replaceCategories(
+      ROOM_TYPE_ID,
+      {
+        categoryIds: [CATEGORY_ID_B, CATEGORY_ID_A],
+        revision: CURRENT_REVISION,
+      },
+      ADMIN_ID,
+    );
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.tx.roomType.updateMany).toHaveBeenCalledWith({
+      where: { id: ROOM_TYPE_ID, revision: CURRENT_REVISION },
+      data: expect.objectContaining({ updatedById: ADMIN_ID }),
+    });
+    expect(prisma.tx.roomTypeCategory.deleteMany).toHaveBeenCalledWith({
+      where: { roomTypeId: ROOM_TYPE_ID },
+    });
+    expect(prisma.tx.roomTypeCategory.createMany).toHaveBeenCalledWith({
+      data: [
+        { roomTypeId: ROOM_TYPE_ID, categoryId: CATEGORY_ID_B, sortOrder: 0 },
+        { roomTypeId: ROOM_TYPE_ID, categoryId: CATEGORY_ID_A, sortOrder: 1 },
+      ],
+    });
+    expect(result.id).toBe(ROOM_TYPE_ID);
+  });
+
+  it('throws CATEGORY_NOT_FOUND without touching the transaction when a category id does not exist', async () => {
+    const prisma = createPrisma({
+      category: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { id: CATEGORY_ID_A, status: PublicationStatus.PUBLISHED },
+          ]),
+      },
+    });
+    const service = new RoomTypesService(prisma);
+
+    await expect(
+      service.replaceCategories(
+        ROOM_TYPE_ID,
+        {
+          categoryIds: [CATEGORY_ID_A, CATEGORY_ID_B],
+          revision: CURRENT_REVISION,
+        },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.CATEGORY_NOT_FOUND,
+      params: { categoryIds: [CATEGORY_ID_B] },
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('throws CATEGORY_ARCHIVED without touching the transaction when a category is archived', async () => {
+    const prisma = createPrisma({
+      category: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: CATEGORY_ID_A, status: PublicationStatus.PUBLISHED },
+          { id: CATEGORY_ID_B, status: PublicationStatus.ARCHIVED },
+        ]),
+      },
+    });
+    const service = new RoomTypesService(prisma);
+
+    await expect(
+      service.replaceCategories(
+        ROOM_TYPE_ID,
+        {
+          categoryIds: [CATEGORY_ID_A, CATEGORY_ID_B],
+          revision: CURRENT_REVISION,
+        },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.CATEGORY_ARCHIVED,
+      params: { categoryIds: [CATEGORY_ID_B] },
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('throws STALE_REVISION and does not delete or recreate rows when the revision no longer matches', async () => {
+    const tx = {
+      roomType: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      roomTypeCategory: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+        createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
+    };
+    const prisma = createPrisma({
+      roomType: {
+        findMany: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue({ revision: NEXT_REVISION }),
+        updateMany: vi.fn(),
+      },
+      $transaction: vi.fn(async (run: (client: typeof tx) => Promise<number>) =>
+        run(tx),
+      ),
+      tx,
+    });
+    const service = new RoomTypesService(prisma);
+
+    await expect(
+      service.replaceCategories(
+        ROOM_TYPE_ID,
+        { categoryIds: [CATEGORY_ID_A], revision: CURRENT_REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.STALE_REVISION,
+      params: { currentRevision: NEXT_REVISION },
+    });
+    expect(tx.roomTypeCategory.deleteMany).not.toHaveBeenCalled();
+    expect(tx.roomTypeCategory.createMany).not.toHaveBeenCalled();
+  });
+});
