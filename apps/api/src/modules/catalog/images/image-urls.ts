@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { findCloudinaryCloudName } from '../../../config/cloudinary-url';
 import type { AppEnv } from '../../../config/env';
 import type { ImageRef, TextureRef } from '../public/dto/image-ref.schema';
 
@@ -16,26 +17,25 @@ const CLOUDINARY_TRANSFORMATIONS = {
 } as const;
 
 export function parseCloudinaryCloudName(cloudinaryUrl: string): string {
-  let parsed: URL;
+  const cloudName = findCloudinaryCloudName(cloudinaryUrl);
 
-  try {
-    parsed = new URL(cloudinaryUrl);
-  } catch {
-    throw new Error(`Invalid Cloudinary URL: ${cloudinaryUrl}`);
+  if (cloudName === null) {
+    throw new Error('Invalid Cloudinary URL');
   }
 
-  if (parsed.protocol !== 'cloudinary:' || !parsed.hostname) {
-    throw new Error(`Invalid Cloudinary URL: ${cloudinaryUrl}`);
-  }
-
-  return parsed.hostname;
+  return cloudName;
 }
 
 export class CloudinaryUrlBuilder {
   constructor(private readonly cloudName: string) {}
 
   build(publicId: string, transformation: string): string {
-    return `https://res.cloudinary.com/${this.cloudName}/image/upload/${transformation}/${publicId}`;
+    const encodedPublicId = publicId
+      .split('/')
+      .map(encodeURIComponent)
+      .join('/');
+
+    return `https://res.cloudinary.com/${this.cloudName}/image/upload/${transformation}/${encodedPublicId}`;
   }
 
   toImageRef({ id, publicId }: ImageSource): ImageRef {

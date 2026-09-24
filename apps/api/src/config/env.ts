@@ -1,5 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
+import { findCloudinaryCloudName } from './cloudinary-url';
 
 const REQUIRED_SECRET_LENGTH = 32;
 const MIN_PASSWORD_LENGTH = 12;
@@ -79,8 +80,8 @@ export const envSchema = z.object({
     return origins;
   }),
   CLOUDINARY_URL: requiredStringSchema.refine(
-    (value) => value.startsWith('cloudinary://'),
-    'Must be a Cloudinary URL',
+    (value) => findCloudinaryCloudName(value) !== null,
+    'Must be a Cloudinary URL with a cloud name',
   ),
   SENTRY_DSN: optionalUrlSchema,
   MAINTENANCE_TOKEN: z.string().min(REQUIRED_SECRET_LENGTH),
