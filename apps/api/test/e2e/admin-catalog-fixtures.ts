@@ -150,7 +150,7 @@ export async function createMaterialTypeFixture(
   const suffix = randomUUID().slice(0, 8);
   const materialType = await prisma.materialType.create({
     data: {
-      code: overrides.code ?? `material-${suffix}`,
+      code: overrides.code ?? `material_${suffix}`,
       name:
         overrides.name ?? localized(`Material ${suffix}`, `Матеріал ${suffix}`),
       status: overrides.status ?? PublicationStatus.PUBLISHED,

@@ -395,7 +395,7 @@ describe('admin catalog e2e', () => {
 
   describe('material types', () => {
     it('creates a material type', async () => {
-      const code = `paint-${randomUUID().slice(0, 8)}`;
+      const code = `paint_${randomUUID().slice(0, 8)}`;
 
       const response = await request(testApp.http)
         .post('/api/v1/admin/material-types')
@@ -407,7 +407,7 @@ describe('admin catalog e2e', () => {
     });
 
     it('rejects a duplicate code with CODE_TAKEN', async () => {
-      const code = `laminate-${randomUUID().slice(0, 8)}`;
+      const code = `laminate_${randomUUID().slice(0, 8)}`;
       await request(testApp.http)
         .post('/api/v1/admin/material-types')
         .set('Cookie', adminCookie)
@@ -429,7 +429,7 @@ describe('admin catalog e2e', () => {
         .patch(`/api/v1/admin/material-types/${materialType.id}`)
         .set('Cookie', adminCookie)
         .send({
-          code: `changed-${randomUUID().slice(0, 8)}`,
+          code: `changed_${randomUUID().slice(0, 8)}`,
           revision: materialType.revision,
         });
 

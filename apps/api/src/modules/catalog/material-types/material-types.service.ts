@@ -16,17 +16,11 @@ import type { UpdateMaterialTypeInput } from './dto/update-material-type.schema'
 
 const MATERIAL_TYPE_ADMIN_INCLUDE = {
   updatedBy: { select: { id: true, login: true } },
-};
+} satisfies Prisma.MaterialTypeInclude;
 
-type MaterialTypeWithRelations = {
-  id: string;
-  code: string;
-  name: unknown;
-  status: PublicationStatus;
-  revision: string;
-  updatedAt: Date;
-  updatedBy: { id: string; login: string } | null;
-};
+type MaterialTypeWithRelations = Prisma.MaterialTypeGetPayload<{
+  include: typeof MATERIAL_TYPE_ADMIN_INCLUDE;
+}>;
 
 function toLocalizedText(value: unknown): LocalizedText {
   return value as LocalizedText;

@@ -48,6 +48,12 @@ function createPrisma(overrides: Record<string, unknown> = {}) {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    category: {
+      findMany: vi.fn().mockResolvedValue([
+        { id: CATEGORY_ID_A, status: PublicationStatus.PUBLISHED },
+        { id: CATEGORY_ID_B, status: PublicationStatus.PUBLISHED },
+      ]),
+    },
   };
 
   const base = {
@@ -55,12 +61,6 @@ function createPrisma(overrides: Record<string, unknown> = {}) {
       findMany: vi.fn().mockResolvedValue([roomTypeRow()]),
       findUnique: vi.fn().mockResolvedValue(roomTypeRow()),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-    },
-    category: {
-      findMany: vi.fn().mockResolvedValue([
-        { id: CATEGORY_ID_A, status: PublicationStatus.PUBLISHED },
-        { id: CATEGORY_ID_B, status: PublicationStatus.PUBLISHED },
-      ]),
     },
     $transaction: vi.fn(async (run: (client: typeof tx) => Promise<number>) =>
       run(tx),
@@ -201,8 +201,10 @@ describe('RoomTypesService.replaceCategories', () => {
     expect(result.id).toBe(ROOM_TYPE_ID);
   });
 
-  it('throws CATEGORY_NOT_FOUND without touching the transaction when a category id does not exist', async () => {
-    const prisma = createPrisma({
+  it('throws CATEGORY_NOT_FOUND inside the transaction, before any writes, when a category id does not exist', async () => {
+    const tx = {
+      roomType: { updateMany: vi.fn() },
+      roomTypeCategory: { deleteMany: vi.fn(), createMany: vi.fn() },
       category: {
         findMany: vi
           .fn()
@@ -210,6 +212,12 @@ describe('RoomTypesService.replaceCategories', () => {
             { id: CATEGORY_ID_A, status: PublicationStatus.PUBLISHED },
           ]),
       },
+    };
+    const prisma = createPrisma({
+      $transaction: vi.fn(async (run: (client: typeof tx) => Promise<number>) =>
+        run(tx),
+      ),
+      tx,
     });
     const service = new RoomTypesService(prisma);
 
@@ -226,17 +234,26 @@ describe('RoomTypesService.replaceCategories', () => {
       code: ERROR_CODES.CATEGORY_NOT_FOUND,
       params: { categoryIds: [CATEGORY_ID_B] },
     });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.roomType.updateMany).not.toHaveBeenCalled();
   });
 
-  it('throws CATEGORY_ARCHIVED without touching the transaction when a category is archived', async () => {
-    const prisma = createPrisma({
+  it('throws CATEGORY_ARCHIVED inside the transaction, before any writes, when a category is archived', async () => {
+    const tx = {
+      roomType: { updateMany: vi.fn() },
+      roomTypeCategory: { deleteMany: vi.fn(), createMany: vi.fn() },
       category: {
         findMany: vi.fn().mockResolvedValue([
           { id: CATEGORY_ID_A, status: PublicationStatus.PUBLISHED },
           { id: CATEGORY_ID_B, status: PublicationStatus.ARCHIVED },
         ]),
       },
+    };
+    const prisma = createPrisma({
+      $transaction: vi.fn(async (run: (client: typeof tx) => Promise<number>) =>
+        run(tx),
+      ),
+      tx,
     });
     const service = new RoomTypesService(prisma);
 
@@ -253,7 +270,8 @@ describe('RoomTypesService.replaceCategories', () => {
       code: ERROR_CODES.CATEGORY_ARCHIVED,
       params: { categoryIds: [CATEGORY_ID_B] },
     });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.roomType.updateMany).not.toHaveBeenCalled();
   });
 
   it('throws STALE_REVISION and does not delete or recreate rows when the revision no longer matches', async () => {
@@ -262,6 +280,13 @@ describe('RoomTypesService.replaceCategories', () => {
       roomTypeCategory: {
         deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
         createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
+      category: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { id: CATEGORY_ID_A, status: PublicationStatus.PUBLISHED },
+          ]),
       },
     };
     const prisma = createPrisma({

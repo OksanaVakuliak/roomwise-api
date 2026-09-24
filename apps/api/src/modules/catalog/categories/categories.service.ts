@@ -5,11 +5,8 @@ import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import {
-  PublicationStatus,
-  type RoomTypeCode,
-  type SurfaceKind,
-} from '../../../generated/prisma/enums';
+import { Prisma } from '../../../generated/prisma/client';
+import { PublicationStatus } from '../../../generated/prisma/enums';
 import type {
   CategoryAdmin,
   CategoryAdminListResponse,
@@ -26,20 +23,11 @@ const CATEGORY_ADMIN_INCLUDE = {
     orderBy: { roomType: { sortOrder: 'asc' as const } },
     include: { roomType: { select: { code: true } } },
   },
-};
+} satisfies Prisma.CategoryInclude;
 
-interface CategoryWithRelations {
-  id: string;
-  name: unknown;
-  wastePercent: { toNumber: () => number };
-  surface: SurfaceKind;
-  status: PublicationStatus;
-  revision: string;
-  updatedAt: Date;
-  updatedBy: { id: string; login: string } | null;
-  _count: { products: number };
-  roomTypeCategories: Array<{ roomType: { code: RoomTypeCode } }>;
-}
+type CategoryWithRelations = Prisma.CategoryGetPayload<{
+  include: typeof CATEGORY_ADMIN_INCLUDE;
+}>;
 
 function toLocalizedText(value: unknown): LocalizedText {
   return value as LocalizedText;
@@ -69,11 +57,17 @@ export class CategoriesService {
   async list(query: ListCategoriesQuery): Promise<CategoryAdminListResponse> {
     const categories = await this.prisma.category.findMany({
       where: query.status ? { status: query.status } : undefined,
-      orderBy: { updatedAt: 'asc' },
       include: CATEGORY_ADMIN_INCLUDE,
     });
 
-    return { items: categories.map(toCategoryAdmin) };
+    const items = categories
+      .map(toCategoryAdmin)
+      .sort(
+        (a, b) =>
+          a.name.uk.localeCompare(b.name.uk, 'uk') || a.id.localeCompare(b.id),
+      );
+
+    return { items };
   }
 
   async create(

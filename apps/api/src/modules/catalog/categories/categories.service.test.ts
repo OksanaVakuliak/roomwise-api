@@ -96,6 +96,36 @@ describe('CategoriesService.list', () => {
       }),
     );
   });
+
+  it('orders by name.uk regardless of updatedAt, tie-breaking by id', async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      createAdminCategoryRow({
+        id: 'category-z',
+        name: localized('Wallpaper', 'Шпалери'),
+        updatedAt: new Date('2026-09-24T00:00:00.000Z'),
+      }),
+      createAdminCategoryRow({
+        id: 'category-b',
+        name: localized('Tiles', 'Плитка'),
+        updatedAt: new Date('2020-01-01T00:00:00.000Z'),
+      }),
+      createAdminCategoryRow({
+        id: 'category-a',
+        name: localized('Tiles', 'Плитка'),
+        updatedAt: new Date('2021-01-01T00:00:00.000Z'),
+      }),
+    ]);
+    const prisma = createPrisma({ category: { findMany } });
+    const service = new CategoriesService(prisma);
+
+    const result = await service.list({});
+
+    expect(result.items.map((item) => item.id)).toEqual([
+      'category-a',
+      'category-b',
+      'category-z',
+    ]);
+  });
 });
 
 describe('CategoriesService.create', () => {

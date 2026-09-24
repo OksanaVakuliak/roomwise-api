@@ -4,6 +4,7 @@ import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { Prisma } from '../../../generated/prisma/client';
 import { PublicationStatus } from '../../../generated/prisma/enums';
 import type { PatchRoomTypeInput } from './dto/patch-room-type.schema';
 import type { ReplaceRoomTypeCategoriesInput } from './dto/replace-room-type-categories.schema';
@@ -22,24 +23,11 @@ const ROOM_TYPE_ADMIN_INCLUDE = {
       },
     },
   },
-};
+} satisfies Prisma.RoomTypeInclude;
 
-type RoomTypeWithRelations = {
-  id: string;
-  code: string;
-  name: unknown;
-  revision: string;
-  updatedAt: Date;
-  updatedBy: { id: string; login: string } | null;
-  categories: Array<{
-    category: {
-      id: string;
-      name: unknown;
-      status: PublicationStatus;
-      surface: string;
-    };
-  }>;
-};
+type RoomTypeWithRelations = Prisma.RoomTypeGetPayload<{
+  include: typeof ROOM_TYPE_ADMIN_INCLUDE;
+}>;
 
 function toLocalizedText(value: unknown): LocalizedText {
   return value as LocalizedText;
@@ -48,14 +36,13 @@ function toLocalizedText(value: unknown): LocalizedText {
 function toRoomTypeAdmin(roomType: RoomTypeWithRelations): RoomTypeAdmin {
   return {
     id: roomType.id,
-    code: roomType.code as RoomTypeAdmin['code'],
+    code: roomType.code,
     name: toLocalizedText(roomType.name),
     categories: roomType.categories.map(({ category }) => ({
       id: category.id,
       name: toLocalizedText(category.name),
       status: category.status,
-      surface:
-        category.surface as RoomTypeAdmin['categories'][number]['surface'],
+      surface: category.surface,
     })),
     revision: roomType.revision,
     updatedAt: roomType.updatedAt.toISOString(),
@@ -109,14 +96,14 @@ export class RoomTypesService {
     input: ReplaceRoomTypeCategoriesInput,
     adminId: string,
   ): Promise<RoomTypeAdmin> {
-    await this.assertCategoriesAssignable(input.categoryIds);
-
     await updateWithRevision({
       id,
       expectedRevision: input.revision,
       updatedById: adminId,
       update: ({ id: roomTypeId, expectedRevision, mutation }) =>
         this.prisma.$transaction(async (tx) => {
+          await this.assertCategoriesAssignable(tx, input.categoryIds);
+
           const result = await tx.roomType.updateMany({
             where: { id: roomTypeId, revision: expectedRevision },
             data: {
@@ -153,13 +140,14 @@ export class RoomTypesService {
   }
 
   private async assertCategoriesAssignable(
+    tx: Prisma.TransactionClient,
     categoryIds: string[],
   ): Promise<void> {
     if (categoryIds.length === 0) {
       return;
     }
 
-    const categories = await this.prisma.category.findMany({
+    const categories = await tx.category.findMany({
       where: { id: { in: categoryIds } },
       select: { id: true, status: true },
     });
