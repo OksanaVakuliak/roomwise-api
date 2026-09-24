@@ -89,4 +89,40 @@ describe('validateEnv', () => {
     expect(env.NODE_ENV).toBe('production');
     expect(env.PORT).toBe(8080);
   });
+
+  it('defaults TRUST_PROXY_HOPS to 1 when absent', () => {
+    const env = validateEnv(validEnv);
+
+    expect(env.TRUST_PROXY_HOPS).toBe(1);
+  });
+
+  it('treats an empty TRUST_PROXY_HOPS as unset and applies the default', () => {
+    const env = validateEnv({ ...validEnv, TRUST_PROXY_HOPS: '' });
+
+    expect(env.TRUST_PROXY_HOPS).toBe(1);
+  });
+
+  it('parses an explicit TRUST_PROXY_HOPS', () => {
+    const env = validateEnv({ ...validEnv, TRUST_PROXY_HOPS: '2' });
+
+    expect(env.TRUST_PROXY_HOPS).toBe(2);
+  });
+
+  it('rejects a negative TRUST_PROXY_HOPS', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, TRUST_PROXY_HOPS: '-1' }),
+    ).toThrowError(EnvValidationError);
+  });
+
+  it('rejects a non-numeric TRUST_PROXY_HOPS', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, TRUST_PROXY_HOPS: 'abc' }),
+    ).toThrowError(EnvValidationError);
+  });
+
+  it('rejects a TRUST_PROXY_HOPS above the maximum', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, TRUST_PROXY_HOPS: '6' }),
+    ).toThrowError(EnvValidationError);
+  });
 });

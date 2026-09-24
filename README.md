@@ -25,7 +25,20 @@ Copy `apps/api/.env.example` to `apps/api/.env` and set
 `docker-compose.yml`.
 
 ```bash
+pnpm --filter api exec prisma migrate deploy --config prisma.config.ts
+pnpm --filter api admin:create --login owner
 pnpm --filter api start:dev
+```
+
+`admin:create` reads the password from stdin. Administrators are created only
+this way; the API has no registration.
+
+End-to-end tests run against a separate database whose name must end with
+`_test`:
+
+```bash
+docker compose exec postgres createdb -U roomwise roomwise_test
+pnpm --filter api test:e2e
 ```
 
 ## Scripts
@@ -34,4 +47,5 @@ pnpm --filter api start:dev
 - `pnpm format` — format the whole workspace
 - `pnpm typecheck` — typecheck `apps/api`
 - `pnpm test` — run unit tests
+- `pnpm --filter api test:e2e` — run end-to-end tests
 - `pnpm build` — build `apps/api`

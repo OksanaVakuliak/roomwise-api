@@ -81,6 +81,23 @@ describe('HttpExceptionFilter', () => {
     });
   });
 
+  it('maps invalid credentials and account locked to their statuses', () => {
+    for (const [code, status] of [
+      [ERROR_CODES.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED],
+      [ERROR_CODES.ACCOUNT_LOCKED, HttpStatus.LOCKED],
+    ] as const) {
+      const { host, response } = createHost();
+      const filter = new HttpExceptionFilter();
+
+      filter.catch(new AppError(code), host);
+
+      expect(response.status).toHaveBeenCalledWith(status);
+      expect(response.json).toHaveBeenCalledWith({
+        error: { code, params: undefined, fields: undefined },
+      });
+    }
+  });
+
   it('preserves throttler retry timing without exposing its message', () => {
     const { host, response } = createHost('42');
     const filter = new HttpExceptionFilter();

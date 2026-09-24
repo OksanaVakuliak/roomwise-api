@@ -4,6 +4,9 @@ import { z } from 'zod';
 const REQUIRED_SECRET_LENGTH = 32;
 const MIN_PASSWORD_LENGTH = 12;
 const MAX_PORT = 65_535;
+const MIN_TRUST_PROXY_HOPS = 0;
+const MAX_TRUST_PROXY_HOPS = 5;
+const DEFAULT_TRUST_PROXY_HOPS = 1;
 
 const requiredStringSchema = z.string().trim().min(1);
 
@@ -32,6 +35,16 @@ const nodeEnvSchema = z.preprocess(
 const portSchema = z.preprocess(
   emptyStringToUndefined,
   z.coerce.number().int().min(1).max(MAX_PORT).default(3000),
+);
+
+const trustProxyHopsSchema = z.preprocess(
+  emptyStringToUndefined,
+  z.coerce
+    .number()
+    .int()
+    .min(MIN_TRUST_PROXY_HOPS)
+    .max(MAX_TRUST_PROXY_HOPS)
+    .default(DEFAULT_TRUST_PROXY_HOPS),
 );
 
 const timezoneSchema = requiredStringSchema.refine((value) => {
@@ -76,6 +89,7 @@ export const envSchema = z.object({
   SANDBOX_RESET_TIME: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
   SANDBOX_TIMEZONE: timezoneSchema,
   PORT: portSchema,
+  TRUST_PROXY_HOPS: trustProxyHopsSchema,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

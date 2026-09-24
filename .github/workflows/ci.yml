@@ -17,6 +17,20 @@ jobs:
   quality:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: roomwise
+          POSTGRES_PASSWORD: roomwise
+          POSTGRES_DB: roomwise_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://roomwise:roomwise@localhost:5432/roomwise_test
@@ -51,6 +65,9 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter api prisma:generate
+
+      - name: Migrate test database
+        run: pnpm --filter api exec prisma migrate deploy --config prisma.config.ts
 
       - name: Typecheck
         run: pnpm typecheck

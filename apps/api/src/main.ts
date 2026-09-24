@@ -10,6 +10,19 @@ import { setupOpenApi } from './common/openapi/openapi';
 import type { AppConfigService } from './config/env';
 import { EnvValidationError } from './config/env';
 
+export function configureApplication(
+  app: NestExpressApplication,
+  config: AppConfigService,
+): void {
+  app.set('trust proxy', config.get('TRUST_PROXY_HOPS', { infer: true }));
+  app.setGlobalPrefix('api/v1');
+  app.use(cookieParser());
+  app.enableCors({
+    origin: config.get('CORS_ORIGIN', { infer: true }),
+    credentials: true,
+  });
+}
+
 export async function createApplication(): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
@@ -19,13 +32,7 @@ export async function createApplication(): Promise<NestExpressApplication> {
   app.useLogger(app.get(Logger));
   app.flushLogs();
 
-  app.set('trust proxy', 1);
-  app.setGlobalPrefix('api/v1');
-  app.use(cookieParser());
-  app.enableCors({
-    origin: config.get('CORS_ORIGIN', { infer: true }),
-    credentials: true,
-  });
+  configureApplication(app, config);
 
   return app;
 }
