@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
@@ -17,6 +18,7 @@ import {
   type AuthenticatedAdmin,
   CurrentAdmin,
 } from '../../auth/current-admin.decorator';
+import { CatalogChangeInterceptor } from '../common/catalog-change.interceptor';
 import { CategoriesService } from './categories.service';
 import type {
   CategoryAdmin,
@@ -33,6 +35,7 @@ import { CategoryIdParamDto } from './dto/params.schema';
 import { PatchCategoryDto } from './dto/patch-category.schema';
 
 @Controller('admin/categories')
+@UseInterceptors(CatalogChangeInterceptor)
 export class CategoriesController {
   constructor(private readonly categories: CategoriesService) {}
 

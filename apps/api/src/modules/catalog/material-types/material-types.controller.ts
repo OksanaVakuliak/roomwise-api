@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ApiCookieAuth, ApiParam } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import {
@@ -6,6 +14,7 @@ import {
   CurrentAdmin,
 } from '../../auth/current-admin.decorator';
 import { SESSION_COOKIE_NAME } from '../../auth/session-cookie';
+import { CatalogChangeInterceptor } from '../common/catalog-change.interceptor';
 import { CreateMaterialTypeDto } from './dto/create-material-type.schema';
 import type {
   MaterialTypeAdmin,
@@ -21,6 +30,7 @@ import { MaterialTypesService } from './material-types.service';
 
 @Controller('admin/material-types')
 @ApiCookieAuth(SESSION_COOKIE_NAME)
+@UseInterceptors(CatalogChangeInterceptor)
 export class MaterialTypesController {
   constructor(private readonly materialTypesService: MaterialTypesService) {}
 

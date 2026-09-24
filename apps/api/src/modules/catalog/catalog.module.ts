@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CategoriesController } from './categories/categories.controller';
 import { CategoriesService } from './categories/categories.service';
+import { CatalogChangeInterceptor } from './common/catalog-change.interceptor';
 import { CloudinaryService } from './images/cloudinary.service';
 import { ImageUploadInterceptor } from './images/image-upload.interceptor';
 import { ImageUrlBuilder } from './images/image-urls';
@@ -28,6 +29,7 @@ import { RoomTypesService } from './room-types/room-types.service';
   providers: [
     PublicCatalogService,
     CatalogCache,
+    CatalogChangeInterceptor,
     ImageUrlBuilder,
     CloudinaryService,
     ImagesService,

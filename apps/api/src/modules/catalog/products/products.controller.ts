@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
@@ -18,6 +19,7 @@ import {
   CurrentAdmin,
 } from '../../auth/current-admin.decorator';
 import { SESSION_COOKIE_NAME } from '../../auth/session-cookie';
+import { CatalogChangeInterceptor } from '../common/catalog-change.interceptor';
 import { CreateProductDto } from './dto/create-product.schema';
 import { ListProductsQueryDto } from './dto/list-products.schema';
 import { ProductIdParamDto } from './dto/params.schema';
@@ -35,6 +37,7 @@ import { ProductsService } from './products.service';
 
 @Controller('admin/products')
 @ApiCookieAuth(SESSION_COOKIE_NAME)
+@UseInterceptors(CatalogChangeInterceptor)
 export class ProductsController {
   constructor(private readonly products: ProductsService) {}
 

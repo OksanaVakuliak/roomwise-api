@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Put,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ApiCookieAuth, ApiParam } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import {
@@ -6,6 +14,7 @@ import {
   CurrentAdmin,
 } from '../../auth/current-admin.decorator';
 import { SESSION_COOKIE_NAME } from '../../auth/session-cookie';
+import { CatalogChangeInterceptor } from '../common/catalog-change.interceptor';
 import { RoomTypeIdParamDto } from './dto/params.schema';
 import { PatchRoomTypeDto } from './dto/patch-room-type.schema';
 import { ReplaceRoomTypeCategoriesDto } from './dto/replace-room-type-categories.schema';
@@ -21,6 +30,7 @@ import { RoomTypesService } from './room-types.service';
 
 @Controller('admin/room-types')
 @ApiCookieAuth(SESSION_COOKIE_NAME)
+@UseInterceptors(CatalogChangeInterceptor)
 export class RoomTypesController {
   constructor(private readonly roomTypesService: RoomTypesService) {}
 
