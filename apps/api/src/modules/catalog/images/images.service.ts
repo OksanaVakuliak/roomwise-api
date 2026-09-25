@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { fromBuffer as detectFileType } from 'file-type';
+import { fileTypeFromBuffer as detectFileType } from 'file-type';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { PrismaService } from '../../../common/prisma/prisma.service';
