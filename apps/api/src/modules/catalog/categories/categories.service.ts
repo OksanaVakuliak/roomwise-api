@@ -6,6 +6,7 @@ import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { isPrismaError } from '../../../common/prisma/prisma-error';
 import { Prisma } from '../../../generated/prisma/client';
 import {
   PublicationStatus,
@@ -32,13 +33,6 @@ const CATEGORY_ADMIN_INCLUDE = {
 type CategoryWithRelations = Prisma.CategoryGetPayload<{
   include: typeof CATEGORY_ADMIN_INCLUDE;
 }>;
-
-function isForeignKeyViolation(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2003'
-  );
-}
 
 function toCategoryAdmin(category: CategoryWithRelations): CategoryAdmin {
   return {
@@ -225,7 +219,7 @@ export class CategoriesService {
         await tx.category.delete({ where: { id } });
       });
     } catch (error) {
-      if (isForeignKeyViolation(error)) {
+      if (isPrismaError(error, 'P2003')) {
         throw new AppError(ERROR_CODES.CATEGORY_IN_USE);
       }
 

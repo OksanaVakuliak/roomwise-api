@@ -5,6 +5,7 @@ import { ERROR_CODES } from '../../../common/http/error-codes';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { isPrismaError } from '../../../common/prisma/prisma-error';
 import { Prisma } from '../../../generated/prisma/client';
 import { PublicationStatus } from '../../../generated/prisma/enums';
 import type { CreateMaterialTypeInput } from './dto/create-material-type.schema';
@@ -34,13 +35,6 @@ function toMaterialTypeAdmin(
     updatedAt: materialType.updatedAt.toISOString(),
     updatedBy: materialType.updatedBy,
   };
-}
-
-function isCodeUniqueViolation(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2002'
-  );
 }
 
 @Injectable()
@@ -74,7 +68,7 @@ export class MaterialTypesService {
 
       return toMaterialTypeAdmin(created);
     } catch (error) {
-      if (isCodeUniqueViolation(error)) {
+      if (isPrismaError(error, 'P2002')) {
         throw new AppError(ERROR_CODES.CODE_TAKEN);
       }
 

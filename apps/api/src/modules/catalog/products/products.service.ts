@@ -11,6 +11,7 @@ import {
   PublicationStatus,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
+import { assertImagesExist } from '../images/assert-images-exist';
 import { ImageUrlBuilder } from '../images/image-urls';
 import type {
   CreateProductInput,
@@ -142,7 +143,7 @@ export class ProductsService {
     await Promise.all([
       this.assertCategoryExists(input.categoryId),
       this.assertMaterialTypeExists(input.materialTypeId),
-      this.assertImagesExist(imageIds),
+      assertImagesExist(this.prisma, imageIds),
     ]);
     this.assertZeroPriceConfirmed(input.priceCents, input.confirmZeroPrice);
 
@@ -208,7 +209,7 @@ export class ProductsService {
       input.materialTypeId !== undefined
         ? this.assertMaterialTypeExists(input.materialTypeId)
         : Promise.resolve(undefined),
-      this.assertImagesExist(imageIds),
+      assertImagesExist(this.prisma, imageIds),
     ]);
 
     if (categoryChanged) {
@@ -579,26 +580,6 @@ export class ProductsService {
     if (!materialType) {
       throw new AppError(ERROR_CODES.MATERIAL_TYPE_NOT_FOUND, {
         params: { materialTypeId },
-      });
-    }
-  }
-
-  private async assertImagesExist(imageIds: string[]): Promise<void> {
-    if (imageIds.length === 0) {
-      return;
-    }
-
-    const uniqueIds = [...new Set(imageIds)];
-    const found = await this.prisma.image.findMany({
-      where: { id: { in: uniqueIds } },
-      select: { id: true },
-    });
-    const foundIds = new Set(found.map((image) => image.id));
-    const missing = uniqueIds.filter((imageId) => !foundIds.has(imageId));
-
-    if (missing.length > 0) {
-      throw new AppError(ERROR_CODES.IMAGE_NOT_FOUND, {
-        params: { imageIds: missing },
       });
     }
   }
