@@ -16,6 +16,8 @@ import { PublicCatalogController } from './public/public-catalog.controller';
 import { PublicCatalogService } from './public/public-catalog.service';
 import { RoomTypesController } from './room-types/room-types.controller';
 import { RoomTypesService } from './room-types/room-types.service';
+import { StylesController } from './styles/styles.controller';
+import { StylesService } from './styles/styles.service';
 
 @Module({
   controllers: [
@@ -25,6 +27,7 @@ import { RoomTypesService } from './room-types/room-types.service';
     CategoriesController,
     MaterialTypesController,
     ProductsController,
+    StylesController,
   ],
   providers: [
     PublicCatalogService,
@@ -38,6 +41,7 @@ import { RoomTypesService } from './room-types/room-types.service';
     CategoriesService,
     MaterialTypesService,
     ProductsService,
+    StylesService,
   ],
   exports: [PublicCatalogService, CatalogCache],
 })
