@@ -1,6 +1,6 @@
 # Demo dataset image sources
 
-CC0 assets from ambientCG and Poly Haven used for the demo catalog dataset. Every source URL is a direct file download; no zips or account-gated links.
+CC0 photos and textures from Poly Haven used for the demo catalog dataset. Every source URL is a direct file download; no zips or account-gated links. A small set of product categories with no suitable CC0 photo use original placeholder illustrations instead; see [Placeholders](#placeholders).
 
 ## Surface textures
 
@@ -65,3 +65,20 @@ CC0 assets from ambientCG and Poly Haven used for the demo catalog dataset. Ever
 | heatedFloorOption | roomwise/seed/options/heated-floor | Terracotta Floor Tiles | [https://polyhaven.com/a/terracotta_floor_tiles](https://polyhaven.com/a/terracotta_floor_tiles) | Dimitrios Savva | CC0 1.0 | [https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terracotta_floor_tiles/terracotta_floor_tiles_diff_1k.jpg](https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terracotta_floor_tiles/terracotta_floor_tiles_diff_1k.jpg) |
 | smartLightingOption | roomwise/seed/options/smart-lighting | Modern Ceiling Lamp 01 | [https://polyhaven.com/a/modern_ceiling_lamp_01](https://polyhaven.com/a/modern_ceiling_lamp_01) | James Ray Cock | CC0 1.0 | [https://cdn.polyhaven.com/asset_img/thumbs/modern_ceiling_lamp_01.png?width=1024&height=1024&v=6450c4b1](https://cdn.polyhaven.com/asset_img/thumbs/modern_ceiling_lamp_01.png?width=1024&height=1024&v=6450c4b1) |
 | soundproofingOption | roomwise/seed/options/soundproofing | Quatrefoil Jacquard Fabric | [https://polyhaven.com/a/quatrefoil_jacquard_fabric](https://polyhaven.com/a/quatrefoil_jacquard_fabric) | colormass, Rico Cilliers | CC0 1.0 | [https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/quatrefoil_jacquard_fabric/quatrefoil_jacquard_fabric_diff_1k.jpg](https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/quatrefoil_jacquard_fabric/quatrefoil_jacquard_fabric_diff_1k.jpg) |
+
+## Placeholders
+
+Poly Haven has no CC0 photos for doors or plumbing fixtures, so these categories use original flat-illustration placeholders made for this project instead of a photo. They are temporary stand-ins and are expected to be replaced with real product photography later. Released under CC0 1.0, same as the rest of the dataset.
+
+| Key | publicId | File |
+| --- | --- | --- |
+| doorWhitePlaceholder | roomwise/seed/placeholders/door-white | assets/door-white.svg |
+| doorOakPlaceholder | roomwise/seed/placeholders/door-oak | assets/door-oak.svg |
+| doorGreyPlaceholder | roomwise/seed/placeholders/door-grey | assets/door-grey.svg |
+| doorGlassPlaceholder | roomwise/seed/placeholders/door-glass | assets/door-glass.svg |
+| washbasinPlaceholder | roomwise/seed/placeholders/washbasin | assets/washbasin.svg |
+| kitchenSinkPlaceholder | roomwise/seed/placeholders/kitchen-sink | assets/kitchen-sink.svg |
+| faucetPlaceholder | roomwise/seed/placeholders/faucet | assets/faucet.svg |
+| toiletPlaceholder | roomwise/seed/placeholders/toilet | assets/toilet.svg |
+| showerPlaceholder | roomwise/seed/placeholders/shower | assets/shower.svg |
+| bathtubPlaceholder | roomwise/seed/placeholders/bathtub | assets/bathtub.svg |
