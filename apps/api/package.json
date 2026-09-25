@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev --config prisma.config.ts",
     "admin:create": "tsx scripts/create-admin.ts",
     "seed:images": "tsx prisma/seed/upload-images.ts",
+    "db:seed": "tsx prisma/seed/seed.ts",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "openapi:check": "tsx scripts/generate-openapi.ts --check",
     "typecheck": "tsc -p tsconfig.json --noEmit",
