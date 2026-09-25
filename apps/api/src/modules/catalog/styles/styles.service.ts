@@ -1,13 +1,14 @@
-import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { updateWithRevision } from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
+import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
 import { PublicationStatus } from '../../../generated/prisma/enums';
+import { assertImagesExist } from '../images/assert-images-exist';
 import { ImageUrlBuilder } from '../images/image-urls';
 import type { CreateStyleInput } from './dto/create-style.schema';
 import type { PatchStyleInput } from './dto/patch-style.schema';
@@ -29,14 +30,44 @@ const STYLE_ADMIN_INCLUDE = {
   image: { select: { id: true, publicId: true } },
 } satisfies Prisma.StyleInclude;
 
+const ROOM_TYPE_CATEGORY_LINK_INCLUDE = {
+  roomType: { select: { code: true } },
+  category: { select: { name: true } },
+} satisfies Prisma.RoomTypeCategoryInclude;
+
+const STYLE_DEFAULT_MATERIAL_INCLUDE = {
+  product: { select: { id: true, name: true, status: true, categoryId: true } },
+} satisfies Prisma.StyleDefaultMaterialInclude;
+
 type StyleWithRelations = Prisma.StyleGetPayload<{
   include: typeof STYLE_ADMIN_INCLUDE;
+}>;
+
+type RoomTypeCategoryLinkRow = Prisma.RoomTypeCategoryGetPayload<{
+  include: typeof ROOM_TYPE_CATEGORY_LINK_INCLUDE;
+}>;
+
+type StyleDefaultMaterialRow = Prisma.StyleDefaultMaterialGetPayload<{
+  include: typeof STYLE_DEFAULT_MATERIAL_INCLUDE;
 }>;
 
 interface PairsSummary {
   pairs: StylePairAdmin[];
   unfilledCount: number;
   unavailableCount: number;
+}
+
+interface PublishableCandidate {
+  name: LocalizedText;
+  description: LocalizedText;
+  imageId: string | null;
+}
+
+function isRecordNotFound(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2025'
+  );
 }
 
 @Injectable()
@@ -47,14 +78,34 @@ export class StylesService {
   ) {}
 
   async list(): Promise<StyleAdminListResponse> {
-    const styles = await this.prisma.style.findMany({
-      orderBy: { sortOrder: 'asc' },
-      include: STYLE_ADMIN_INCLUDE,
-    });
+    const [styles, links, defaults] = await Promise.all([
+      this.prisma.style.findMany({
+        orderBy: { sortOrder: 'asc' },
+        include: STYLE_ADMIN_INCLUDE,
+      }),
+      this.loadRoomTypeCategoryLinks(),
+      this.prisma.styleDefaultMaterial.findMany({
+        include: STYLE_DEFAULT_MATERIAL_INCLUDE,
+      }),
+    ]);
 
-    const items = await Promise.all(
-      styles.map((style) => this.toStyleAdminListItem(style)),
-    );
+    const defaultsByStyle = new Map<string, StyleDefaultMaterialRow[]>();
+    for (const entry of defaults) {
+      const group = defaultsByStyle.get(entry.styleId);
+      if (group) {
+        group.push(entry);
+      } else {
+        defaultsByStyle.set(entry.styleId, [entry]);
+      }
+    }
+
+    const items = styles.map((style) => {
+      const { unfilledCount, unavailableCount } = this.computePairsSummary(
+        links,
+        defaultsByStyle.get(style.id) ?? [],
+      );
+      return this.toStyleAdminListItem(style, unfilledCount, unavailableCount);
+    });
 
     return { items };
   }
@@ -65,7 +116,7 @@ export class StylesService {
 
   async create(input: CreateStyleInput, adminId: string): Promise<StyleAdmin> {
     if (input.imageId) {
-      await this.assertImageExists(input.imageId);
+      await assertImagesExist(this.prisma, [input.imageId]);
     }
 
     const aggregate = await this.prisma.style.aggregate({
@@ -82,7 +133,6 @@ export class StylesService {
         status: PublicationStatus.DRAFT,
         updatedById: adminId,
       },
-      include: STYLE_ADMIN_INCLUDE,
     });
 
     return this.getById(created.id);
@@ -94,7 +144,24 @@ export class StylesService {
     adminId: string,
   ): Promise<StyleAdmin> {
     if (input.imageId !== undefined && input.imageId !== null) {
-      await this.assertImageExists(input.imageId);
+      await assertImagesExist(this.prisma, [input.imageId]);
+    }
+
+    const existing = await this.prisma.style.findUnique({
+      where: { id },
+      select: { status: true, name: true, description: true, imageId: true },
+    });
+
+    if (!existing) {
+      throw new AppError(ERROR_CODES.NOT_FOUND);
+    }
+
+    if (existing.status === PublicationStatus.PUBLISHED) {
+      this.assertPublishable({
+        name: input.name ?? toLocalizedText(existing.name),
+        description: input.description ?? toLocalizedText(existing.description),
+        imageId: input.imageId !== undefined ? input.imageId : existing.imageId,
+      });
     }
 
     await updateWithRevision({
@@ -144,19 +211,28 @@ export class StylesService {
 
     const updatedAt = new Date();
 
-    await this.prisma.$transaction(
-      input.styleIds.map((id, index) =>
-        this.prisma.style.update({
-          where: { id },
-          data: {
-            sortOrder: index,
-            revision: randomUUID(),
-            updatedAt,
-            updatedById: adminId,
-          },
-        }),
-      ),
-    );
+    try {
+      await this.prisma.$transaction(
+        input.styleIds.map((id, index) =>
+          this.prisma.style.update({
+            where: { id },
+            data: {
+              sortOrder: index,
+              updatedAt,
+              updatedById: adminId,
+            },
+          }),
+        ),
+      );
+    } catch (error) {
+      if (isRecordNotFound(error)) {
+        throw new AppError(ERROR_CODES.STYLE_SET_MISMATCH, {
+          params: { styleIds: input.styleIds },
+        });
+      }
+
+      throw error;
+    }
   }
 
   async updateStatus(
@@ -174,14 +250,11 @@ export class StylesService {
         throw new AppError(ERROR_CODES.NOT_FOUND);
       }
 
-      assertTranslations({
+      this.assertPublishable({
         name: toLocalizedText(style.name),
         description: toLocalizedText(style.description),
+        imageId: style.imageId,
       });
-
-      if (!style.imageId) {
-        throw new AppError(ERROR_CODES.STYLE_IMAGE_MISSING);
-      }
     }
 
     await updateWithRevision({
@@ -272,16 +345,22 @@ export class StylesService {
   }
 
   async remove(id: string): Promise<void> {
-    const style = await this.prisma.style.findUnique({
-      where: { id },
-      select: { id: true },
-    });
+    const result = await this.prisma.style.deleteMany({ where: { id } });
 
-    if (!style) {
+    if (result.count === 0) {
       throw new AppError(ERROR_CODES.NOT_FOUND);
     }
+  }
 
-    await this.prisma.style.delete({ where: { id } });
+  private assertPublishable(candidate: PublishableCandidate): void {
+    assertTranslations({
+      name: candidate.name,
+      description: candidate.description,
+    });
+
+    if (!candidate.imageId) {
+      throw new AppError(ERROR_CODES.STYLE_IMAGE_MISSING);
+    }
   }
 
   private async assertItemsValid(
@@ -292,40 +371,40 @@ export class StylesService {
       return;
     }
 
-    const links = await tx.roomTypeCategory.findMany({
-      where: {
-        OR: items.map((item) => ({
-          roomTypeId: item.roomTypeId,
-          categoryId: item.categoryId,
-        })),
-      },
-      select: { roomTypeId: true, categoryId: true },
-    });
-    const validPairs = new Set(
-      links.map((link) => `${link.roomTypeId}:${link.categoryId}`),
-    );
+    const itemsWithProduct = items.filter((item) => item.productId !== null);
 
-    const invalidPairs = items.filter(
-      (item) => !validPairs.has(`${item.roomTypeId}:${item.categoryId}`),
-    );
-
-    if (invalidPairs.length > 0) {
-      throw new AppError(ERROR_CODES.PAIR_NOT_IN_ROOM_TYPE, {
-        params: {
-          pairs: invalidPairs.map((item) => ({
+    if (itemsWithProduct.length > 0) {
+      const links = await tx.roomTypeCategory.findMany({
+        where: {
+          OR: itemsWithProduct.map((item) => ({
             roomTypeId: item.roomTypeId,
             categoryId: item.categoryId,
           })),
         },
+        select: { roomTypeId: true, categoryId: true },
       });
+      const validPairs = new Set(
+        links.map((link) => `${link.roomTypeId}:${link.categoryId}`),
+      );
+
+      const invalidPairs = itemsWithProduct.filter(
+        (item) => !validPairs.has(`${item.roomTypeId}:${item.categoryId}`),
+      );
+
+      if (invalidPairs.length > 0) {
+        throw new AppError(ERROR_CODES.PAIR_NOT_IN_ROOM_TYPE, {
+          params: {
+            pairs: invalidPairs.map((item) => ({
+              roomTypeId: item.roomTypeId,
+              categoryId: item.categoryId,
+            })),
+          },
+        });
+      }
     }
 
     const productIds = [
-      ...new Set(
-        items
-          .filter((item) => item.productId !== null)
-          .map((item) => item.productId as string),
-      ),
+      ...new Set(itemsWithProduct.map((item) => item.productId as string)),
     ];
 
     if (productIds.length === 0) {
@@ -340,13 +419,19 @@ export class StylesService {
       products.map((product) => [product.id, product]),
     );
 
-    const mismatched = items.filter((item) => {
-      if (item.productId === null) {
-        return false;
-      }
+    const missingProductIds = productIds.filter(
+      (productId) => !productById.has(productId),
+    );
 
-      const product = productById.get(item.productId);
-      return !product || product.categoryId !== item.categoryId;
+    if (missingProductIds.length > 0) {
+      throw new AppError(ERROR_CODES.PRODUCT_NOT_FOUND, {
+        params: { productIds: missingProductIds },
+      });
+    }
+
+    const mismatched = itemsWithProduct.filter((item) => {
+      const product = productById.get(item.productId as string);
+      return product && product.categoryId !== item.categoryId;
     });
 
     if (mismatched.length > 0) {
@@ -362,23 +447,19 @@ export class StylesService {
     }
   }
 
-  private async buildPairs(styleId: string): Promise<PairsSummary> {
-    const [links, defaults] = await Promise.all([
-      this.prisma.roomTypeCategory.findMany({
-        orderBy: [{ roomType: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
-        include: {
-          roomType: { select: { code: true } },
-          category: { select: { name: true } },
-        },
-      }),
-      this.prisma.styleDefaultMaterial.findMany({
-        where: { styleId },
-        include: {
-          product: { select: { id: true, name: true, status: true } },
-        },
-      }),
-    ]);
+  private async loadRoomTypeCategoryLinks(): Promise<
+    RoomTypeCategoryLinkRow[]
+  > {
+    return this.prisma.roomTypeCategory.findMany({
+      orderBy: [{ roomType: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
+      include: ROOM_TYPE_CATEGORY_LINK_INCLUDE,
+    });
+  }
 
+  private computePairsSummary(
+    links: RoomTypeCategoryLinkRow[],
+    defaults: StyleDefaultMaterialRow[],
+  ): PairsSummary {
     const defaultsByPair = new Map(
       defaults.map((entry) => [
         `${entry.roomTypeId}:${entry.categoryId}`,
@@ -405,7 +486,9 @@ export class StylesService {
         };
       }
 
-      const isAvailable = entry.product.status === PublicationStatus.PUBLISHED;
+      const isAvailable =
+        entry.product.status === PublicationStatus.PUBLISHED &&
+        entry.product.categoryId === link.categoryId;
 
       if (!isAvailable) {
         unavailableCount += 1;
@@ -425,17 +508,16 @@ export class StylesService {
     return { pairs, unfilledCount, unavailableCount };
   }
 
-  private async assertImageExists(imageId: string): Promise<void> {
-    const image = await this.prisma.image.findUnique({
-      where: { id: imageId },
-      select: { id: true },
-    });
+  private async buildPairs(styleId: string): Promise<PairsSummary> {
+    const [links, defaults] = await Promise.all([
+      this.loadRoomTypeCategoryLinks(),
+      this.prisma.styleDefaultMaterial.findMany({
+        where: { styleId },
+        include: STYLE_DEFAULT_MATERIAL_INCLUDE,
+      }),
+    ]);
 
-    if (!image) {
-      throw new AppError(ERROR_CODES.IMAGE_NOT_FOUND, {
-        params: { imageIds: [imageId] },
-      });
-    }
+    return this.computePairsSummary(links, defaults);
   }
 
   private async readRevision(id: string): Promise<string | null> {
@@ -463,11 +545,11 @@ export class StylesService {
     return this.toStyleAdmin(style, pairs, unfilledCount, unavailableCount);
   }
 
-  private async toStyleAdminListItem(
+  private toStyleAdminListItem(
     style: StyleWithRelations,
-  ): Promise<StyleAdminListItem> {
-    const { unfilledCount, unavailableCount } = await this.buildPairs(style.id);
-
+    unfilledCount: number,
+    unavailableCount: number,
+  ): StyleAdminListItem {
     return {
       id: style.id,
       name: toLocalizedText(style.name),

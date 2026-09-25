@@ -300,6 +300,22 @@ describe('admin styles e2e', () => {
       expect(getResponse.status).toBe(404);
       expect(getResponse.body.error.code).toBe(ERROR_CODES.NOT_FOUND);
     });
+
+    it('returns 404 on the second delete of the same style', async () => {
+      const created = await createStyle();
+
+      const first = await request(testApp.http)
+        .delete(`/api/v1/admin/styles/${created.body.id}`)
+        .set('Cookie', adminCookie);
+      expect(first.status).toBe(204);
+
+      const second = await request(testApp.http)
+        .delete(`/api/v1/admin/styles/${created.body.id}`)
+        .set('Cookie', adminCookie);
+
+      expect(second.status).toBe(404);
+      expect(second.body.error.code).toBe(ERROR_CODES.NOT_FOUND);
+    });
   });
 
   describe('publishing', () => {
@@ -355,6 +371,28 @@ describe('admin styles e2e', () => {
       expect(response.status).toBe(200);
       expect(response.body.status).toBe(PublicationStatus.PUBLISHED);
     });
+
+    it('rejects clearing the image of a published style via PATCH with STYLE_IMAGE_MISSING', async () => {
+      const image = await createImageFixture(testApp.prisma);
+      const created = await createStyle({ imageId: image.id });
+
+      const published = await request(testApp.http)
+        .post(`/api/v1/admin/styles/${created.body.id}/status`)
+        .set('Cookie', adminCookie)
+        .send({
+          status: PublicationStatus.PUBLISHED,
+          revision: created.body.revision,
+        });
+      expect(published.status).toBe(200);
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/styles/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({ imageId: null, revision: published.body.revision });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.STYLE_IMAGE_MISSING);
+    });
   });
 
   describe('default materials', () => {
@@ -391,6 +429,28 @@ describe('admin styles e2e', () => {
       );
       expect(pair.state).toBe('EMPTY');
       expect(getResponse.body.revision).toBe(created.body.revision);
+    });
+
+    it('rejects an unknown productId with PRODUCT_NOT_FOUND', async () => {
+      const created = await createStyle();
+
+      const response = await request(testApp.http)
+        .put(`/api/v1/admin/styles/${created.body.id}/default-materials`)
+        .set('Cookie', adminCookie)
+        .send({
+          items: [
+            {
+              roomTypeId: roomTypes.livingRoom,
+              categoryId: flooringCategory.id,
+              productId: RANDOM_UUID,
+            },
+          ],
+          revision: created.body.revision,
+        });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.PRODUCT_NOT_FOUND);
+      expect(response.body.error.params.productIds).toEqual([RANDOM_UUID]);
     });
 
     it('rejects a pair not in the room type set with PAIR_NOT_IN_ROOM_TYPE', async () => {
@@ -634,6 +694,35 @@ describe('admin styles e2e', () => {
       const indexA = publicIds.indexOf(styleA.id);
       const indexB = publicIds.indexOf(styleB.id);
       expect(indexB).toBeLessThan(indexA);
+    });
+
+    it('keeps a revision fetched before reorder valid for a later PATCH', async () => {
+      const styleA = await createPublishedStyle(
+        localizedText('Revision Alpha', 'Ревізія Альфа'),
+      );
+
+      const listBefore = await request(testApp.http)
+        .get('/api/v1/admin/styles')
+        .set('Cookie', adminCookie);
+      const allIds: string[] = listBefore.body.items.map(
+        (item: { id: string }) => item.id,
+      );
+
+      const reorderResponse = await request(testApp.http)
+        .put('/api/v1/admin/styles/order')
+        .set('Cookie', adminCookie)
+        .send({ styleIds: [...allIds].reverse() });
+      expect(reorderResponse.status).toBe(204);
+
+      const patchResponse = await request(testApp.http)
+        .patch(`/api/v1/admin/styles/${styleA.id}`)
+        .set('Cookie', adminCookie)
+        .send({
+          name: localizedText('Revision Alpha 2', 'Ревізія Альфа 2'),
+          revision: styleA.revision,
+        });
+
+      expect(patchResponse.status).toBe(200);
     });
 
     it('rejects an order list missing a style with STYLE_SET_MISMATCH', async () => {

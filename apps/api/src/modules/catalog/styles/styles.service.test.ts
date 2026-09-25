@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { Prisma } from '../../../generated/prisma/client';
 import { PublicationStatus } from '../../../generated/prisma/enums';
 import type { ImageUrlBuilder } from '../images/image-urls';
 import { StylesService } from './styles.service';
@@ -66,9 +67,14 @@ function defaultEntry(
     id: string;
     name: { en: string; uk: string };
     status: PublicationStatus;
+    categoryId?: string;
   },
 ) {
-  return { roomTypeId, categoryId, product };
+  return {
+    roomTypeId,
+    categoryId,
+    product: { categoryId, ...product },
+  };
 }
 
 function createPrisma(overrides: Record<string, unknown> = {}) {
@@ -78,7 +84,7 @@ function createPrisma(overrides: Record<string, unknown> = {}) {
     create: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
-    delete: vi.fn(),
+    deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
     aggregate: vi.fn().mockResolvedValue({ _max: { sortOrder: null } }),
     ...(overrides.style as Record<string, unknown> | undefined),
   };
@@ -93,7 +99,7 @@ function createPrisma(overrides: Record<string, unknown> = {}) {
     ...(overrides.styleDefaultMaterial as Record<string, unknown> | undefined),
   };
   const image = {
-    findUnique: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     ...(overrides.image as Record<string, unknown> | undefined),
   };
   const product = {
@@ -184,6 +190,44 @@ describe('StylesService.get', () => {
     expect(result.unavailableCount).toBe(1);
   });
 
+  it('marks a pair PRODUCT_UNAVAILABLE when the linked product moved to another category', async () => {
+    const roomTypeCategoryFindMany = vi
+      .fn()
+      .mockResolvedValue([
+        link(
+          'room-1',
+          'category-1',
+          'LIVING_ROOM',
+          localized('Tiles', 'Плитка'),
+        ),
+      ]);
+    const styleDefaultMaterialFindMany = vi.fn().mockResolvedValue([
+      defaultEntry('room-1', 'category-1', {
+        id: 'product-1',
+        name: localized('Oak', 'Дуб'),
+        status: PublicationStatus.PUBLISHED,
+        categoryId: 'category-2',
+      }),
+    ]);
+    const prisma = createPrisma({
+      roomTypeCategory: { findMany: roomTypeCategoryFindMany },
+      styleDefaultMaterial: { findMany: styleDefaultMaterialFindMany },
+    });
+    const service = new StylesService(prisma, createImageUrls());
+
+    const result = await service.get(STYLE_ID);
+
+    expect(result.pairs).toEqual([
+      expect.objectContaining({
+        roomTypeId: 'room-1',
+        categoryId: 'category-1',
+        productId: 'product-1',
+        state: 'PRODUCT_UNAVAILABLE',
+      }),
+    ]);
+    expect(result.unavailableCount).toBe(1);
+  });
+
   it('rejects an unknown style', async () => {
     const findUnique = vi.fn().mockResolvedValue(null);
     const prisma = createPrisma({ style: { findUnique } });
@@ -192,6 +236,43 @@ describe('StylesService.get', () => {
     await expect(service.get(STYLE_ID)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+});
+
+describe('StylesService.list', () => {
+  it('loads room-type links and default materials once for every style, not per style', async () => {
+    const roomTypeCategoryFindMany = vi
+      .fn()
+      .mockResolvedValue([
+        link(
+          'room-1',
+          'category-1',
+          'LIVING_ROOM',
+          localized('Tiles', 'Плитка'),
+        ),
+      ]);
+    const styleDefaultMaterialFindMany = vi.fn().mockResolvedValue([]);
+    const styleFindMany = vi
+      .fn()
+      .mockResolvedValue([
+        createStyleRow({ id: 'style-1' }),
+        createStyleRow({ id: 'style-2' }),
+      ]);
+    const prisma = createPrisma({
+      style: { findMany: styleFindMany },
+      roomTypeCategory: { findMany: roomTypeCategoryFindMany },
+      styleDefaultMaterial: { findMany: styleDefaultMaterialFindMany },
+    });
+    const service = new StylesService(prisma, createImageUrls());
+
+    const result = await service.list();
+
+    expect(result.items).toHaveLength(2);
+    expect(roomTypeCategoryFindMany).toHaveBeenCalledTimes(1);
+    expect(styleDefaultMaterialFindMany).toHaveBeenCalledTimes(1);
+    expect(styleDefaultMaterialFindMany.mock.calls[0][0]).not.toHaveProperty(
+      'where',
+    );
   });
 });
 
@@ -219,8 +300,8 @@ describe('StylesService.create', () => {
   });
 
   it('rejects an unknown image id', async () => {
-    const findUnique = vi.fn().mockResolvedValue(null);
-    const prisma = createPrisma({ image: { findUnique } });
+    const findMany = vi.fn().mockResolvedValue([]);
+    const prisma = createPrisma({ image: { findMany } });
     const service = new StylesService(prisma, createImageUrls());
 
     await expect(
@@ -272,6 +353,64 @@ describe('StylesService.update', () => {
       }),
     );
   });
+
+  it('rejects clearing the image on a published style with STYLE_IMAGE_MISSING', async () => {
+    const findUnique = vi.fn().mockResolvedValue(
+      createStyleRow({
+        status: PublicationStatus.PUBLISHED,
+        imageId: 'image-1',
+      }),
+    );
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ style: { findUnique, updateMany } });
+    const service = new StylesService(prisma, createImageUrls());
+
+    await expect(
+      service.update(STYLE_ID, { imageId: null, revision: REVISION }, ADMIN_ID),
+    ).rejects.toMatchObject({ code: 'STYLE_IMAGE_MISSING' });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects patching a published style into a missing translation', async () => {
+    const findUnique = vi.fn().mockResolvedValue(
+      createStyleRow({
+        status: PublicationStatus.PUBLISHED,
+        imageId: 'image-1',
+      }),
+    );
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ style: { findUnique, updateMany } });
+    const service = new StylesService(prisma, createImageUrls());
+
+    await expect(
+      service.update(
+        STYLE_ID,
+        { name: localized('Scandi', ''), revision: REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: 'TRANSLATION_MISSING' });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('allows patching a published style when the merged result stays publishable', async () => {
+    const findUnique = vi.fn().mockResolvedValue(
+      createStyleRow({
+        status: PublicationStatus.PUBLISHED,
+        imageId: 'image-1',
+      }),
+    );
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ style: { findUnique, updateMany } });
+    const service = new StylesService(prisma, createImageUrls());
+
+    await service.update(
+      STYLE_ID,
+      { description: localized('New', 'Новий'), revision: REVISION },
+      ADMIN_ID,
+    );
+
+    expect(updateMany).toHaveBeenCalled();
+  });
 });
 
 describe('StylesService.reorder', () => {
@@ -321,6 +460,39 @@ describe('StylesService.reorder', () => {
         data: expect.objectContaining({ sortOrder: 1 }),
       }),
     );
+  });
+
+  it('does not write a new revision, keeping revisions read before reorder valid', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([{ id: 'style-1' }, { id: 'style-2' }]);
+    const update = vi.fn().mockResolvedValue({});
+    const prisma = createPrisma({ style: { findMany, update } });
+    const service = new StylesService(prisma, createImageUrls());
+
+    await service.reorder({ styleIds: ['style-2', 'style-1'] }, ADMIN_ID);
+
+    for (const call of update.mock.calls) {
+      expect(call[0].data).not.toHaveProperty('revision');
+    }
+  });
+
+  it('reports STYLE_SET_MISMATCH instead of a raw error when a style vanishes mid-transaction', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([{ id: 'style-1' }, { id: 'style-2' }]);
+    const update = vi.fn().mockResolvedValue({});
+    const prisma = createPrisma({ style: { findMany, update } });
+    const p2025 = new Prisma.PrismaClientKnownRequestError('Not found', {
+      code: 'P2025',
+      clientVersion: 'test',
+    });
+    prisma.$transaction = vi.fn().mockRejectedValue(p2025);
+    const service = new StylesService(prisma, createImageUrls());
+
+    await expect(
+      service.reorder({ styleIds: ['style-2', 'style-1'] }, ADMIN_ID),
+    ).rejects.toMatchObject({ code: 'STYLE_SET_MISMATCH' });
   });
 });
 
@@ -390,7 +562,7 @@ describe('StylesService.updateStatus', () => {
 });
 
 describe('StylesService.updateDefaultMaterials', () => {
-  it('rejects a pair that is not in the room type', async () => {
+  it('rejects a pair that is not in the room type when a product is set', async () => {
     const roomTypeCategoryFindMany = vi.fn().mockResolvedValue([]);
     const prisma = createPrisma({
       roomTypeCategory: { findMany: roomTypeCategoryFindMany },
@@ -402,7 +574,11 @@ describe('StylesService.updateDefaultMaterials', () => {
         STYLE_ID,
         {
           items: [
-            { roomTypeId: 'room-1', categoryId: 'category-1', productId: null },
+            {
+              roomTypeId: 'room-1',
+              categoryId: 'category-1',
+              productId: 'product-1',
+            },
           ],
           revision: REVISION,
         },
@@ -468,7 +644,44 @@ describe('StylesService.updateDefaultMaterials', () => {
         },
         ADMIN_ID,
       ),
-    ).rejects.toMatchObject({ code: 'PRODUCT_CATEGORY_MISMATCH' });
+    ).rejects.toMatchObject({
+      code: 'PRODUCT_NOT_FOUND',
+      params: { productIds: ['missing-product'] },
+    });
+  });
+
+  it('allows clearing an orphan row with productId null even when the pair is no longer in the room type', async () => {
+    const roomTypeCategoryFindMany = vi.fn().mockResolvedValue([]);
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const deleteMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({
+      style: { updateMany },
+      roomTypeCategory: { findMany: roomTypeCategoryFindMany },
+      styleDefaultMaterial: { deleteMany },
+    });
+    const service = new StylesService(prisma, createImageUrls());
+
+    await service.updateDefaultMaterials(
+      STYLE_ID,
+      {
+        items: [
+          { roomTypeId: 'room-1', categoryId: 'category-1', productId: null },
+        ],
+        revision: REVISION,
+      },
+      ADMIN_ID,
+    );
+
+    for (const call of roomTypeCategoryFindMany.mock.calls) {
+      expect(call[0]).not.toHaveProperty('where');
+    }
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: {
+        styleId: STYLE_ID,
+        roomTypeId: 'room-1',
+        categoryId: 'category-1',
+      },
+    });
   });
 
   it('deletes the pair when productId is null', async () => {
@@ -596,20 +809,34 @@ describe('StylesService.updateDefaultMaterials', () => {
 
 describe('StylesService.remove', () => {
   it('deletes an existing style', async () => {
-    const findUnique = vi.fn().mockResolvedValue({ id: STYLE_ID });
-    const del = vi.fn().mockResolvedValue(undefined);
-    const prisma = createPrisma({ style: { findUnique, delete: del } });
+    const deleteMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ style: { deleteMany } });
     const service = new StylesService(prisma, createImageUrls());
 
     await service.remove(STYLE_ID);
 
-    expect(del).toHaveBeenCalledWith({ where: { id: STYLE_ID } });
+    expect(deleteMany).toHaveBeenCalledWith({ where: { id: STYLE_ID } });
   });
 
   it('rejects deleting an unknown style', async () => {
-    const findUnique = vi.fn().mockResolvedValue(null);
-    const prisma = createPrisma({ style: { findUnique } });
+    const deleteMany = vi.fn().mockResolvedValue({ count: 0 });
+    const prisma = createPrisma({ style: { deleteMany } });
     const service = new StylesService(prisma, createImageUrls());
+
+    await expect(service.remove(STYLE_ID)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('rejects deleting the same style twice', async () => {
+    const deleteMany = vi
+      .fn()
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    const prisma = createPrisma({ style: { deleteMany } });
+    const service = new StylesService(prisma, createImageUrls());
+
+    await service.remove(STYLE_ID);
 
     await expect(service.remove(STYLE_ID)).rejects.toMatchObject({
       code: 'NOT_FOUND',
