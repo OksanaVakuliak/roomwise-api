@@ -9,6 +9,7 @@ import {
   PublicationStatus,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
+import { isDefaultProductAvailable } from '../common/default-product-availability';
 import { ImageUrlBuilder } from '../images/image-urls';
 import type { PublicDefaultMaterialsResponse } from './dto/default-materials.schema';
 import type { PublicEngineeringResponse } from './dto/engineering.schema';
@@ -289,8 +290,8 @@ export class PublicCatalogService {
           roomTypeCode: link.roomType.code,
           categoryId: link.categoryId,
           productId:
-            defaultProduct?.status === PublicationStatus.PUBLISHED &&
-            defaultProduct.categoryId === link.categoryId
+            defaultProduct &&
+            isDefaultProductAvailable(defaultProduct, link.categoryId)
               ? defaultProduct.id
               : null,
         };
