@@ -124,6 +124,8 @@ model RoomTypeCategory {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   sortOrder  Int      @map("sort_order")
 
+  styleDefaultMaterials StyleDefaultMaterial[]
+
   @@id([roomTypeId, categoryId])
   @@unique([roomTypeId, sortOrder])
   @@map("room_type_categories")
@@ -250,6 +252,8 @@ model StyleDefaultMaterial {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   productId  String   @map("product_id") @db.Uuid
   product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  roomTypeCategory RoomTypeCategory @relation(fields: [roomTypeId, categoryId], references: [roomTypeId, categoryId], onDelete: Cascade)
 
   @@id([styleId, roomTypeId, categoryId])
   @@index([productId])

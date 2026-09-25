@@ -113,28 +113,7 @@ export class RoomTypesService {
             return 0;
           }
 
-          await tx.roomTypeCategory.deleteMany({
-            where: { roomTypeId },
-          });
-
-          if (input.categoryIds.length > 0) {
-            await tx.roomTypeCategory.createMany({
-              data: input.categoryIds.map((categoryId, index) => ({
-                roomTypeId,
-                categoryId,
-                sortOrder: index,
-              })),
-            });
-          }
-
-          await tx.styleDefaultMaterial.deleteMany({
-            where: {
-              roomTypeId,
-              ...(input.categoryIds.length > 0
-                ? { categoryId: { notIn: input.categoryIds } }
-                : {}),
-            },
-          });
+          await this.syncCategoryLinks(tx, roomTypeId, input.categoryIds);
 
           return result.count;
         }),
@@ -142,6 +121,60 @@ export class RoomTypesService {
     });
 
     return this.getById(id);
+  }
+
+  private async syncCategoryLinks(
+    tx: Prisma.TransactionClient,
+    roomTypeId: string,
+    categoryIds: string[],
+  ): Promise<void> {
+    await tx.roomTypeCategory.deleteMany({
+      where: {
+        roomTypeId,
+        ...(categoryIds.length > 0
+          ? { categoryId: { notIn: categoryIds } }
+          : {}),
+      },
+    });
+
+    const kept = await tx.roomTypeCategory.findMany({
+      where: { roomTypeId },
+      select: { categoryId: true, sortOrder: true },
+    });
+    const currentOrder = new Map(
+      kept.map((link) => [link.categoryId, link.sortOrder]),
+    );
+
+    const moved = categoryIds
+      .map((categoryId, sortOrder) => ({ categoryId, sortOrder }))
+      .filter(
+        ({ categoryId, sortOrder }) =>
+          currentOrder.has(categoryId) &&
+          currentOrder.get(categoryId) !== sortOrder,
+      );
+    const lowestSortOrder = Math.min(0, ...currentOrder.values());
+
+    for (const [index, { categoryId }] of moved.entries()) {
+      await tx.roomTypeCategory.update({
+        where: { roomTypeId_categoryId: { roomTypeId, categoryId } },
+        data: { sortOrder: lowestSortOrder - 1 - index },
+      });
+    }
+
+    for (const { categoryId, sortOrder } of moved) {
+      await tx.roomTypeCategory.update({
+        where: { roomTypeId_categoryId: { roomTypeId, categoryId } },
+        data: { sortOrder },
+      });
+    }
+
+    const added = categoryIds
+      .map((categoryId, sortOrder) => ({ roomTypeId, categoryId, sortOrder }))
+      .filter(({ categoryId }) => !currentOrder.has(categoryId));
+
+    if (added.length > 0) {
+      await tx.roomTypeCategory.createMany({ data: added });
+    }
   }
 
   private async assertCategoriesAssignable(

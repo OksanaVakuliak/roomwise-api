@@ -297,7 +297,7 @@ describe('admin catalog e2e', () => {
       expect(response.status).toBe(204);
     });
 
-    it('rejects deleting a category used only as a style default material with CATEGORY_IN_USE', async () => {
+    it('rejects deleting a category used as a style default material with CATEGORY_IN_USE', async () => {
       const category = await createCategoryFixture(testApp.prisma);
       const otherCategory = await createCategoryFixture(testApp.prisma);
       const materialType = await createMaterialTypeFixture(testApp.prisma);
@@ -318,7 +318,9 @@ describe('admin catalog e2e', () => {
       expect(response.status).toBe(409);
       expect(response.body.error.code).toBe(ERROR_CODES.CATEGORY_IN_USE);
       expect(response.body.error.params.productCount).toBe(0);
-      expect(response.body.error.params.roomTypeCodes).toEqual([]);
+      expect(response.body.error.params.roomTypeCodes).toEqual([
+        'KITCHEN_LIVING',
+      ]);
       expect(
         response.body.error.params.styles.map((s: { id: string }) => s.id),
       ).toEqual(expect.arrayContaining([style.styleId]));
@@ -543,6 +545,94 @@ describe('admin catalog e2e', () => {
         .set('Cookie', adminCookie);
 
       expect(deleteResponse.status).toBe(204);
+    });
+
+    it('keeps style default materials when only the category order changes', async () => {
+      const first = await createCategoryFixture(testApp.prisma, {
+        status: PublicationStatus.PUBLISHED,
+      });
+      const second = await createCategoryFixture(testApp.prisma, {
+        status: PublicationStatus.PUBLISHED,
+      });
+      const materialType = await createMaterialTypeFixture(testApp.prisma);
+      const product = await createProductFixture(testApp.prisma, {
+        categoryId: first.id,
+        materialTypeId: materialType.id,
+      });
+
+      const listResponse = await request(testApp.http)
+        .get('/api/v1/admin/room-types')
+        .set('Cookie', adminCookie);
+      expect(listResponse.status).toBe(200);
+      const bathroomEntry = listResponse.body.items.find(
+        (item: { id: string }) => item.id === roomTypes.bathroom,
+      );
+
+      const setupResponse = await request(testApp.http)
+        .put(`/api/v1/admin/room-types/${roomTypes.bathroom}/categories`)
+        .set('Cookie', adminCookie)
+        .send({
+          categoryIds: [first.id, second.id],
+          revision: bathroomEntry.revision,
+        });
+      expect(setupResponse.status).toBe(200);
+
+      const style = await createStyleUsingProductAsDefault(testApp.prisma, {
+        roomTypeId: roomTypes.bathroom,
+        categoryId: first.id,
+        productId: product.id,
+      });
+
+      const reorderResponse = await request(testApp.http)
+        .put(`/api/v1/admin/room-types/${roomTypes.bathroom}/categories`)
+        .set('Cookie', adminCookie)
+        .send({
+          categoryIds: [second.id, first.id],
+          revision: setupResponse.body.revision,
+        });
+
+      expect(reorderResponse.status).toBe(200);
+      expect(
+        reorderResponse.body.categories.map((c: { id: string }) => c.id),
+      ).toEqual([second.id, first.id]);
+
+      const defaults = await testApp.prisma.styleDefaultMaterial.findMany({
+        where: { styleId: style.styleId },
+      });
+      expect(defaults).toEqual([
+        expect.objectContaining({
+          roomTypeId: roomTypes.bathroom,
+          categoryId: first.id,
+          productId: product.id,
+        }),
+      ]);
+    });
+
+    it('refuses at the database level a style default material for a pair the room type does not link', async () => {
+      const category = await createCategoryFixture(testApp.prisma);
+      const materialType = await createMaterialTypeFixture(testApp.prisma);
+      const product = await createProductFixture(testApp.prisma, {
+        categoryId: category.id,
+        materialTypeId: materialType.id,
+      });
+      const style = await testApp.prisma.style.create({
+        data: {
+          name: localizedText('Unlinked', 'Непривʼязаний'),
+          description: localizedText('A test style.', 'Тестовий стиль.'),
+          sortOrder: 1,
+        },
+      });
+
+      await expect(
+        testApp.prisma.styleDefaultMaterial.create({
+          data: {
+            styleId: style.id,
+            roomTypeId: roomTypes.bathroom,
+            categoryId: category.id,
+            productId: product.id,
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'P2003' });
     });
   });
 

@@ -6,8 +6,10 @@ import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { isPrismaError } from '../../../common/prisma/prisma-error';
 import { Prisma } from '../../../generated/prisma/client';
 import { PublicationStatus } from '../../../generated/prisma/enums';
+import { isDefaultProductAvailable } from '../common/default-product-availability';
 import { assertImagesExist } from '../images/assert-images-exist';
 import { ImageUrlBuilder } from '../images/image-urls';
 import type { CreateStyleInput } from './dto/create-style.schema';
@@ -61,13 +63,6 @@ interface PublishableCandidate {
   name: LocalizedText;
   description: LocalizedText;
   imageId: string | null;
-}
-
-function isRecordNotFound(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2025'
-  );
 }
 
 @Injectable()
@@ -149,7 +144,13 @@ export class StylesService {
 
     const existing = await this.prisma.style.findUnique({
       where: { id },
-      select: { status: true, name: true, description: true, imageId: true },
+      select: {
+        status: true,
+        name: true,
+        description: true,
+        imageId: true,
+        revision: true,
+      },
     });
 
     if (!existing) {
@@ -157,6 +158,12 @@ export class StylesService {
     }
 
     if (existing.status === PublicationStatus.PUBLISHED) {
+      if (input.revision !== existing.revision) {
+        throw new AppError(ERROR_CODES.STALE_REVISION, {
+          params: { currentRevision: existing.revision },
+        });
+      }
+
       this.assertPublishable({
         name: input.name ?? toLocalizedText(existing.name),
         description: input.description ?? toLocalizedText(existing.description),
@@ -225,7 +232,7 @@ export class StylesService {
         ),
       );
     } catch (error) {
-      if (isRecordNotFound(error)) {
+      if (isPrismaError(error, 'P2025')) {
         throw new AppError(ERROR_CODES.STYLE_SET_MISMATCH, {
           params: { styleIds: input.styleIds },
         });
@@ -285,61 +292,69 @@ export class StylesService {
     input: StyleDefaultMaterialsInput,
     adminId: string,
   ): Promise<StyleAdmin> {
-    await updateWithRevision({
-      id,
-      expectedRevision: input.revision,
-      updatedById: adminId,
-      update: ({ id: styleId, expectedRevision, mutation }) =>
-        this.prisma.$transaction(async (tx) => {
-          await this.assertItemsValid(tx, input.items);
+    try {
+      await updateWithRevision({
+        id,
+        expectedRevision: input.revision,
+        updatedById: adminId,
+        update: ({ id: styleId, expectedRevision, mutation }) =>
+          this.prisma.$transaction(async (tx) => {
+            await this.assertItemsValid(tx, input.items);
 
-          const result = await tx.style.updateMany({
-            where: { id: styleId, revision: expectedRevision },
-            data: {
-              revision: mutation.revision,
-              updatedAt: mutation.updatedAt,
-              updatedById: mutation.updatedById,
-            },
-          });
+            const result = await tx.style.updateMany({
+              where: { id: styleId, revision: expectedRevision },
+              data: {
+                revision: mutation.revision,
+                updatedAt: mutation.updatedAt,
+                updatedById: mutation.updatedById,
+              },
+            });
 
-          if (result.count === 0) {
-            return 0;
-          }
-
-          for (const item of input.items) {
-            if (item.productId === null) {
-              await tx.styleDefaultMaterial.deleteMany({
-                where: {
-                  styleId,
-                  roomTypeId: item.roomTypeId,
-                  categoryId: item.categoryId,
-                },
-              });
-              continue;
+            if (result.count === 0) {
+              return 0;
             }
 
-            await tx.styleDefaultMaterial.upsert({
-              where: {
-                styleId_roomTypeId_categoryId: {
+            for (const item of input.items) {
+              if (item.productId === null) {
+                await tx.styleDefaultMaterial.deleteMany({
+                  where: {
+                    styleId,
+                    roomTypeId: item.roomTypeId,
+                    categoryId: item.categoryId,
+                  },
+                });
+                continue;
+              }
+
+              await tx.styleDefaultMaterial.upsert({
+                where: {
+                  styleId_roomTypeId_categoryId: {
+                    styleId,
+                    roomTypeId: item.roomTypeId,
+                    categoryId: item.categoryId,
+                  },
+                },
+                create: {
                   styleId,
                   roomTypeId: item.roomTypeId,
                   categoryId: item.categoryId,
+                  productId: item.productId,
                 },
-              },
-              create: {
-                styleId,
-                roomTypeId: item.roomTypeId,
-                categoryId: item.categoryId,
-                productId: item.productId,
-              },
-              update: { productId: item.productId },
-            });
-          }
+                update: { productId: item.productId },
+              });
+            }
 
-          return result.count;
-        }),
-      readCurrentRevision: (styleId) => this.readRevision(styleId),
-    });
+            return result.count;
+          }),
+        readCurrentRevision: (styleId) => this.readRevision(styleId),
+      });
+    } catch (error) {
+      if (isPrismaError(error, 'P2003')) {
+        await this.assertItemsValid(this.prisma, input.items);
+      }
+
+      throw error;
+    }
 
     return this.getById(id);
   }
@@ -486,9 +501,10 @@ export class StylesService {
         };
       }
 
-      const isAvailable =
-        entry.product.status === PublicationStatus.PUBLISHED &&
-        entry.product.categoryId === link.categoryId;
+      const isAvailable = isDefaultProductAvailable(
+        entry.product,
+        link.categoryId,
+      );
 
       if (!isAvailable) {
         unavailableCount += 1;

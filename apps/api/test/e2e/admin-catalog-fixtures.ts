@@ -289,6 +289,27 @@ export async function createStyleUsingProductAsDefault(
     },
   });
 
+  const link = await prisma.roomTypeCategory.findUnique({
+    where: {
+      roomTypeId_categoryId: {
+        roomTypeId: params.roomTypeId,
+        categoryId: params.categoryId,
+      },
+    },
+  });
+  if (!link) {
+    const last = await prisma.roomTypeCategory.findFirst({
+      where: { roomTypeId: params.roomTypeId },
+      orderBy: { sortOrder: 'desc' },
+    });
+    await assignCategoryToRoomType(
+      prisma,
+      params.roomTypeId,
+      params.categoryId,
+      (last?.sortOrder ?? -1) + 1,
+    );
+  }
+
   await prisma.styleDefaultMaterial.create({
     data: {
       styleId: style.id,

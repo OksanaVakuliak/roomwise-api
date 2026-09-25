@@ -372,6 +372,31 @@ describe('admin styles e2e', () => {
       expect(response.body.status).toBe(PublicationStatus.PUBLISHED);
     });
 
+    it('rejects a stale revision on PATCH of a published style with STALE_REVISION, not STYLE_IMAGE_MISSING', async () => {
+      const image = await createImageFixture(testApp.prisma);
+      const created = await createStyle({ imageId: image.id });
+
+      const published = await request(testApp.http)
+        .post(`/api/v1/admin/styles/${created.body.id}/status`)
+        .set('Cookie', adminCookie)
+        .send({
+          status: PublicationStatus.PUBLISHED,
+          revision: created.body.revision,
+        });
+      expect(published.status).toBe(200);
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/styles/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({ imageId: null, revision: randomUUID() });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error.code).toBe(ERROR_CODES.STALE_REVISION);
+      expect(response.body.error.params.currentRevision).toBe(
+        published.body.revision,
+      );
+    });
+
     it('rejects clearing the image of a published style via PATCH with STYLE_IMAGE_MISSING', async () => {
       const image = await createImageFixture(testApp.prisma);
       const created = await createStyle({ imageId: image.id });

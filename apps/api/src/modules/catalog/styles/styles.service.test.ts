@@ -354,6 +354,27 @@ describe('StylesService.update', () => {
     );
   });
 
+  it('rejects a stale revision on a published style with STALE_REVISION, not STYLE_IMAGE_MISSING', async () => {
+    const findUnique = vi.fn().mockResolvedValue(
+      createStyleRow({
+        status: PublicationStatus.PUBLISHED,
+        imageId: null,
+        revision: NEXT_REVISION,
+      }),
+    );
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ style: { findUnique, updateMany } });
+    const service = new StylesService(prisma, createImageUrls());
+
+    await expect(
+      service.update(STYLE_ID, { imageId: null, revision: REVISION }, ADMIN_ID),
+    ).rejects.toMatchObject({
+      code: 'STALE_REVISION',
+      params: { currentRevision: NEXT_REVISION },
+    });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
   it('rejects clearing the image on a published style with STYLE_IMAGE_MISSING', async () => {
     const findUnique = vi.fn().mockResolvedValue(
       createStyleRow({
@@ -585,6 +606,49 @@ describe('StylesService.updateDefaultMaterials', () => {
         ADMIN_ID,
       ),
     ).rejects.toMatchObject({ code: 'PAIR_NOT_IN_ROOM_TYPE' });
+  });
+
+  it('reports a pair removed concurrently as not in the room type', async () => {
+    const roomTypeCategoryFindMany = vi
+      .fn()
+      .mockResolvedValueOnce([
+        { roomTypeId: 'room-1', categoryId: 'category-1' },
+      ])
+      .mockResolvedValue([]);
+    const productFindMany = vi
+      .fn()
+      .mockResolvedValue([{ id: 'product-1', categoryId: 'category-1' }]);
+    const upsert = vi.fn().mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Foreign key violation', {
+        code: 'P2003',
+        clientVersion: 'test',
+      }),
+    );
+    const prisma = createPrisma({
+      style: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      roomTypeCategory: { findMany: roomTypeCategoryFindMany },
+      product: { findMany: productFindMany },
+      styleDefaultMaterial: { upsert },
+    });
+    const service = new StylesService(prisma, createImageUrls());
+
+    await expect(
+      service.updateDefaultMaterials(
+        STYLE_ID,
+        {
+          items: [
+            {
+              roomTypeId: 'room-1',
+              categoryId: 'category-1',
+              productId: 'product-1',
+            },
+          ],
+          revision: REVISION,
+        },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: 'PAIR_NOT_IN_ROOM_TYPE' });
+    expect(upsert).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a product from a different category', async () => {
