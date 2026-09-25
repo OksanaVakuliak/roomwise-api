@@ -11,13 +11,14 @@ import {
   Query,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { PublicationStatus } from '../../../generated/prisma/enums';
 import {
   type AuthenticatedAdmin,
   CurrentAdmin,
 } from '../../auth/current-admin.decorator';
+import { SESSION_COOKIE_NAME } from '../../auth/session-cookie';
 import { CatalogChangeInterceptor } from '../common/catalog-change.interceptor';
 import { CategoriesService } from './categories.service';
 import type {
@@ -35,6 +36,7 @@ import { CategoryIdParamDto } from './dto/params.schema';
 import { PatchCategoryDto } from './dto/patch-category.schema';
 
 @Controller('admin/categories')
+@ApiCookieAuth(SESSION_COOKIE_NAME)
 @UseInterceptors(CatalogChangeInterceptor)
 export class CategoriesController {
   constructor(private readonly categories: CategoriesService) {}

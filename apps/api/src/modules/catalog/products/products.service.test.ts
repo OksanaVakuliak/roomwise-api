@@ -551,6 +551,63 @@ describe('ProductsService.update', () => {
       ),
     ).rejects.toMatchObject({ code: ERROR_CODES.CATEGORY_NOT_FOUND });
   });
+
+  it('rejects a category change when the product is a style default material', async () => {
+    const styleDefaultMaterialFindMany = vi.fn().mockResolvedValue([
+      {
+        style: {
+          id: STYLE_ID,
+          name: localized('Scandinavian', 'Скандинавський'),
+        },
+      },
+    ]);
+    const prisma = createPrisma({
+      product: { findUnique: vi.fn().mockResolvedValue(patchExistingRow()) },
+      styleDefaultMaterial: { findMany: styleDefaultMaterialFindMany },
+    });
+    const service = new ProductsService(prisma, createImageUrls());
+
+    await expect(
+      service.update(
+        PRODUCT_ID,
+        { categoryId: 'category-2', revision: REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.PRODUCT_IN_USE,
+      params: {
+        styles: [
+          { id: STYLE_ID, name: localized('Scandinavian', 'Скандинавський') },
+        ],
+      },
+    });
+    expect(styleDefaultMaterialFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { productId: PRODUCT_ID } }),
+    );
+    expect(prisma.tx.product.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('allows a category change when the product is not a style default material', async () => {
+    const prisma = createPrisma({
+      product: {
+        findUnique: vi
+          .fn()
+          .mockResolvedValueOnce(patchExistingRow())
+          .mockResolvedValueOnce(
+            createProductAdminRow({ categoryId: 'category-2' }),
+          ),
+      },
+    });
+    const service = new ProductsService(prisma, createImageUrls());
+
+    const result = await service.update(
+      PRODUCT_ID,
+      { categoryId: 'category-2', revision: REVISION },
+      ADMIN_ID,
+    );
+
+    expect(result.categoryId).toBe('category-2');
+  });
 });
 
 describe('ProductsService.changeStatus', () => {

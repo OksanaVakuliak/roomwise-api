@@ -296,6 +296,63 @@ describe('admin catalog e2e', () => {
 
       expect(response.status).toBe(204);
     });
+
+    it('rejects deleting a category used only as a style default material with CATEGORY_IN_USE', async () => {
+      const category = await createCategoryFixture(testApp.prisma);
+      const otherCategory = await createCategoryFixture(testApp.prisma);
+      const materialType = await createMaterialTypeFixture(testApp.prisma);
+      const product = await createProductFixture(testApp.prisma, {
+        categoryId: otherCategory.id,
+        materialTypeId: materialType.id,
+      });
+      const style = await createStyleUsingProductAsDefault(testApp.prisma, {
+        roomTypeId: roomTypes.kitchenLiving,
+        categoryId: category.id,
+        productId: product.id,
+      });
+
+      const response = await request(testApp.http)
+        .delete(`/api/v1/admin/categories/${category.id}`)
+        .set('Cookie', adminCookie);
+
+      expect(response.status).toBe(409);
+      expect(response.body.error.code).toBe(ERROR_CODES.CATEGORY_IN_USE);
+      expect(response.body.error.params.productCount).toBe(0);
+      expect(response.body.error.params.roomTypeCodes).toEqual([]);
+      expect(
+        response.body.error.params.styles.map((s: { id: string }) => s.id),
+      ).toEqual(expect.arrayContaining([style.styleId]));
+    });
+
+    it('rejects changing a category surface when a published product is missing surface data with SURFACE_DATA_MISSING', async () => {
+      const category = await createCategoryFixture(testApp.prisma, {
+        surface: SurfaceKind.NONE,
+      });
+      const materialType = await createMaterialTypeFixture(testApp.prisma);
+      const product = await createProductFixture(testApp.prisma, {
+        categoryId: category.id,
+        materialTypeId: materialType.id,
+        status: PublicationStatus.PUBLISHED,
+      });
+      await testApp.prisma.product.update({
+        where: { id: product.id },
+        data: {
+          textureImageId: null,
+          tileWidthMm: null,
+          tileLengthMm: null,
+          fallbackColor: null,
+        },
+      });
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/categories/${category.id}`)
+        .set('Cookie', adminCookie)
+        .send({ surface: SurfaceKind.FLOOR, revision: category.revision });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.SURFACE_DATA_MISSING);
+      expect(response.body.error.params.productIds).toEqual([product.id]);
+    });
   });
 
   describe('room types', () => {
@@ -344,6 +401,42 @@ describe('admin catalog e2e', () => {
       expect(
         putResponse.body.categories.map((c: { id: string }) => c.id),
       ).toEqual([categoryB.id, categoryA.id]);
+    });
+
+    it('accepts a draft category with an empty translation and lists it', async () => {
+      const draftCategory = await createCategoryFixture(testApp.prisma, {
+        name: localizedText('', 'Порожня'),
+        status: PublicationStatus.DRAFT,
+      });
+
+      const listResponse = await request(testApp.http)
+        .get('/api/v1/admin/room-types')
+        .set('Cookie', adminCookie);
+      const livingRoomEntry = listResponse.body.items.find(
+        (item: { id: string }) => item.id === roomTypes.livingRoom,
+      );
+
+      const putResponse = await request(testApp.http)
+        .put(`/api/v1/admin/room-types/${roomTypes.livingRoom}/categories`)
+        .set('Cookie', adminCookie)
+        .send({
+          categoryIds: [draftCategory.id],
+          revision: livingRoomEntry.revision,
+        });
+
+      expect(putResponse.status).toBe(200);
+
+      const getResponse = await request(testApp.http)
+        .get('/api/v1/admin/room-types')
+        .set('Cookie', adminCookie);
+
+      expect(getResponse.status).toBe(200);
+      const updatedLivingRoom = getResponse.body.items.find(
+        (item: { id: string }) => item.id === roomTypes.livingRoom,
+      );
+      expect(
+        updatedLivingRoom.categories.map((c: { id: string }) => c.id),
+      ).toContain(draftCategory.id);
     });
 
     it('rejects adding an archived category to a room type with CATEGORY_ARCHIVED', async () => {
@@ -688,6 +781,36 @@ describe('admin catalog e2e', () => {
       const response = await request(testApp.http)
         .delete(`/api/v1/admin/products/${product.id}`)
         .set('Cookie', adminCookie);
+
+      expect(response.status).toBe(409);
+      expect(response.body.error.code).toBe(ERROR_CODES.PRODUCT_IN_USE);
+      expect(
+        response.body.error.params.styles.map((s: { id: string }) => s.id),
+      ).toEqual(expect.arrayContaining([style.styleId]));
+    });
+
+    it('rejects changing the category of a product used as a style default material with PRODUCT_IN_USE', async () => {
+      const category = await createCategoryFixture(testApp.prisma, {
+        surface: SurfaceKind.NONE,
+      });
+      const otherCategory = await createCategoryFixture(testApp.prisma, {
+        surface: SurfaceKind.NONE,
+      });
+      const materialType = await createMaterialTypeFixture(testApp.prisma);
+      const product = await createProductFixture(testApp.prisma, {
+        categoryId: category.id,
+        materialTypeId: materialType.id,
+      });
+      const style = await createStyleUsingProductAsDefault(testApp.prisma, {
+        roomTypeId: roomTypes.kitchenLiving,
+        categoryId: category.id,
+        productId: product.id,
+      });
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/products/${product.id}`)
+        .set('Cookie', adminCookie)
+        .send({ categoryId: otherCategory.id, revision: product.revision });
 
       expect(response.status).toBe(409);
       expect(response.body.error.code).toBe(ERROR_CODES.PRODUCT_IN_USE);

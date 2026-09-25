@@ -5,13 +5,14 @@ import {
   localizedNameDraftSchema,
 } from '../../../../common/i18n/localized-text.schema';
 import { ProductUnit } from '../../../../generated/prisma/enums';
+import { FALLBACK_COLOR_PATTERN } from '../../common/fallback-color.schema';
 
 export const PRODUCT_TEXT_FIELD_MAX_LENGTH = 80;
 export const PRODUCT_WASTE_PERCENT_MAX = 100;
 export const PRODUCT_MAX_ATTRIBUTES = 30;
 
-const FALLBACK_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
 const MULTIPLE_PRIMARY_IMAGES_MESSAGE = 'Only one image can be primary';
+const DUPLICATE_IMAGE_ID_MESSAGE = 'Duplicate image id';
 
 export const productImageInputSchema = z.object({
   imageId: z.uuid(),
@@ -35,6 +36,19 @@ export const productImagesInputSchema = z
         path: [],
       });
     }
+
+    const seen = new Set<string>();
+
+    images.forEach((image, index) => {
+      if (seen.has(image.imageId)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: DUPLICATE_IMAGE_ID_MESSAGE,
+          path: [index, 'imageId'],
+        });
+      }
+      seen.add(image.imageId);
+    });
   });
 
 export const createProductSchema = z.object({

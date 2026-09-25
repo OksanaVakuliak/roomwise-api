@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { Prisma } from '../../../generated/prisma/client';
 import {
   PublicationStatus,
   SurfaceKind,
@@ -10,6 +11,7 @@ const CATEGORY_ID = 'category-1';
 const ADMIN_ID = 'admin-1';
 const REVISION = 'revision-1';
 const NEXT_REVISION = 'revision-2';
+const STYLE_ID = 'style-1';
 
 function localized(en: string, uk: string) {
   return { en, uk };
@@ -31,21 +33,32 @@ function createAdminCategoryRow(overrides: Record<string, unknown> = {}) {
     updatedBy: { id: ADMIN_ID, login: 'admin' },
     _count: { products: 0 },
     roomTypeCategories: [],
+    styleDefaultMaterials: [],
     ...overrides,
   };
 }
 
 function createPrisma(overrides: Record<string, unknown> = {}) {
+  const category = {
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    updateMany: vi.fn(),
+    delete: vi.fn(),
+    ...(overrides.category as Record<string, unknown> | undefined),
+  };
+  const product = {
+    findMany: vi.fn().mockResolvedValue([]),
+    ...(overrides.product as Record<string, unknown> | undefined),
+  };
+  const tx = { category, product };
+
   return {
-    category: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      updateMany: vi.fn(),
-      delete: vi.fn(),
-      ...(overrides.category as Record<string, unknown> | undefined),
-    },
-  } as unknown as PrismaService;
+    category,
+    product,
+    $transaction: vi.fn(async (run: (client: typeof tx) => unknown) => run(tx)),
+    tx,
+  } as unknown as PrismaService & { tx: typeof tx };
 }
 
 describe('CategoriesService.list', () => {
@@ -197,6 +210,91 @@ describe('CategoriesService.update', () => {
       service.update(CATEGORY_ID, { revision: REVISION }, ADMIN_ID),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
+
+  it('rejects a surface change when a published product is missing surface data', async () => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValueOnce({ surface: SurfaceKind.NONE });
+    const productFindMany = vi.fn().mockResolvedValue([
+      {
+        id: 'product-1',
+        textureImageId: null,
+        tileWidthMm: null,
+        tileLengthMm: null,
+        fallbackColor: null,
+      },
+    ]);
+    const prisma = createPrisma({
+      category: { findUnique },
+      product: { findMany: productFindMany },
+    });
+    const service = new CategoriesService(prisma);
+
+    await expect(
+      service.update(
+        CATEGORY_ID,
+        { surface: SurfaceKind.FLOOR, revision: REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: 'SURFACE_DATA_MISSING',
+      params: { productIds: ['product-1'] },
+    });
+    expect(productFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { categoryId: CATEGORY_ID, status: PublicationStatus.PUBLISHED },
+      }),
+    );
+  });
+
+  it('allows a surface change to NONE without checking published products', async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const findUnique = vi.fn().mockResolvedValue(createAdminCategoryRow());
+    const productFindMany = vi.fn();
+    const prisma = createPrisma({
+      category: { updateMany, findUnique },
+      product: { findMany: productFindMany },
+    });
+    const service = new CategoriesService(prisma);
+
+    await service.update(
+      CATEGORY_ID,
+      { surface: SurfaceKind.NONE, revision: REVISION },
+      ADMIN_ID,
+    );
+
+    expect(productFindMany).not.toHaveBeenCalled();
+  });
+
+  it('allows a surface change when every published product has full surface data', async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const findUnique = vi
+      .fn()
+      .mockResolvedValueOnce({ surface: SurfaceKind.NONE })
+      .mockResolvedValueOnce(createAdminCategoryRow());
+    const productFindMany = vi.fn().mockResolvedValue([
+      {
+        id: 'product-1',
+        textureImageId: 'image-1',
+        tileWidthMm: 600,
+        tileLengthMm: 600,
+        fallbackColor: '#FFFFFF',
+      },
+    ]);
+    const prisma = createPrisma({
+      category: { updateMany, findUnique },
+      product: { findMany: productFindMany },
+    });
+    const service = new CategoriesService(prisma);
+
+    const result = await service.update(
+      CATEGORY_ID,
+      { surface: SurfaceKind.FLOOR, revision: REVISION },
+      ADMIN_ID,
+    );
+
+    expect(result.id).toBe(CATEGORY_ID);
+  });
 });
 
 describe('CategoriesService.updateStatus', () => {
@@ -321,6 +419,51 @@ describe('CategoriesService.remove', () => {
 
     await expect(service.remove(CATEGORY_ID)).rejects.toMatchObject({
       code: 'NOT_FOUND',
+    });
+  });
+
+  it('rejects deleting a category used as a style default material with a deduplicated list', async () => {
+    const findUnique = vi.fn().mockResolvedValue(
+      createAdminCategoryRow({
+        _count: { products: 0 },
+        roomTypeCategories: [],
+        styleDefaultMaterials: [
+          { style: { id: STYLE_ID, name: localized('Scandi', 'Скандi') } },
+          { style: { id: STYLE_ID, name: localized('Scandi', 'Скандi') } },
+        ],
+      }),
+    );
+    const prisma = createPrisma({ category: { findUnique } });
+    const service = new CategoriesService(prisma);
+
+    await expect(service.remove(CATEGORY_ID)).rejects.toMatchObject({
+      code: 'CATEGORY_IN_USE',
+      params: {
+        productCount: 0,
+        roomTypeCodes: [],
+        styles: [{ id: STYLE_ID, name: localized('Scandi', 'Скандi') }],
+      },
+    });
+  });
+
+  it('maps a foreign-key race on delete to CATEGORY_IN_USE', async () => {
+    const findUnique = vi.fn().mockResolvedValue(
+      createAdminCategoryRow({
+        _count: { products: 0 },
+        roomTypeCategories: [],
+      }),
+    );
+    const del = vi.fn().mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Foreign key violation', {
+        code: 'P2003',
+        clientVersion: '7.10.0',
+      }),
+    );
+    const prisma = createPrisma({ category: { findUnique, delete: del } });
+    const service = new CategoriesService(prisma);
+
+    await expect(service.remove(CATEGORY_ID)).rejects.toMatchObject({
+      code: 'CATEGORY_IN_USE',
     });
   });
 });

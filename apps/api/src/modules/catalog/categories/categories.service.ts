@@ -3,10 +3,14 @@ import { updateWithRevision } from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
+import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
-import { PublicationStatus } from '../../../generated/prisma/enums';
+import {
+  PublicationStatus,
+  SurfaceKind,
+} from '../../../generated/prisma/enums';
 import type {
   CategoryAdmin,
   CategoryAdminListResponse,
@@ -29,8 +33,11 @@ type CategoryWithRelations = Prisma.CategoryGetPayload<{
   include: typeof CATEGORY_ADMIN_INCLUDE;
 }>;
 
-function toLocalizedText(value: unknown): LocalizedText {
-  return value as LocalizedText;
+function isForeignKeyViolation(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2003'
+  );
 }
 
 function toCategoryAdmin(category: CategoryWithRelations): CategoryAdmin {
@@ -93,6 +100,21 @@ export class CategoriesService {
     input: PatchCategoryInput,
     adminId: string,
   ): Promise<CategoryAdmin> {
+    if (input.surface !== undefined && input.surface !== SurfaceKind.NONE) {
+      const existing = await this.prisma.category.findUnique({
+        where: { id },
+        select: { surface: true },
+      });
+
+      if (!existing) {
+        throw new AppError(ERROR_CODES.NOT_FOUND);
+      }
+
+      if (input.surface !== existing.surface) {
+        await this.assertPublishedProductsHaveSurfaceData(id);
+      }
+    }
+
     await updateWithRevision({
       id,
       expectedRevision: input.revision,
@@ -162,31 +184,99 @@ export class CategoriesService {
   }
 
   async remove(id: string): Promise<void> {
-    const category = await this.prisma.category.findUnique({
-      where: { id },
-      include: {
-        _count: { select: { products: true } },
-        roomTypeCategories: {
-          include: { roomType: { select: { code: true } } },
-        },
-      },
-    });
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const category = await tx.category.findUnique({
+          where: { id },
+          include: {
+            _count: { select: { products: true } },
+            roomTypeCategories: {
+              include: { roomType: { select: { code: true } } },
+            },
+            styleDefaultMaterials: {
+              include: { style: { select: { id: true, name: true } } },
+            },
+          },
+        });
 
-    if (!category) {
-      throw new AppError(ERROR_CODES.NOT_FOUND);
+        if (!category) {
+          throw new AppError(ERROR_CODES.NOT_FOUND);
+        }
+
+        const roomTypeCodes = category.roomTypeCategories.map(
+          (link) => link.roomType.code,
+        );
+        const styles = this.uniqueStyles(category.styleDefaultMaterials);
+
+        if (
+          category._count.products > 0 ||
+          roomTypeCodes.length > 0 ||
+          styles.length > 0
+        ) {
+          throw new AppError(ERROR_CODES.CATEGORY_IN_USE, {
+            params: {
+              productCount: category._count.products,
+              roomTypeCodes,
+              styles,
+            },
+          });
+        }
+
+        await tx.category.delete({ where: { id } });
+      });
+    } catch (error) {
+      if (isForeignKeyViolation(error)) {
+        throw new AppError(ERROR_CODES.CATEGORY_IN_USE);
+      }
+
+      throw error;
     }
+  }
 
-    const roomTypeCodes = category.roomTypeCategories.map(
-      (link) => link.roomType.code,
-    );
+  private uniqueStyles(
+    links: Array<{ style: { id: string; name: unknown } }>,
+  ): Array<{ id: string; name: LocalizedText }> {
+    const stylesById = new Map<string, { id: string; name: LocalizedText }>();
 
-    if (category._count.products > 0 || roomTypeCodes.length > 0) {
-      throw new AppError(ERROR_CODES.CATEGORY_IN_USE, {
-        params: { productCount: category._count.products, roomTypeCodes },
+    for (const link of links) {
+      stylesById.set(link.style.id, {
+        id: link.style.id,
+        name: toLocalizedText(link.style.name),
       });
     }
 
-    await this.prisma.category.delete({ where: { id } });
+    return [...stylesById.values()];
+  }
+
+  private async assertPublishedProductsHaveSurfaceData(
+    categoryId: string,
+  ): Promise<void> {
+    const products = await this.prisma.product.findMany({
+      where: { categoryId, status: PublicationStatus.PUBLISHED },
+      select: {
+        id: true,
+        textureImageId: true,
+        tileWidthMm: true,
+        tileLengthMm: true,
+        fallbackColor: true,
+      },
+    });
+
+    const productIds = products
+      .filter(
+        (product) =>
+          !product.textureImageId ||
+          !product.tileWidthMm ||
+          !product.tileLengthMm ||
+          !product.fallbackColor,
+      )
+      .map((product) => product.id);
+
+    if (productIds.length > 0) {
+      throw new AppError(ERROR_CODES.SURFACE_DATA_MISSING, {
+        params: { productIds },
+      });
+    }
   }
 
   private async readRevision(id: string): Promise<string | null> {

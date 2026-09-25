@@ -1,7 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { auditSchema } from '../../../../common/concurrency/audit.schema';
-import { localizedNameSchema } from '../../../../common/i18n/localized-text.schema';
+import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
 import {
   PublicationStatus,
   RoomTypeCode,
@@ -10,7 +10,7 @@ import {
 
 export const roomTypeCategoryAdminSchema = z.object({
   id: z.uuid(),
-  name: localizedNameSchema,
+  name: localizedNameDraftSchema,
   status: z.enum(PublicationStatus),
   surface: z.enum(SurfaceKind),
 });
@@ -19,7 +19,7 @@ export const roomTypeAdminSchema = z
   .object({
     id: z.uuid(),
     code: z.enum(RoomTypeCode),
-    name: localizedNameSchema,
+    name: localizedNameDraftSchema,
     categories: z.array(roomTypeCategoryAdminSchema),
     revision: z.uuid(),
   })

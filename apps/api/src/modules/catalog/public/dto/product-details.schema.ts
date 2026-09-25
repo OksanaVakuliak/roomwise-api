@@ -1,10 +1,9 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { ProductUnit, SurfaceKind } from '../../../../generated/prisma/enums';
+import { FALLBACK_COLOR_PATTERN } from '../../common/fallback-color.schema';
 import { imageRefSchema, textureRefSchema } from './image-ref.schema';
 import { PERCENT_MAX } from './room-type.schema';
-
-const FALLBACK_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
 
 export const productAttributeSchema = z.object({
   name: z.string(),

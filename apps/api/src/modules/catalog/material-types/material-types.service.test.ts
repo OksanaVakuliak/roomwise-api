@@ -130,6 +130,27 @@ describe('MaterialTypesService.create', () => {
       ),
     ).rejects.toMatchObject({ code: ERROR_CODES.CODE_TAKEN });
   });
+
+  it('maps a P2002 race with no meta.target to CODE_TAKEN', async () => {
+    const create = vi.fn().mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: '7.10.0',
+      }),
+    );
+    const prisma = createPrisma({
+      findUnique: vi.fn().mockResolvedValue(null),
+      create,
+    });
+    const service = new MaterialTypesService(prisma);
+
+    await expect(
+      service.create(
+        { code: 'laminate', name: localized('Laminate', 'Ламінат') },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.CODE_TAKEN });
+  });
 });
 
 describe('MaterialTypesService.update', () => {

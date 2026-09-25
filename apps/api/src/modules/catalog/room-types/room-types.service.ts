@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { updateWithRevision } from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
-import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
+import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
 import { PublicationStatus } from '../../../generated/prisma/enums';
@@ -28,10 +28,6 @@ const ROOM_TYPE_ADMIN_INCLUDE = {
 type RoomTypeWithRelations = Prisma.RoomTypeGetPayload<{
   include: typeof ROOM_TYPE_ADMIN_INCLUDE;
 }>;
-
-function toLocalizedText(value: unknown): LocalizedText {
-  return value as LocalizedText;
-}
 
 function toRoomTypeAdmin(roomType: RoomTypeWithRelations): RoomTypeAdmin {
   return {

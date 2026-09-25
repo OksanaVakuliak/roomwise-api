@@ -540,6 +540,11 @@
             }
           }
         },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
         "tags": [
           "Categories"
         ]
@@ -559,6 +564,11 @@
             }
           }
         },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
         "tags": [
           "Categories"
         ]
@@ -590,6 +600,11 @@
             }
           }
         },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
         "tags": [
           "Categories"
         ]
@@ -612,6 +627,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
         "tags": [
           "Categories"
         ]
@@ -643,6 +663,11 @@
             }
           }
         },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
         "tags": [
           "Categories"
         ]

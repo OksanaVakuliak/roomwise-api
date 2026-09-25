@@ -9,6 +9,7 @@ import {
   ProductUnit,
   PublicationStatus,
 } from '../../../../generated/prisma/enums';
+import { FALLBACK_COLOR_PATTERN } from '../../common/fallback-color.schema';
 import {
   imageRefSchema,
   textureRefSchema,
@@ -18,8 +19,6 @@ import {
   PRODUCT_WASTE_PERCENT_MAX,
   productAttributeInputSchema,
 } from './create-product.schema';
-
-const FALLBACK_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
 
 export const productImageAdminSchema = imageRefSchema.extend({
   isPrimary: z.boolean(),

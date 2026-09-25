@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { updateWithRevision } from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
-import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
+import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
@@ -22,10 +22,6 @@ type MaterialTypeWithRelations = Prisma.MaterialTypeGetPayload<{
   include: typeof MATERIAL_TYPE_ADMIN_INCLUDE;
 }>;
 
-function toLocalizedText(value: unknown): LocalizedText {
-  return value as LocalizedText;
-}
-
 function toMaterialTypeAdmin(
   materialType: MaterialTypeWithRelations,
 ): MaterialTypeAdmin {
@@ -41,17 +37,10 @@ function toMaterialTypeAdmin(
 }
 
 function isCodeUniqueViolation(error: unknown): boolean {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
-    return false;
-  }
-
-  if (error.code !== 'P2002') {
-    return false;
-  }
-
-  const target = error.meta?.target as string[] | string | undefined;
-
-  return Array.isArray(target) ? target.includes('code') : target === 'code';
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  );
 }
 
 @Injectable()

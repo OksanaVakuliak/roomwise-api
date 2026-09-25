@@ -3,6 +3,7 @@ import { updateWithRevision } from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
+import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
@@ -94,10 +95,6 @@ interface ExistingProductForPatch {
   attributes: Array<{ name: LocalizedText; value: LocalizedText }>;
 }
 
-function toLocalizedText(value: unknown): LocalizedText {
-  return value as LocalizedText;
-}
-
 @Injectable()
 export class ProductsService {
   constructor(
@@ -138,12 +135,15 @@ export class ProductsService {
     input: CreateProductInput,
     adminId: string,
   ): Promise<ProductAdmin> {
-    await this.assertCategoryExists(input.categoryId);
-    await this.assertMaterialTypeExists(input.materialTypeId);
-    await this.assertImagesExist(input.images.map((image) => image.imageId));
-    if (input.textureImageId) {
-      await this.assertImagesExist([input.textureImageId]);
-    }
+    const imageIds = input.textureImageId
+      ? [...input.images.map((image) => image.imageId), input.textureImageId]
+      : input.images.map((image) => image.imageId);
+
+    await Promise.all([
+      this.assertCategoryExists(input.categoryId),
+      this.assertMaterialTypeExists(input.materialTypeId),
+      this.assertImagesExist(imageIds),
+    ]);
     this.assertZeroPriceConfirmed(input.priceCents, input.confirmZeroPrice);
 
     const created = await this.prisma.product.create({
@@ -189,21 +189,30 @@ export class ProductsService {
     adminId: string,
   ): Promise<ProductAdmin> {
     const existing = await this.loadExistingForPatch(id);
-
-    if (
+    const categoryChanged =
       input.categoryId !== undefined &&
-      input.categoryId !== existing.categoryId
-    ) {
-      await this.assertCategoryExists(input.categoryId);
-    }
-    if (input.materialTypeId !== undefined) {
-      await this.assertMaterialTypeExists(input.materialTypeId);
-    }
-    if (input.images !== undefined) {
-      await this.assertImagesExist(input.images.map((image) => image.imageId));
-    }
-    if (input.textureImageId !== undefined && input.textureImageId !== null) {
-      await this.assertImagesExist([input.textureImageId]);
+      input.categoryId !== existing.categoryId;
+    const imageIds = [
+      ...(input.images !== undefined
+        ? input.images.map((image) => image.imageId)
+        : []),
+      ...(input.textureImageId !== undefined && input.textureImageId !== null
+        ? [input.textureImageId]
+        : []),
+    ];
+
+    const [newCategorySurface] = await Promise.all([
+      input.categoryId !== undefined && input.categoryId !== existing.categoryId
+        ? this.readCategorySurface(input.categoryId)
+        : Promise.resolve(undefined),
+      input.materialTypeId !== undefined
+        ? this.assertMaterialTypeExists(input.materialTypeId)
+        : Promise.resolve(undefined),
+      this.assertImagesExist(imageIds),
+    ]);
+
+    if (categoryChanged) {
+      await this.assertProductNotUsedAsStyleDefault(id);
     }
 
     const resolvedPriceCents = input.priceCents ?? existing.priceCents;
@@ -212,11 +221,7 @@ export class ProductsService {
     }
 
     if (existing.status === PublicationStatus.PUBLISHED) {
-      const resolvedSurface =
-        input.categoryId !== undefined &&
-        input.categoryId !== existing.categoryId
-          ? await this.readCategorySurface(input.categoryId)
-          : existing.category.surface;
+      const resolvedSurface = newCategorySurface ?? existing.category.surface;
 
       this.assertPublishable({
         name: input.name ?? existing.name,
@@ -438,6 +443,21 @@ export class ProductsService {
     }
 
     await this.prisma.product.delete({ where: { id } });
+  }
+
+  private async assertProductNotUsedAsStyleDefault(
+    productId: string,
+  ): Promise<void> {
+    const links = await this.prisma.styleDefaultMaterial.findMany({
+      where: { productId },
+      include: { style: { select: { id: true, name: true } } },
+    });
+
+    if (links.length > 0) {
+      throw new AppError(ERROR_CODES.PRODUCT_IN_USE, {
+        params: { styles: this.uniqueStyles(links) },
+      });
+    }
   }
 
   private async buildArchiveWarnings(

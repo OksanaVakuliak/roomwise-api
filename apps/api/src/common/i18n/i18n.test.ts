@@ -7,6 +7,7 @@ import {
   localizedNameSchema,
 } from './localized-text.schema';
 import { resolveLang } from './resolve-lang';
+import { toLocalizedText } from './to-localized-text';
 import {
   assertTranslations,
   missingTranslationFields,
@@ -79,5 +80,12 @@ describe('i18n helpers', () => {
         params: { fields: ['name.uk', 'description.en'] },
       });
     }
+  });
+
+  it('passes a raw JSON value through as LocalizedText', () => {
+    expect(toLocalizedText({ en: 'Name', uk: 'Назва' })).toEqual({
+      en: 'Name',
+      uk: 'Назва',
+    });
   });
 });
