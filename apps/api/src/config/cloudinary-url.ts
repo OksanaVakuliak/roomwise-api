@@ -22,11 +22,15 @@ export function parseCloudinaryUrl(url: string): CloudinaryCredentials | null {
     return null;
   }
 
-  return {
-    cloudName: parsed.hostname,
-    apiKey: decodeURIComponent(parsed.username),
-    apiSecret: decodeURIComponent(parsed.password),
-  };
+  try {
+    return {
+      cloudName: parsed.hostname,
+      apiKey: decodeURIComponent(parsed.username),
+      apiSecret: decodeURIComponent(parsed.password),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function findCloudinaryCloudName(url: string): string | null {

@@ -35,6 +35,11 @@ describe('parseCloudinaryUrl', () => {
     expect(parseCloudinaryUrl('cloudinary://:secret@my-cloud')).toBeNull();
     expect(parseCloudinaryUrl('cloudinary://123:@my-cloud')).toBeNull();
   });
+
+  it('returns null instead of throwing for a malformed percent-escape', () => {
+    expect(parseCloudinaryUrl('cloudinary://key:abc%zz@my-cloud')).toBeNull();
+    expect(parseCloudinaryUrl('cloudinary://ab%zz:secret@my-cloud')).toBeNull();
+  });
 });
 
 describe('findCloudinaryCloudName', () => {

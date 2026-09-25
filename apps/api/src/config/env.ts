@@ -81,7 +81,7 @@ export const envSchema = z.object({
   }),
   CLOUDINARY_URL: requiredStringSchema.refine(
     (value) => findCloudinaryCloudName(value) !== null,
-    'Must be a Cloudinary URL with a cloud name',
+    'Must be a Cloudinary URL with key, secret and cloud name',
   ),
   SENTRY_DSN: optionalUrlSchema,
   MAINTENANCE_TOKEN: z.string().min(REQUIRED_SECRET_LENGTH),
