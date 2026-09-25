@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EnvValidationError, validateEnv } from './env';
+import { EnvValidationError, envSchema, validateEnv } from './env';
 
 const validEnv = {
   DATABASE_URL: 'postgresql://roomwise:roomwise@localhost:5432/roomwise',
@@ -139,5 +139,16 @@ describe('validateEnv', () => {
         CLOUDINARY_URL: 'https://key:secret@my-cloud',
       }),
     ).toThrowError(EnvValidationError);
+  });
+
+  it('reports an accurate message for an invalid CLOUDINARY_URL', () => {
+    const result = envSchema.shape.CLOUDINARY_URL.safeParse(
+      'cloudinary://key:secret@',
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe(
+      'Must be a Cloudinary URL with key, secret and cloud name',
+    );
   });
 });
