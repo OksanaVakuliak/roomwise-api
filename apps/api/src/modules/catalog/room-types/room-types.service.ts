@@ -127,6 +127,15 @@ export class RoomTypesService {
             });
           }
 
+          await tx.styleDefaultMaterial.deleteMany({
+            where: {
+              roomTypeId,
+              ...(input.categoryIds.length > 0
+                ? { categoryId: { notIn: input.categoryIds } }
+                : {}),
+            },
+          });
+
           return result.count;
         }),
       readCurrentRevision: (roomTypeId) => this.readRevision(roomTypeId),

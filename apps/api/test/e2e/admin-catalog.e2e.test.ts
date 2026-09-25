@@ -484,6 +484,66 @@ describe('admin catalog e2e', () => {
         kitchenLivingEntry.revision,
       );
     });
+
+    it('removes the orphaned style default material row when a category is dropped, unblocking product deletion', async () => {
+      const category = await createCategoryFixture(testApp.prisma, {
+        status: PublicationStatus.PUBLISHED,
+      });
+      const keptCategory = await createCategoryFixture(testApp.prisma, {
+        status: PublicationStatus.PUBLISHED,
+      });
+      const materialType = await createMaterialTypeFixture(testApp.prisma);
+      const product = await createProductFixture(testApp.prisma, {
+        categoryId: category.id,
+        materialTypeId: materialType.id,
+      });
+      await createStyleUsingProductAsDefault(testApp.prisma, {
+        roomTypeId: roomTypes.bathroom,
+        categoryId: category.id,
+        productId: product.id,
+      });
+
+      const listResponse = await request(testApp.http)
+        .get('/api/v1/admin/room-types')
+        .set('Cookie', adminCookie);
+      expect(listResponse.status).toBe(200);
+      const bathroomEntry = listResponse.body.items.find(
+        (item: { id: string }) => item.id === roomTypes.bathroom,
+      );
+
+      const setupResponse = await request(testApp.http)
+        .put(`/api/v1/admin/room-types/${roomTypes.bathroom}/categories`)
+        .set('Cookie', adminCookie)
+        .send({
+          categoryIds: [category.id, keptCategory.id],
+          revision: bathroomEntry.revision,
+        });
+      expect(setupResponse.status).toBe(200);
+
+      const putResponse = await request(testApp.http)
+        .put(`/api/v1/admin/room-types/${roomTypes.bathroom}/categories`)
+        .set('Cookie', adminCookie)
+        .send({
+          categoryIds: [keptCategory.id],
+          revision: setupResponse.body.revision,
+        });
+
+      expect(putResponse.status).toBe(200);
+      expect(
+        putResponse.body.categories.map((c: { id: string }) => c.id),
+      ).toEqual([keptCategory.id]);
+
+      const orphanRows = await testApp.prisma.styleDefaultMaterial.findMany({
+        where: { roomTypeId: roomTypes.bathroom, categoryId: category.id },
+      });
+      expect(orphanRows).toHaveLength(0);
+
+      const deleteResponse = await request(testApp.http)
+        .delete(`/api/v1/admin/products/${product.id}`)
+        .set('Cookie', adminCookie);
+
+      expect(deleteResponse.status).toBe(204);
+    });
   });
 
   describe('material types', () => {

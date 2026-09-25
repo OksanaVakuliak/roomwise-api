@@ -48,6 +48,9 @@ function createPrisma(overrides: Record<string, unknown> = {}) {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    styleDefaultMaterial: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     category: {
       findMany: vi.fn().mockResolvedValue([
         { id: CATEGORY_ID_A, status: PublicationStatus.PUBLISHED },
@@ -198,7 +201,29 @@ describe('RoomTypesService.replaceCategories', () => {
         { roomTypeId: ROOM_TYPE_ID, categoryId: CATEGORY_ID_A, sortOrder: 1 },
       ],
     });
+    expect(prisma.tx.styleDefaultMaterial.deleteMany).toHaveBeenCalledWith({
+      where: {
+        roomTypeId: ROOM_TYPE_ID,
+        categoryId: { notIn: [CATEGORY_ID_B, CATEGORY_ID_A] },
+      },
+    });
     expect(result.id).toBe(ROOM_TYPE_ID);
+  });
+
+  it('deletes all style default material rows for the room type when the category set is cleared', async () => {
+    const prisma = createPrisma();
+    const service = new RoomTypesService(prisma);
+
+    await service.replaceCategories(
+      ROOM_TYPE_ID,
+      { categoryIds: [], revision: CURRENT_REVISION },
+      ADMIN_ID,
+    );
+
+    expect(prisma.tx.roomTypeCategory.createMany).not.toHaveBeenCalled();
+    expect(prisma.tx.styleDefaultMaterial.deleteMany).toHaveBeenCalledWith({
+      where: { roomTypeId: ROOM_TYPE_ID },
+    });
   });
 
   it('throws CATEGORY_NOT_FOUND inside the transaction, before any writes, when a category id does not exist', async () => {
@@ -281,6 +306,9 @@ describe('RoomTypesService.replaceCategories', () => {
         deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
         createMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
+      styleDefaultMaterial: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
       category: {
         findMany: vi
           .fn()
@@ -314,5 +342,6 @@ describe('RoomTypesService.replaceCategories', () => {
     });
     expect(tx.roomTypeCategory.deleteMany).not.toHaveBeenCalled();
     expect(tx.roomTypeCategory.createMany).not.toHaveBeenCalled();
+    expect(tx.styleDefaultMaterial.deleteMany).not.toHaveBeenCalled();
   });
 });
