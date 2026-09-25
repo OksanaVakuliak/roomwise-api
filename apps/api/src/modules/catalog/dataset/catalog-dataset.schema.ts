@@ -31,11 +31,14 @@ function findDuplicate(ids: string[]): string | undefined {
 export const seedImageSchema = z.object({
   id: z.uuid(),
   publicId: z.string().startsWith('roomwise/seed/'),
-  sourceUrl: z.url(),
+  source: z.union([
+    z.url({ protocol: /^https$/ }),
+    z.string().regex(/^assets\/[a-z0-9-]+\.svg$/),
+  ]),
   width: z.int().positive(),
   height: z.int().positive(),
   bytes: z.int().positive(),
-  format: z.enum(['jpg', 'png', 'webp']),
+  format: z.enum(['jpg', 'png', 'webp', 'svg']),
 });
 export type SeedImage = z.infer<typeof seedImageSchema>;
 
