@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { CategoriesController } from './categories/categories.controller';
 import { CategoriesService } from './categories/categories.service';
 import { CatalogChangeInterceptor } from './common/catalog-change.interceptor';
+import { EngineeringPackageItemsController } from './engineering/engineering.controller';
+import { EngineeringPackageItemsService } from './engineering/engineering.service';
 import { CloudinaryService } from './images/cloudinary.service';
 import { ImageUploadInterceptor } from './images/image-upload.interceptor';
 import { ImageUrlBuilder } from './images/image-urls';
@@ -9,6 +11,8 @@ import { ImagesController } from './images/images.controller';
 import { ImagesService } from './images/images.service';
 import { MaterialTypesController } from './material-types/material-types.controller';
 import { MaterialTypesService } from './material-types/material-types.service';
+import { OptionsController } from './options/options.controller';
+import { OptionsService } from './options/options.service';
 import { ProductsController } from './products/products.controller';
 import { ProductsService } from './products/products.service';
 import { CatalogCache } from './public/catalog-cache';
@@ -28,6 +32,8 @@ import { StylesService } from './styles/styles.service';
     MaterialTypesController,
     ProductsController,
     StylesController,
+    EngineeringPackageItemsController,
+    OptionsController,
   ],
   providers: [
     PublicCatalogService,
@@ -42,6 +48,8 @@ import { StylesService } from './styles/styles.service';
     MaterialTypesService,
     ProductsService,
     StylesService,
+    EngineeringPackageItemsService,
+    OptionsService,
   ],
   exports: [PublicCatalogService, CatalogCache],
 })
