@@ -2526,7 +2526,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.modernWhiteCeilingPendant,
     categoryId: categoryIds.lighting,
-    materialTypeId: materialTypeIds.mdf,
+    materialTypeId: materialTypeIds.metal,
     name: {
       en: 'Modern white ceiling pendant lamp',
       uk: 'Сучасний білий стельовий підвіс',
@@ -2576,7 +2576,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.industrialBlackWallSconce,
     categoryId: categoryIds.lighting,
-    materialTypeId: materialTypeIds.mdf,
+    materialTypeId: materialTypeIds.metal,
     name: { en: 'Industrial black wall sconce', uk: 'Індустріальне чорне бра' },
     description: {
       en: 'Black metal wall sconce with an exposed-bulb industrial design.',
@@ -2623,7 +2623,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.hangingIndustrialPendant,
     categoryId: categoryIds.lighting,
-    materialTypeId: materialTypeIds.mdf,
+    materialTypeId: materialTypeIds.metal,
     name: {
       en: 'Hanging industrial pendant lamp',
       uk: 'Індустріальний підвісний світильник',
@@ -2673,7 +2673,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.adjustableDeskLamp,
     categoryId: categoryIds.lighting,
-    materialTypeId: materialTypeIds.mdf,
+    materialTypeId: materialTypeIds.metal,
     name: {
       en: 'Adjustable arm desk lamp',
       uk: 'Настільна лампа з регульованим кронштейном',
@@ -2714,7 +2714,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.minimalistLedCeilingLamp,
     categoryId: categoryIds.lighting,
-    materialTypeId: materialTypeIds.mdf,
+    materialTypeId: materialTypeIds.metal,
     name: {
       en: 'Minimalist LED ceiling lamp',
       uk: 'Мінімалістичний LED стельовий світильник',
@@ -2764,7 +2764,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.brassWallSconce,
     categoryId: categoryIds.lighting,
-    materialTypeId: materialTypeIds.mdf,
+    materialTypeId: materialTypeIds.metal,
     name: { en: 'Brass wall sconce', uk: 'Латунне настінне бра' },
     description: {
       en: 'Elegant brass-finished wall sconce with a cylindrical open shade.',
@@ -2806,7 +2806,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.matteBlackPendantLamp,
     categoryId: categoryIds.lighting,
-    materialTypeId: materialTypeIds.mdf,
+    materialTypeId: materialTypeIds.metal,
     name: {
       en: 'Matte black pendant lamp',
       uk: 'Матовий чорний підвісний світильник',
@@ -2851,7 +2851,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.whiteCeramicWashbasin,
     categoryId: categoryIds.plumbingFixtures,
-    materialTypeId: materialTypeIds.porcelainStoneware,
+    materialTypeId: materialTypeIds.sanitaryCeramics,
     name: { en: 'White ceramic washbasin', uk: 'Біла керамічна раковина' },
     description: {
       en: 'Countertop-mount white ceramic washbasin with a rounded minimalist shape.',
@@ -2893,7 +2893,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.stainlessKitchenSink,
     categoryId: categoryIds.plumbingFixtures,
-    materialTypeId: materialTypeIds.porcelainStoneware,
+    materialTypeId: materialTypeIds.sanitaryCeramics,
     name: {
       en: 'Stainless steel kitchen sink',
       uk: 'Кухонна мийка з нержавіючої сталі',
@@ -2938,7 +2938,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.chromeBathroomFaucet,
     categoryId: categoryIds.plumbingFixtures,
-    materialTypeId: materialTypeIds.porcelainStoneware,
+    materialTypeId: materialTypeIds.sanitaryCeramics,
     name: {
       en: 'Chrome bathroom faucet',
       uk: 'Хромований змішувач для ванної',
@@ -2983,7 +2983,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.wallHungCeramicToilet,
     categoryId: categoryIds.plumbingFixtures,
-    materialTypeId: materialTypeIds.porcelainStoneware,
+    materialTypeId: materialTypeIds.sanitaryCeramics,
     name: { en: 'Wall-hung ceramic toilet', uk: 'Підвісний керамічний унітаз' },
     description: {
       en: 'Compact wall-hung toilet with a rimless flush and soft-close seat.',
@@ -3030,7 +3030,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.glassShowerEnclosure,
     categoryId: categoryIds.plumbingFixtures,
-    materialTypeId: materialTypeIds.porcelainStoneware,
+    materialTypeId: materialTypeIds.sanitaryCeramics,
     name: { en: 'Glass shower enclosure', uk: 'Скляна душова кабіна' },
     description: {
       en: 'Frameless tempered glass shower enclosure with a chrome profile.',
@@ -3072,7 +3072,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.freestandingAcrylicBathtub,
     categoryId: categoryIds.plumbingFixtures,
-    materialTypeId: materialTypeIds.porcelainStoneware,
+    materialTypeId: materialTypeIds.sanitaryCeramics,
     name: {
       en: 'Freestanding acrylic bathtub',
       uk: 'Окремостояча акрилова ванна',
@@ -3117,7 +3117,7 @@ export const products: SeedProduct[] = [
   {
     id: productIds.matteBlackBathroomFaucet,
     categoryId: categoryIds.plumbingFixtures,
-    materialTypeId: materialTypeIds.porcelainStoneware,
+    materialTypeId: materialTypeIds.sanitaryCeramics,
     name: {
       en: 'Matte black bathroom faucet',
       uk: 'Матовий чорний змішувач для ванної',

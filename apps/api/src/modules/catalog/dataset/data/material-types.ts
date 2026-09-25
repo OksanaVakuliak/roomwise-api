@@ -10,6 +10,8 @@ export const materialTypeIds = {
   paint: '6ed8ea14-450a-4a2e-813f-9f4a9d379ee7',
   wallpaper: '1e5cf68d-3903-4830-98d0-8c50c3ca5361',
   mdf: '37b43256-c40d-4ae0-8bf1-1f6bf1bddb22',
+  metal: '8863db41-17a2-4087-b969-1813fb7328f6',
+  sanitaryCeramics: '53777faf-31d1-4698-9fdc-ae09e563cf98',
 } as const;
 
 export const materialTypes: SeedMaterialType[] = [
@@ -59,6 +61,18 @@ export const materialTypes: SeedMaterialType[] = [
     id: materialTypeIds.mdf,
     code: 'mdf',
     name: { en: 'MDF', uk: 'МДФ' },
+    status: PublicationStatus.PUBLISHED,
+  },
+  {
+    id: materialTypeIds.metal,
+    code: 'metal',
+    name: { en: 'Metal', uk: 'Метал' },
+    status: PublicationStatus.PUBLISHED,
+  },
+  {
+    id: materialTypeIds.sanitaryCeramics,
+    code: 'sanitary_ceramics',
+    name: { en: 'Sanitary ceramics', uk: 'Санітарна кераміка' },
     status: PublicationStatus.PUBLISHED,
   },
 ];
