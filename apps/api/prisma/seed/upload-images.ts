@@ -31,6 +31,7 @@ interface ExistingOutcome {
   status: 'existing';
   key: string;
   publicId: string;
+  warnings: string[];
 }
 
 interface FailedOutcome {
@@ -41,6 +42,11 @@ interface FailedOutcome {
 }
 
 type UploadOutcome = UploadedOutcome | ExistingOutcome | FailedOutcome;
+
+type ResourceMetadata = Pick<
+  UploadApiResponse,
+  'width' | 'height' | 'bytes' | 'format'
+>;
 
 export function isRemoteSource(source: string): boolean {
   return source.startsWith('https://');
@@ -62,7 +68,7 @@ export function buildUploadOptions(publicId: string): UploadApiOptions {
 
 export function diffUploadMetadata(
   image: SeedImage,
-  result: Pick<UploadApiResponse, 'width' | 'height' | 'bytes' | 'format'>,
+  result: ResourceMetadata,
 ): string[] {
   const warnings: string[] = [];
   if (result.width !== image.width) {
@@ -80,24 +86,46 @@ export function diffUploadMetadata(
   return warnings;
 }
 
+export interface MetadataMismatch {
+  key: string;
+  publicId: string;
+  warnings: string[];
+}
+
 export function summarizeOutcomes(outcomes: UploadOutcome[]): {
   uploaded: number;
   existing: number;
   failed: FailedOutcome[];
+  mismatched: MetadataMismatch[];
 } {
   const failed: FailedOutcome[] = [];
+  const mismatched: MetadataMismatch[] = [];
   let uploaded = 0;
   let existing = 0;
   for (const outcome of outcomes) {
     if (outcome.status === 'uploaded') {
       uploaded += 1;
+      if (outcome.warnings.length > 0) {
+        mismatched.push({
+          key: outcome.key,
+          publicId: outcome.publicId,
+          warnings: outcome.warnings,
+        });
+      }
     } else if (outcome.status === 'existing') {
       existing += 1;
+      if (outcome.warnings.length > 0) {
+        mismatched.push({
+          key: outcome.key,
+          publicId: outcome.publicId,
+          warnings: outcome.warnings,
+        });
+      }
     } else {
       failed.push(outcome);
     }
   }
-  return { uploaded, existing, failed };
+  return { uploaded, existing, failed, mismatched };
 }
 
 function loadEntries(): SeedImageEntry[] {
@@ -126,6 +154,28 @@ export function partitionValidEntries(entries: SeedImageEntry[]): {
   return { valid, invalid };
 }
 
+export function partitionExistingLocalEntries(
+  entries: SeedImageEntry[],
+  baseDir: string,
+): { valid: SeedImageEntry[]; invalid: FailedOutcome[] } {
+  const valid: SeedImageEntry[] = [];
+  const invalid: FailedOutcome[] = [];
+  for (const entry of entries) {
+    const source = resolveUploadSource(entry.image.source, baseDir);
+    if (!isRemoteSource(entry.image.source) && !existsSync(source)) {
+      invalid.push({
+        status: 'failed',
+        key: entry.key,
+        publicId: entry.image.publicId,
+        message: `Local asset not found: ${source}`,
+      });
+      continue;
+    }
+    valid.push(entry);
+  }
+  return { valid, invalid };
+}
+
 function extractHttpCode(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
   const direct = (error as { http_code?: unknown }).http_code;
@@ -146,12 +196,15 @@ function extractErrorMessage(error: unknown): string {
   return String(error);
 }
 
-async function resourceExists(publicId: string): Promise<boolean> {
+async function findExistingResource(
+  publicId: string,
+): Promise<ResourceMetadata | undefined> {
   try {
-    await cloudinary.api.resource(publicId, { resource_type: RESOURCE_TYPE });
-    return true;
+    return await cloudinary.api.resource(publicId, {
+      resource_type: RESOURCE_TYPE,
+    });
   } catch (error) {
-    if (extractHttpCode(error) === NOT_FOUND_HTTP_CODE) return false;
+    if (extractHttpCode(error) === NOT_FOUND_HTTP_CODE) return undefined;
     throw error;
   }
 }
@@ -173,8 +226,10 @@ async function uploadEntry(
   }
 
   try {
-    if (await resourceExists(image.publicId)) {
-      return { status: 'existing', key, publicId: image.publicId };
+    const existingResource = await findExistingResource(image.publicId);
+    if (existingResource) {
+      const warnings = diffUploadMetadata(image, existingResource);
+      return { status: 'existing', key, publicId: image.publicId, warnings };
     }
 
     const result = await cloudinary.uploader.upload(
@@ -235,15 +290,20 @@ function configureCloudinary(): void {
   });
 }
 
-function printSummary(outcomes: UploadOutcome[]): void {
-  const { uploaded, existing, failed } = summarizeOutcomes(outcomes);
+function printSummary(summary: ReturnType<typeof summarizeOutcomes>): void {
+  const { uploaded, existing, failed, mismatched } = summary;
   process.stdout.write(
-    `Uploaded: ${uploaded}, already existed: ${existing}, failed: ${failed.length}\n`,
+    `Uploaded: ${uploaded}, already existed: ${existing}, failed: ${failed.length}, metadata mismatches: ${mismatched.length}\n`,
   );
   for (const failure of failed) {
     process.stderr.write(
       `  FAILED ${failure.key} (${failure.publicId}): ${failure.message}\n`,
     );
+  }
+  for (const mismatch of mismatched) {
+    for (const warning of mismatch.warnings) {
+      process.stderr.write(`  MISMATCH ${mismatch.key}: ${warning}\n`);
+    }
   }
 }
 
@@ -254,21 +314,24 @@ async function main(): Promise<void> {
   const { valid, invalid } = partitionValidEntries(entries);
 
   if (dryRun) {
-    for (const entry of valid) {
+    const { valid: existingLocal, invalid: missingLocal } =
+      partitionExistingLocalEntries(valid, baseDir);
+    for (const entry of existingLocal) {
       const source = resolveUploadSource(entry.image.source, baseDir);
       process.stdout.write(
         `Would upload ${entry.key} -> ${entry.image.publicId} (${source})\n`,
       );
     }
-    for (const failure of invalid) {
+    const allInvalid = [...invalid, ...missingLocal];
+    for (const failure of allInvalid) {
       process.stderr.write(
         `  INVALID ${failure.key} (${failure.publicId}): ${failure.message}\n`,
       );
     }
     process.stdout.write(
-      `Dry run: ${valid.length} would upload, ${invalid.length} invalid\n`,
+      `Dry run: ${existingLocal.length} would upload, ${allInvalid.length} invalid\n`,
     );
-    process.exitCode = invalid.length > 0 ? EXIT_FAILURE : 0;
+    process.exitCode = allInvalid.length > 0 ? EXIT_FAILURE : 0;
     return;
   }
 
@@ -280,18 +343,13 @@ async function main(): Promise<void> {
     (entry) => uploadEntry(entry, baseDir),
   );
   const outcomes: UploadOutcome[] = [...uploaded, ...invalid];
+  const summary = summarizeOutcomes(outcomes);
 
-  for (const outcome of outcomes) {
-    if (outcome.status === 'uploaded' && outcome.warnings.length > 0) {
-      for (const warning of outcome.warnings) {
-        process.stderr.write(`  WARN ${outcome.key}: ${warning}\n`);
-      }
-    }
-  }
-
-  printSummary(outcomes);
+  printSummary(summary);
   process.exitCode =
-    summarizeOutcomes(outcomes).failed.length > 0 ? EXIT_FAILURE : 0;
+    summary.failed.length > 0 || summary.mismatched.length > 0
+      ? EXIT_FAILURE
+      : 0;
 }
 
 if (require.main === module) {
