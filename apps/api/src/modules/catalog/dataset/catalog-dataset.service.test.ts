@@ -30,10 +30,11 @@ const MODELS = [
 
 const OPERATIONS = [
   'upsert',
+  'update',
   'createMany',
   'deleteMany',
   'updateMany',
-  'aggregate',
+  'findMany',
 ] as const;
 
 interface RecordedCall {
@@ -42,7 +43,7 @@ interface RecordedCall {
   args: unknown;
 }
 
-function createTx(maxSortOrder: number | null = null) {
+function createTx(existing: Partial<Record<string, unknown[]>> = {}) {
   const calls: RecordedCall[] = [];
   const tx: Record<string, Record<string, unknown>> = {};
 
@@ -51,8 +52,8 @@ function createTx(maxSortOrder: number | null = null) {
     for (const operation of OPERATIONS) {
       tx[model][operation] = vi.fn(async (args: unknown) => {
         calls.push({ model, operation, args });
-        if (operation === 'aggregate') {
-          return { _max: { sortOrder: maxSortOrder } };
+        if (operation === 'findMany') {
+          return existing[model] ?? [];
         }
         return { count: 0 };
       });
@@ -202,16 +203,7 @@ describe('CatalogDatasetService.upsert', () => {
         },
       },
     ]);
-    expect(argsOf('roomTypeCategory', 'deleteMany')).toEqual([
-      {
-        where: {
-          OR: catalogDataset.roomTypes.map((roomType) => ({
-            roomTypeId: roomType.id,
-            categoryId: { notIn: roomType.categoryIds },
-          })),
-        },
-      },
-    ]);
+    expect(argsOf('roomTypeCategory', 'deleteMany')).toEqual([]);
   });
 
   it('deletes children before inserting them again', async () => {
@@ -235,40 +227,122 @@ describe('CatalogDatasetService.upsert', () => {
     );
   });
 
-  it('moves seeded options past every existing sort order before rewriting them', async () => {
-    const existingMax = 40;
-    const { tx, steps, argsOf } = createTx(existingMax);
+  it('upserts material types by code', async () => {
+    const { tx, argsOf } = createTx();
+
+    await new CatalogDatasetService().upsert(catalogDataset, tx);
+
+    const upserts = argsOf('materialType', 'upsert') as Array<{
+      where: { code: string };
+      create: { id: string };
+      update: { id: string };
+    }>;
+    expect(upserts.map((call) => call.where)).toEqual(
+      catalogDataset.materialTypes.map((materialType) => ({
+        code: materialType.code,
+      })),
+    );
+    catalogDataset.materialTypes.forEach((materialType, index) => {
+      expect(upserts[index].create.id).toBe(materialType.id);
+      expect(upserts[index].update.id).toBe(materialType.id);
+    });
+  });
+
+  it('moves admin options after the seeded ones of the same kind', async () => {
+    const [seeded] = catalogDataset.options;
+    const sameKind = catalogDataset.options.filter(
+      (option) => option.kind === seeded.kind,
+    );
+    const lastSeeded = Math.max(...sameKind.map((option) => option.sortOrder));
+    const adminFirst = { id: 'admin-first', kind: seeded.kind, sortOrder: 0 };
+    const adminSecond = {
+      id: 'admin-second',
+      kind: seeded.kind,
+      sortOrder: 1,
+    };
+    const existing = [
+      { id: seeded.id, kind: seeded.kind, sortOrder: 7 },
+      adminFirst,
+      adminSecond,
+    ].sort((a, b) => a.sortOrder - b.sortOrder);
+    const { tx, steps, argsOf } = createTx({ option: existing });
 
     await new CatalogDatasetService().upsert(catalogDataset, tx);
 
     const order = steps();
-    expect(firstIndex(order, 'option.updateMany')).toBeLessThan(
+    expect(lastIndex(order, 'option.update')).toBeLessThan(
       firstIndex(order, 'option.upsert'),
+    );
+    expect(firstIndex(order, 'option.updateMany')).toBeLessThan(
+      firstIndex(order, 'option.update'),
     );
     expect(argsOf('option', 'updateMany')).toEqual([
       {
-        where: {
-          id: { in: catalogDataset.options.map((option) => option.id) },
-        },
-        data: { sortOrder: { increment: existingMax + 1 } },
+        where: { id: { in: existing.map((option) => option.id) } },
+        data: { sortOrder: { decrement: 8 } },
       },
+    ]);
+    expect(argsOf('option', 'update')).toEqual([
+      { where: { id: 'admin-first' }, data: { sortOrder: lastSeeded + 1 } },
+      { where: { id: 'admin-second' }, data: { sortOrder: lastSeeded + 2 } },
     ]);
   });
 
-  it('keeps shifted room type category orders clear of the final ones', async () => {
-    const { tx, argsOf } = createTx(null);
+  it('skips option reordering on an empty table', async () => {
+    const { tx, argsOf } = createTx();
 
     await new CatalogDatasetService().upsert(catalogDataset, tx);
 
-    const longest = Math.max(
-      ...catalogDataset.roomTypes.map(
-        (roomType) => roomType.categoryIds.length,
-      ),
+    expect(argsOf('option', 'updateMany')).toEqual([]);
+    expect(argsOf('option', 'update')).toEqual([]);
+  });
+
+  it('keeps admin room type categories and moves them after the seeded ones', async () => {
+    const [roomType] = catalogDataset.roomTypes;
+    const [seededCategoryId] = roomType.categoryIds;
+    const existing = [
+      { roomTypeId: roomType.id, categoryId: 'admin-category', sortOrder: 0 },
+      { roomTypeId: roomType.id, categoryId: seededCategoryId, sortOrder: 4 },
+    ];
+    const { tx, steps, argsOf } = createTx({ roomTypeCategory: existing });
+
+    await new CatalogDatasetService().upsert(catalogDataset, tx);
+
+    expect(argsOf('roomTypeCategory', 'deleteMany')).toEqual([]);
+    expect(argsOf('roomTypeCategory', 'updateMany')).toEqual([
+      {
+        where: {
+          roomTypeId: {
+            in: catalogDataset.roomTypes.map((entry) => entry.id),
+          },
+        },
+        data: { sortOrder: { decrement: 5 } },
+      },
+    ]);
+    expect(argsOf('roomTypeCategory', 'update')).toEqual([
+      {
+        where: {
+          roomTypeId_categoryId: {
+            roomTypeId: roomType.id,
+            categoryId: 'admin-category',
+          },
+        },
+        data: { sortOrder: roomType.categoryIds.length },
+      },
+      {
+        where: {
+          roomTypeId_categoryId: {
+            roomTypeId: roomType.id,
+            categoryId: seededCategoryId,
+          },
+        },
+        data: { sortOrder: 0 },
+      },
+    ]);
+    const order = steps();
+    expect(lastIndex(order, 'roomTypeCategory.update')).toBeLessThan(
+      firstIndex(order, 'roomTypeCategory.createMany'),
     );
-    const [shift] = argsOf('roomTypeCategory', 'updateMany') as Array<{
-      data: { sortOrder: { increment: number } };
-    }>;
-    expect(shift.data.sortOrder.increment).toBeGreaterThanOrEqual(longest);
   });
 
   it('produces the same inserts when applied twice', async () => {

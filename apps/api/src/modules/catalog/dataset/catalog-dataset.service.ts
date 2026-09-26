@@ -204,7 +204,7 @@ export class CatalogDatasetService {
 
     for (const materialType of rows.materialTypes) {
       await tx.materialType.upsert({
-        where: { id: materialType.id },
+        where: { code: materialType.code },
         create: materialType,
         update: { ...materialType, ...rewrittenBySeed() },
       });
@@ -255,7 +255,7 @@ export class CatalogDatasetService {
       });
     }
 
-    await this.moveSeededOptionsOutOfTheWay(optionIds, rows, tx);
+    await this.reorderExistingOptions(optionIds, rows, tx);
 
     for (const option of rows.options) {
       await tx.option.upsert({
@@ -331,57 +331,103 @@ export class CatalogDatasetService {
     tx: Prisma.TransactionClient,
   ): Promise<void> {
     const roomTypeIds = dataset.roomTypes.map((roomType) => roomType.id);
-
-    await tx.roomTypeCategory.deleteMany({
-      where: {
-        OR: dataset.roomTypes.map((roomType) => ({
-          roomTypeId: roomType.id,
-          categoryId: { notIn: roomType.categoryIds },
-        })),
-      },
-    });
-
-    const current = await tx.roomTypeCategory.aggregate({
+    const existing = await tx.roomTypeCategory.findMany({
       where: { roomTypeId: { in: roomTypeIds } },
-      _max: { sortOrder: true },
+      select: { roomTypeId: true, categoryId: true, sortOrder: true },
+      orderBy: [{ roomTypeId: 'asc' }, { sortOrder: 'asc' }],
     });
-    const offset =
-      Math.max(
-        current._max.sortOrder ?? 0,
-        maxOf(rows.roomTypeCategories.map((row) => row.sortOrder)),
-      ) + 1;
+
+    if (existing.length === 0) {
+      return;
+    }
+
+    const seededOrder = new Map(
+      rows.roomTypeCategories.map((row) => [
+        `${row.roomTypeId}:${row.categoryId}`,
+        row.sortOrder,
+      ]),
+    );
+    const nextAdminOrder = new Map(
+      dataset.roomTypes.map((roomType) => [
+        roomType.id,
+        roomType.categoryIds.length,
+      ]),
+    );
+    const finalOrder = existing.map((link) => {
+      const seeded = seededOrder.get(`${link.roomTypeId}:${link.categoryId}`);
+      if (seeded !== undefined) {
+        return { ...link, sortOrder: seeded };
+      }
+      const sortOrder = nextAdminOrder.get(link.roomTypeId) ?? 0;
+      nextAdminOrder.set(link.roomTypeId, sortOrder + 1);
+      return { ...link, sortOrder };
+    });
 
     await tx.roomTypeCategory.updateMany({
       where: { roomTypeId: { in: roomTypeIds } },
-      data: { sortOrder: { increment: offset } },
+      data: {
+        sortOrder: {
+          decrement: maxOf(existing.map((link) => link.sortOrder)) + 1,
+        },
+      },
     });
 
-    for (const row of rows.roomTypeCategories) {
-      await tx.roomTypeCategory.updateMany({
-        where: { roomTypeId: row.roomTypeId, categoryId: row.categoryId },
-        data: { sortOrder: row.sortOrder },
+    for (const { roomTypeId, categoryId, sortOrder } of finalOrder) {
+      await tx.roomTypeCategory.update({
+        where: { roomTypeId_categoryId: { roomTypeId, categoryId } },
+        data: { sortOrder },
       });
     }
   }
 
-  private async moveSeededOptionsOutOfTheWay(
+  private async reorderExistingOptions(
     optionIds: string[],
     rows: CatalogDatasetRows,
     tx: Prisma.TransactionClient,
   ): Promise<void> {
-    const current = await tx.option.aggregate({
-      _max: { sortOrder: true },
+    const kinds = [...new Set(rows.options.map((option) => option.kind))];
+    const existing = await tx.option.findMany({
+      where: { OR: [{ kind: { in: kinds } }, { id: { in: optionIds } }] },
+      select: { id: true, kind: true, sortOrder: true },
+      orderBy: [{ kind: 'asc' }, { sortOrder: 'asc' }],
     });
-    const offset =
-      Math.max(
-        current._max.sortOrder ?? 0,
-        maxOf(rows.options.map((option) => option.sortOrder)),
-      ) + 1;
+
+    if (existing.length === 0) {
+      return;
+    }
 
     await tx.option.updateMany({
-      where: { id: { in: optionIds } },
-      data: { sortOrder: { increment: offset } },
+      where: { id: { in: existing.map((option) => option.id) } },
+      data: {
+        sortOrder: {
+          decrement: maxOf(existing.map((option) => option.sortOrder)) + 1,
+        },
+      },
     });
+
+    const seededIds = new Set(optionIds);
+    const nextAdminOrder = new Map(
+      kinds.map((kind) => [
+        kind,
+        maxOf(
+          rows.options
+            .filter((option) => option.kind === kind)
+            .map((option) => option.sortOrder + 1),
+        ),
+      ]),
+    );
+
+    for (const option of existing) {
+      if (seededIds.has(option.id)) {
+        continue;
+      }
+      const sortOrder = nextAdminOrder.get(option.kind) ?? 0;
+      nextAdminOrder.set(option.kind, sortOrder + 1);
+      await tx.option.update({
+        where: { id: option.id },
+        data: { sortOrder },
+      });
+    }
   }
 
   private async insertChildren(

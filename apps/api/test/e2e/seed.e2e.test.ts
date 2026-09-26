@@ -1,10 +1,11 @@
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import type { AppConfigService } from '../../src/config/env';
 import {
   OptionKind,
   OptionUnit,
+  ProductUnit,
   PublicationStatus,
   RoomTypeCode,
   SurfaceKind,
@@ -14,6 +15,7 @@ import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
 import { createTestApp, type TestApp } from './app-factory';
 
+const SEED_TIMEOUT_MS = 120_000;
 const MIN_CATEGORY_COUNT = 8;
 const MAX_CATEGORY_COUNT = 12;
 const MIN_PRODUCTS_PER_CATEGORY = 6;
@@ -70,9 +72,14 @@ interface CatalogSnapshot {
   optionRoomTypes: string[];
 }
 
+vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });
+
 async function applySeed(testApp: TestApp): Promise<void> {
   const service = testApp.app.get(CatalogDatasetService);
-  await testApp.prisma.$transaction((tx) => service.upsert(dataset, tx));
+  await testApp.prisma.$transaction((tx) => service.upsert(dataset, tx), {
+    timeout: SEED_TIMEOUT_MS,
+    maxWait: 30_000,
+  });
 }
 
 async function snapshotCatalogTables(
@@ -492,6 +499,158 @@ describe('seed e2e (US5)', () => {
     });
 
     expect(heatedFloorProduct).not.toBeNull();
+  });
+});
+
+describe('seed e2e — admin edits survive a re-seed', () => {
+  let testApp: TestApp;
+
+  beforeAll(async () => {
+    testApp = await createTestApp();
+    await applySeed(testApp);
+  });
+
+  afterAll(async () => {
+    await testApp.close();
+  });
+
+  it('moves an admin option out of the way of the seeded order of its kind', async () => {
+    const [seeded] = [...dataset.options].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
+    const sameKind = dataset.options.filter(
+      (option) => option.kind === seeded.kind,
+    );
+    const lastSeeded = Math.max(...sameKind.map((option) => option.sortOrder));
+
+    await testApp.prisma.option.update({
+      where: { id: seeded.id },
+      data: { sortOrder: lastSeeded + 10 },
+    });
+    const admin = await testApp.prisma.option.create({
+      data: {
+        kind: seeded.kind,
+        name: { en: 'Admin option', uk: 'Опція адміна' },
+        description: { en: 'Admin option', uk: 'Опція адміна' },
+        priceCents: 100,
+        unit: OptionUnit.PIECE,
+        sortOrder: seeded.sortOrder,
+      },
+    });
+
+    await applySeed(testApp);
+
+    const options = await testApp.prisma.option.findMany({
+      where: { kind: seeded.kind },
+      select: { id: true, sortOrder: true },
+    });
+    const sortOrderById = new Map(
+      options.map((option) => [option.id, option.sortOrder]),
+    );
+    for (const option of sameKind) {
+      expect(sortOrderById.get(option.id), option.id).toBe(option.sortOrder);
+    }
+    expect(sortOrderById.get(admin.id)).toBe(lastSeeded + 1);
+  });
+
+  it('keeps an admin room type category link and its style default', async () => {
+    const [roomType] = dataset.roomTypes;
+    const [materialType] = dataset.materialTypes;
+
+    const category = await testApp.prisma.category.create({
+      data: {
+        name: { en: 'Admin category', uk: 'Категорія адміна' },
+        wastePercent: 5,
+        surface: SurfaceKind.FLOOR,
+      },
+    });
+    const product = await testApp.prisma.product.create({
+      data: {
+        categoryId: category.id,
+        materialTypeId: materialType.id,
+        name: { en: 'Admin product', uk: 'Товар адміна' },
+        description: { en: 'Admin product', uk: 'Товар адміна' },
+        brand: 'Admin',
+        manufacturer: 'Admin',
+        color: { en: 'White', uk: 'Білий' },
+        size: { en: '1 m', uk: '1 м' },
+        priceCents: 100,
+        unit: ProductUnit.SQM,
+      },
+    });
+    const style = await testApp.prisma.style.create({
+      data: {
+        name: { en: 'Admin style', uk: 'Стиль адміна' },
+        description: { en: 'Admin style', uk: 'Стиль адміна' },
+        sortOrder: 100,
+      },
+    });
+    await testApp.prisma.roomTypeCategory.updateMany({
+      where: { roomTypeId: roomType.id },
+      data: { sortOrder: { increment: 100 } },
+    });
+    await testApp.prisma.roomTypeCategory.create({
+      data: { roomTypeId: roomType.id, categoryId: category.id, sortOrder: 0 },
+    });
+    await testApp.prisma.styleDefaultMaterial.create({
+      data: {
+        styleId: style.id,
+        roomTypeId: roomType.id,
+        categoryId: category.id,
+        productId: product.id,
+      },
+    });
+
+    await applySeed(testApp);
+
+    const links = await testApp.prisma.roomTypeCategory.findMany({
+      where: { roomTypeId: roomType.id },
+      orderBy: { sortOrder: 'asc' },
+      select: { categoryId: true, sortOrder: true },
+    });
+    expect(links).toEqual([
+      ...roomType.categoryIds.map((categoryId, sortOrder) => ({
+        categoryId,
+        sortOrder,
+      })),
+      { categoryId: category.id, sortOrder: roomType.categoryIds.length },
+    ]);
+
+    const styleDefault = await testApp.prisma.styleDefaultMaterial.findUnique({
+      where: {
+        styleId_roomTypeId_categoryId: {
+          styleId: style.id,
+          roomTypeId: roomType.id,
+          categoryId: category.id,
+        },
+      },
+    });
+    expect(styleDefault?.productId).toBe(product.id);
+  });
+
+  it('matches an existing material type by code instead of duplicating it', async () => {
+    const [materialType] = dataset.materialTypes;
+    const renamedId = '00000000-0000-4000-8000-000000000001';
+    const countBefore = await testApp.prisma.materialType.count();
+
+    await testApp.prisma.materialType.update({
+      where: { id: materialType.id },
+      data: { id: renamedId },
+    });
+
+    await applySeed(testApp);
+
+    const matching = await testApp.prisma.materialType.findMany({
+      where: { code: materialType.code },
+      select: { id: true },
+    });
+    expect(matching).toEqual([{ id: materialType.id }]);
+    expect(await testApp.prisma.materialType.count()).toBe(countBefore);
+    expect(
+      await testApp.prisma.product.count({
+        where: { materialTypeId: renamedId },
+      }),
+    ).toBe(0);
   });
 });
 
