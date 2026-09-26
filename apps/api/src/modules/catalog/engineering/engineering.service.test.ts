@@ -176,6 +176,24 @@ describe('EngineeringPackageItemsService.create', () => {
     );
     expect(result.priceCents).toBe(1500);
   });
+
+  it('rejects a non-base item with a zero price', async () => {
+    const prisma = createPrisma();
+    const service = new EngineeringPackageItemsService(prisma);
+
+    await expect(
+      service.create(
+        {
+          name: localized('Extra outlet', 'Додаткова розетка'),
+          description: localized('Per outlet', 'За розетку'),
+          includedInBase: false,
+          priceCents: 0,
+          unit: OptionUnit.PIECE,
+        },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.PRICE_REQUIRED });
+  });
 });
 
 describe('EngineeringPackageItemsService.update', () => {
@@ -231,6 +249,64 @@ describe('EngineeringPackageItemsService.update', () => {
         ADMIN_ID,
       ),
     ).rejects.toMatchObject({ code: ERROR_CODES.PRICE_REQUIRED });
+  });
+
+  it('rejects a patch that merges into a zero price', async () => {
+    const findUnique = vi.fn().mockResolvedValueOnce(
+      createItemRow({
+        includedInBase: false,
+        priceCents: 1500,
+        unit: OptionUnit.PIECE,
+      }),
+    );
+    const prisma = createPrisma({ engineeringPackageItem: { findUnique } });
+    const service = new EngineeringPackageItemsService(prisma);
+
+    await expect(
+      service.update(ITEM_ID, { priceCents: 0, revision: REVISION }, ADMIN_ID),
+    ).rejects.toMatchObject({ code: ERROR_CODES.PRICE_REQUIRED });
+  });
+
+  it('rejects an explicit price on an item that is already included in base', async () => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValueOnce(createItemRow({ includedInBase: true }));
+    const prisma = createPrisma({ engineeringPackageItem: { findUnique } });
+    const service = new EngineeringPackageItemsService(prisma);
+
+    await expect(
+      service.update(
+        ITEM_ID,
+        { priceCents: 500, revision: REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.VALIDATION_FAILED,
+      fields: [{ path: 'priceCents', code: 'PRICE_NOT_ALLOWED' }],
+    });
+  });
+
+  it('rejects an explicit unit when toggling an item to included in base', async () => {
+    const findUnique = vi.fn().mockResolvedValueOnce(
+      createItemRow({
+        includedInBase: false,
+        priceCents: 1500,
+        unit: OptionUnit.PIECE,
+      }),
+    );
+    const prisma = createPrisma({ engineeringPackageItem: { findUnique } });
+    const service = new EngineeringPackageItemsService(prisma);
+
+    await expect(
+      service.update(
+        ITEM_ID,
+        { includedInBase: true, unit: OptionUnit.PIECE, revision: REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.VALIDATION_FAILED,
+      fields: [{ path: 'unit', code: 'UNIT_NOT_ALLOWED' }],
+    });
   });
 
   it('throws STALE_REVISION when the revision no longer matches', async () => {

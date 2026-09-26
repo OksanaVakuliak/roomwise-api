@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { updateWithRevision } from '../../../common/concurrency/revision';
-import { AppError } from '../../../common/http/app-error';
+import { AppError, type ErrorField } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
@@ -18,6 +18,9 @@ import type {
 import type { EngineeringPackageItemOrderInput } from './dto/engineering-package-item-order.schema';
 import type { UpdateEngineeringPackageItemStatusInput } from './dto/engineering-package-item-status.schema';
 import type { PatchEngineeringPackageItemInput } from './dto/patch-engineering-package-item.schema';
+
+const PRICE_NOT_ALLOWED_FIELD_CODE = 'PRICE_NOT_ALLOWED';
+const UNIT_NOT_ALLOWED_FIELD_CODE = 'UNIT_NOT_ALLOWED';
 
 const ENGINEERING_PACKAGE_ITEM_ADMIN_INCLUDE = {
   updatedBy: { select: { id: true, login: true } },
@@ -99,6 +102,8 @@ export class EngineeringPackageItemsService {
     const mergedPriceCents =
       input.priceCents !== undefined ? input.priceCents : existing.priceCents;
     const mergedUnit = input.unit !== undefined ? input.unit : existing.unit;
+
+    this.assertNoPriceOrUnitWhenIncluded(mergedIncludedInBase, input);
 
     const normalized = this.normalizePrice({
       includedInBase: mergedIncludedInBase,
@@ -243,12 +248,39 @@ export class EngineeringPackageItemsService {
     }
   }
 
+  private assertNoPriceOrUnitWhenIncluded(
+    mergedIncludedInBase: boolean,
+    input: PatchEngineeringPackageItemInput,
+  ): void {
+    if (!mergedIncludedInBase) {
+      return;
+    }
+
+    const fields: ErrorField[] = [];
+
+    if (typeof input.priceCents === 'number') {
+      fields.push({ path: 'priceCents', code: PRICE_NOT_ALLOWED_FIELD_CODE });
+    }
+
+    if (typeof input.unit === 'string') {
+      fields.push({ path: 'unit', code: UNIT_NOT_ALLOWED_FIELD_CODE });
+    }
+
+    if (fields.length > 0) {
+      throw new AppError(ERROR_CODES.VALIDATION_FAILED, { fields });
+    }
+  }
+
   private normalizePrice(state: MergedPriceState): MergedPriceState {
     if (state.includedInBase) {
       return { includedInBase: true, priceCents: null, unit: null };
     }
 
-    if (state.priceCents === null || state.unit === null) {
+    if (
+      state.priceCents === null ||
+      state.priceCents <= 0 ||
+      state.unit === null
+    ) {
       throw new AppError(ERROR_CODES.PRICE_REQUIRED);
     }
 
