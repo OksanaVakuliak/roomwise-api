@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type RevisionMutation,
+  staleRevisionError,
   updateWithRevision,
 } from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
@@ -40,7 +41,6 @@ type OptionWithRelations = Prisma.OptionGetPayload<{
 interface PublishableCandidate {
   name: LocalizedText;
   description: LocalizedText;
-  priceCents: number;
 }
 
 interface ResolvedQuantityBounds {
@@ -155,6 +155,7 @@ export class OptionsService {
     const existing = await this.prisma.option.findUnique({
       where: { id },
       select: {
+        revision: true,
         kind: true,
         status: true,
         name: true,
@@ -168,6 +169,10 @@ export class OptionsService {
 
     if (!existing) {
       throw new AppError(ERROR_CODES.NOT_FOUND);
+    }
+
+    if (existing.revision !== input.revision) {
+      throw staleRevisionError(existing.revision);
     }
 
     const resolvedUnit = input.unit ?? existing.unit;
@@ -214,7 +219,6 @@ export class OptionsService {
       this.assertPublishable({
         name: input.name ?? toLocalizedText(existing.name),
         description: input.description ?? toLocalizedText(existing.description),
-        priceCents: resolvedPriceCents,
       });
     }
 
@@ -382,6 +386,10 @@ export class OptionsService {
         });
       }
 
+      if (isPrismaError(error, 'P2034') || isPrismaError(error, 'P2002')) {
+        throw new AppError(ERROR_CODES.CONFLICT);
+      }
+
       throw error;
     }
   }
@@ -394,7 +402,7 @@ export class OptionsService {
     if (input.status === PublicationStatus.PUBLISHED) {
       const option = await this.prisma.option.findUnique({
         where: { id },
-        select: { name: true, description: true, priceCents: true },
+        select: { name: true, description: true },
       });
 
       if (!option) {
@@ -404,7 +412,6 @@ export class OptionsService {
       this.assertPublishable({
         name: toLocalizedText(option.name),
         description: toLocalizedText(option.description),
-        priceCents: option.priceCents,
       });
     }
 

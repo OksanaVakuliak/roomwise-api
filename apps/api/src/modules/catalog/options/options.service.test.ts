@@ -412,6 +412,30 @@ describe('OptionsService.update', () => {
     });
   });
 
+  it('throws STALE_REVISION instead of QUANTITY_BOUNDS_REQUIRED when a concurrent change left the merged state invalid', async () => {
+    const findUnique = vi.fn().mockResolvedValue(
+      createOptionRow({
+        unit: OptionUnit.PROJECT,
+        minQuantity: null,
+        maxQuantity: null,
+        revision: NEXT_REVISION,
+      }),
+    );
+    const prisma = createPrisma({ option: { findUnique } });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    await expect(
+      service.update(
+        OPTION_ID,
+        { unit: OptionUnit.PIECE, revision: REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: 'STALE_REVISION',
+      params: { currentRevision: NEXT_REVISION },
+    });
+  });
+
   it('rejects switching to PIECE without quantity bounds', async () => {
     const findUnique = vi.fn().mockResolvedValue(createOptionRow());
     const prisma = createPrisma({ option: { findUnique } });
@@ -713,6 +737,46 @@ describe('OptionsService.reorder', () => {
         ADMIN_ID,
       ),
     ).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
+  });
+
+  it('reports CONFLICT instead of a raw error on a transaction deadlock', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([{ id: 'option-1' }, { id: 'option-2' }]);
+    const prisma = createPrisma({ option: { findMany } });
+    const p2034 = new Prisma.PrismaClientKnownRequestError(
+      'Transaction failed due to a write conflict or a deadlock',
+      { code: 'P2034', clientVersion: 'test' },
+    );
+    prisma.$transaction = vi.fn().mockRejectedValue(p2034);
+    const service = new OptionsService(prisma, createImageUrls());
+
+    await expect(
+      service.reorder(
+        { kind: OptionKind.ENGINEERING, ids: ['option-2', 'option-1'] },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' });
+  });
+
+  it('reports CONFLICT instead of a raw error when a concurrent kind change lands on the same slot', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([{ id: 'option-1' }, { id: 'option-2' }]);
+    const prisma = createPrisma({ option: { findMany } });
+    const p2002 = new Prisma.PrismaClientKnownRequestError('Unique violation', {
+      code: 'P2002',
+      clientVersion: 'test',
+    });
+    prisma.$transaction = vi.fn().mockRejectedValue(p2002);
+    const service = new OptionsService(prisma, createImageUrls());
+
+    await expect(
+      service.reorder(
+        { kind: OptionKind.ENGINEERING, ids: ['option-2', 'option-1'] },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: 'CONFLICT' });
   });
 });
 

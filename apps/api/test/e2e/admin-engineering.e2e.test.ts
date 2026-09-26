@@ -174,6 +174,18 @@ describe('admin engineering e2e', () => {
       expect(response.body.error.code).toBe(ERROR_CODES.PRICE_REQUIRED);
     });
 
+    it('rejects a non-included item with a price but no unit, naming unit in PRICE_REQUIRED params', async () => {
+      const response = await createPackageItem({
+        includedInBase: false,
+        priceCents: 1200,
+        unit: undefined,
+      });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.PRICE_REQUIRED);
+      expect(response.body.error.params).toEqual({ missing: ['unit'] });
+    });
+
     it('rejects an included item with an explicit price with VALIDATION_FAILED', async () => {
       const response = await createPackageItem({
         includedInBase: true,
@@ -239,6 +251,34 @@ describe('admin engineering e2e', () => {
       expect(response.body.error.code).toBe(ERROR_CODES.STALE_REVISION);
       expect(response.body.error.params.currentRevision).toBe(
         created.body.revision,
+      );
+    });
+
+    it('rejects a stale revision with STALE_REVISION even when the merged state would otherwise fail PRICE_REQUIRED', async () => {
+      const created = await createPackageItem({
+        includedInBase: true,
+        priceCents: undefined,
+        unit: undefined,
+      });
+
+      const concurrentPatch = await request(testApp.http)
+        .patch(`/api/v1/admin/engineering/package-items/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({
+          name: { en: 'Renamed by admin B', uk: 'Перейменовано адміном Б' },
+          revision: created.body.revision,
+        });
+      expect(concurrentPatch.status).toBe(200);
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/engineering/package-items/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({ includedInBase: false, revision: created.body.revision });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error.code).toBe(ERROR_CODES.STALE_REVISION);
+      expect(response.body.error.params.currentRevision).toBe(
+        concurrentPatch.body.revision,
       );
     });
 
@@ -529,6 +569,41 @@ describe('admin engineering e2e', () => {
       expect(response.body.error.params.currentRevision).toBe(
         created.body.revision,
       );
+    });
+
+    it('rejects a stale revision with STALE_REVISION even when the merged state would otherwise fail QUANTITY_BOUNDS_REQUIRED', async () => {
+      const created = await createOption({
+        unit: OptionUnit.PIECE,
+        minQuantity: 1,
+        maxQuantity: 5,
+      });
+
+      const concurrentPatch = await request(testApp.http)
+        .patch(`/api/v1/admin/options/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({ unit: OptionUnit.PROJECT, revision: created.body.revision });
+      expect(concurrentPatch.status).toBe(200);
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/options/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({ unit: OptionUnit.PIECE, revision: created.body.revision });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error.code).toBe(ERROR_CODES.STALE_REVISION);
+      expect(response.body.error.params.currentRevision).toBe(
+        concurrentPatch.body.revision,
+      );
+    });
+
+    it('rejects an unknown field on create with VALIDATION_FAILED', async () => {
+      const response = await request(testApp.http)
+        .post('/api/v1/admin/options')
+        .set('Cookie', adminCookie)
+        .send({ ...buildOptionInput(), unexpectedField: 'nope' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
     });
 
     it('rejects publishing an option with an empty uk translation with TRANSLATION_MISSING', async () => {

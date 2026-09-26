@@ -20,6 +20,12 @@ export interface RevisionUpdateOptions {
   readCurrentRevision: (id: string) => Promise<string | null>;
 }
 
+export function staleRevisionError(currentRevision: string): AppError {
+  return new AppError(ERROR_CODES.STALE_REVISION, {
+    params: { currentRevision },
+  });
+}
+
 export async function updateWithRevision(
   options: RevisionUpdateOptions,
 ): Promise<RevisionMutation> {
@@ -39,9 +45,7 @@ export async function updateWithRevision(
     if (currentRevision === null) {
       throw new AppError(ERROR_CODES.NOT_FOUND);
     }
-    throw new AppError(ERROR_CODES.STALE_REVISION, {
-      params: { currentRevision },
-    });
+    throw staleRevisionError(currentRevision);
   }
 
   return mutation;

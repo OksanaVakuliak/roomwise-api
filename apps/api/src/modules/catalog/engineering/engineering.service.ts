@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { updateWithRevision } from '../../../common/concurrency/revision';
+import {
+  staleRevisionError,
+  updateWithRevision,
+} from '../../../common/concurrency/revision';
 import { AppError, type ErrorField } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
@@ -37,6 +40,7 @@ interface MergedPriceState {
 }
 
 interface ExistingForPatch {
+  revision: string;
   status: PublicationStatus;
   name: LocalizedText;
   description: LocalizedText;
@@ -96,6 +100,10 @@ export class EngineeringPackageItemsService {
     adminId: string,
   ): Promise<EngineeringPackageItemAdmin> {
     const existing = await this.loadExistingForPatch(id);
+
+    if (existing.revision !== input.revision) {
+      throw staleRevisionError(existing.revision);
+    }
 
     const mergedIncludedInBase =
       input.includedInBase ?? existing.includedInBase;
@@ -234,6 +242,10 @@ export class EngineeringPackageItemsService {
         });
       }
 
+      if (isPrismaError(error, 'P2034')) {
+        throw new AppError(ERROR_CODES.CONFLICT);
+      }
+
       throw error;
     }
   }
@@ -276,12 +288,18 @@ export class EngineeringPackageItemsService {
       return { includedInBase: true, priceCents: null, unit: null };
     }
 
-    if (
-      state.priceCents === null ||
-      state.priceCents <= 0 ||
-      state.unit === null
-    ) {
-      throw new AppError(ERROR_CODES.PRICE_REQUIRED);
+    const missing: string[] = [];
+
+    if (state.priceCents === null || state.priceCents <= 0) {
+      missing.push('priceCents');
+    }
+
+    if (state.unit === null) {
+      missing.push('unit');
+    }
+
+    if (missing.length > 0) {
+      throw new AppError(ERROR_CODES.PRICE_REQUIRED, { params: { missing } });
     }
 
     return state;
@@ -300,6 +318,7 @@ export class EngineeringPackageItemsService {
     const item = await this.prisma.engineeringPackageItem.findUnique({
       where: { id },
       select: {
+        revision: true,
         status: true,
         name: true,
         description: true,
@@ -314,6 +333,7 @@ export class EngineeringPackageItemsService {
     }
 
     return {
+      revision: item.revision,
       status: item.status,
       name: toLocalizedText(item.name),
       description: toLocalizedText(item.description),

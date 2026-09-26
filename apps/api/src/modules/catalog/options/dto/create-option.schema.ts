@@ -53,6 +53,7 @@ export const createOptionSchema = z
       .optional(),
     roomTypeIds: roomTypeIdsSchema,
   })
+  .strict()
   .superRefine((data, ctx) => {
     if (
       data.minQuantity !== undefined &&

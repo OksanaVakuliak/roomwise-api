@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { Prisma } from '../../../generated/prisma/client';
 import { OptionUnit, PublicationStatus } from '../../../generated/prisma/enums';
 import { EngineeringPackageItemsService } from './engineering.service';
 
@@ -140,7 +141,30 @@ describe('EngineeringPackageItemsService.create', () => {
         },
         ADMIN_ID,
       ),
-    ).rejects.toMatchObject({ code: ERROR_CODES.PRICE_REQUIRED });
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.PRICE_REQUIRED,
+      params: { missing: ['priceCents', 'unit'] },
+    });
+  });
+
+  it('rejects a non-base item with a price but no unit, naming only the unit as missing', async () => {
+    const prisma = createPrisma();
+    const service = new EngineeringPackageItemsService(prisma);
+
+    await expect(
+      service.create(
+        {
+          name: localized('Extra outlet', 'Додаткова розетка'),
+          description: localized('Per outlet', 'За розетку'),
+          includedInBase: false,
+          priceCents: 1500,
+        },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.PRICE_REQUIRED,
+      params: { missing: ['unit'] },
+    });
   });
 
   it('creates a non-base item with price and unit', async () => {
@@ -192,7 +216,10 @@ describe('EngineeringPackageItemsService.create', () => {
         },
         ADMIN_ID,
       ),
-    ).rejects.toMatchObject({ code: ERROR_CODES.PRICE_REQUIRED });
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.PRICE_REQUIRED,
+      params: { missing: ['priceCents'] },
+    });
   });
 });
 
@@ -248,7 +275,10 @@ describe('EngineeringPackageItemsService.update', () => {
         { priceCents: null, revision: REVISION },
         ADMIN_ID,
       ),
-    ).rejects.toMatchObject({ code: ERROR_CODES.PRICE_REQUIRED });
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.PRICE_REQUIRED,
+      params: { missing: ['priceCents'] },
+    });
   });
 
   it('rejects a patch that merges into a zero price', async () => {
@@ -264,7 +294,10 @@ describe('EngineeringPackageItemsService.update', () => {
 
     await expect(
       service.update(ITEM_ID, { priceCents: 0, revision: REVISION }, ADMIN_ID),
-    ).rejects.toMatchObject({ code: ERROR_CODES.PRICE_REQUIRED });
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.PRICE_REQUIRED,
+      params: { missing: ['priceCents'] },
+    });
   });
 
   it('rejects an explicit price on an item that is already included in base', async () => {
@@ -322,6 +355,30 @@ describe('EngineeringPackageItemsService.update', () => {
 
     await expect(
       service.update(ITEM_ID, { revision: REVISION }, ADMIN_ID),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.STALE_REVISION,
+      params: { currentRevision: NEXT_REVISION },
+    });
+  });
+
+  it('throws STALE_REVISION instead of PRICE_REQUIRED when a concurrent change left the merged state invalid', async () => {
+    const findUnique = vi.fn().mockResolvedValueOnce(
+      createItemRow({
+        includedInBase: false,
+        priceCents: null,
+        unit: null,
+        revision: NEXT_REVISION,
+      }),
+    );
+    const prisma = createPrisma({ engineeringPackageItem: { findUnique } });
+    const service = new EngineeringPackageItemsService(prisma);
+
+    await expect(
+      service.update(
+        ITEM_ID,
+        { includedInBase: false, revision: REVISION },
+        ADMIN_ID,
+      ),
     ).rejects.toMatchObject({
       code: ERROR_CODES.STALE_REVISION,
       params: { currentRevision: NEXT_REVISION },
@@ -433,6 +490,23 @@ describe('EngineeringPackageItemsService.reorder', () => {
         data: expect.objectContaining({ sortOrder: 1 }),
       }),
     );
+  });
+
+  it('reports CONFLICT instead of a raw error on a transaction deadlock', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([{ id: 'item-1' }, { id: 'item-2' }]);
+    const prisma = createPrisma({ engineeringPackageItem: { findMany } });
+    const p2034 = new Prisma.PrismaClientKnownRequestError(
+      'Transaction failed due to a write conflict or a deadlock',
+      { code: 'P2034', clientVersion: 'test' },
+    );
+    prisma.$transaction = vi.fn().mockRejectedValue(p2034);
+    const service = new EngineeringPackageItemsService(prisma);
+
+    await expect(
+      service.reorder({ ids: ['item-2', 'item-1'] }, ADMIN_ID),
+    ).rejects.toMatchObject({ code: ERROR_CODES.CONFLICT });
   });
 });
 

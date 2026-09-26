@@ -83,4 +83,12 @@ describe('createOptionSchema', () => {
 
     expect(result.success).toBe(true);
   });
+
+  it('rejects an unknown field', () => {
+    const result = createOptionSchema.safeParse(
+      baseInput({ status: 'PUBLISHED' }),
+    );
+
+    expect(result.success).toBe(false);
+  });
 });
