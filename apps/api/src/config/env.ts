@@ -11,7 +11,7 @@ const DEFAULT_TRUST_PROXY_HOPS = 1;
 
 const requiredStringSchema = z.string().trim().min(1);
 
-const postgresUrlSchema = requiredStringSchema.refine((value) => {
+export const postgresUrlSchema = requiredStringSchema.refine((value) => {
   try {
     const protocol = new URL(value).protocol;
     return protocol === 'postgres:' || protocol === 'postgresql:';

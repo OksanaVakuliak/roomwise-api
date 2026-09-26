@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { z } from 'zod';
+import { postgresUrlSchema } from '../../src/config/env';
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
@@ -8,19 +8,6 @@ import { catalogDataset } from '../../src/modules/catalog/dataset/data';
 const EXIT_FAILURE = 1;
 const TRANSACTION_TIMEOUT_MS = 120_000;
 const TRANSACTION_MAX_WAIT_MS = 30_000;
-
-const databaseUrlSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .refine((value) => {
-    try {
-      const protocol = new URL(value).protocol;
-      return protocol === 'postgres:' || protocol === 'postgresql:';
-    } catch {
-      return false;
-    }
-  }, 'Must be a PostgreSQL URL');
 
 async function countCatalog(prisma: PrismaClient) {
   const [
@@ -71,7 +58,7 @@ async function countCatalog(prisma: PrismaClient) {
 }
 
 async function main(): Promise<void> {
-  const databaseUrl = databaseUrlSchema.safeParse(process.env.DATABASE_URL);
+  const databaseUrl = postgresUrlSchema.safeParse(process.env.DATABASE_URL);
 
   if (!databaseUrl.success) {
     process.stderr.write(
