@@ -203,6 +203,18 @@ export class CatalogDatasetService {
     await this.upsertRoomTypes(rows, tx);
 
     for (const materialType of rows.materialTypes) {
+      const existingById = await tx.materialType.findUnique({
+        where: { id: materialType.id },
+        select: { id: true },
+      });
+      if (existingById) {
+        await tx.materialType.update({
+          where: { id: materialType.id },
+          data: { ...materialType, ...rewrittenBySeed() },
+        });
+        continue;
+      }
+
       await tx.materialType.upsert({
         where: { code: materialType.code },
         create: materialType,

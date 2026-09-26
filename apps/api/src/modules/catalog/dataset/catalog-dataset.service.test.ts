@@ -35,6 +35,7 @@ const OPERATIONS = [
   'deleteMany',
   'updateMany',
   'findMany',
+  'findUnique',
 ] as const;
 
 interface RecordedCall {
@@ -54,6 +55,18 @@ function createTx(existing: Partial<Record<string, unknown[]>> = {}) {
         calls.push({ model, operation, args });
         if (operation === 'findMany') {
           return existing[model] ?? [];
+        }
+        if (operation === 'findUnique') {
+          const where =
+            (args as { where?: Record<string, unknown> })?.where ?? {};
+          const rows = (existing[model] ?? []) as Array<
+            Record<string, unknown>
+          >;
+          return (
+            rows.find((row) =>
+              Object.entries(where).every(([key, value]) => row[key] === value),
+            ) ?? null
+          );
         }
         return { count: 0 };
       });
@@ -246,6 +259,35 @@ describe('CatalogDatasetService.upsert', () => {
       expect(upserts[index].create.id).toBe(materialType.id);
       expect(upserts[index].update.id).toBe(materialType.id);
     });
+  });
+
+  it('updates a material type by id instead of upserting by code when its id already exists', async () => {
+    const [materialType, ...rest] = catalogDataset.materialTypes;
+    const existing = [{ id: materialType.id, code: 'old_code' }];
+    const { tx, argsOf } = createTx({ materialType: existing });
+
+    await new CatalogDatasetService().upsert(catalogDataset, tx);
+
+    const updates = argsOf('materialType', 'update') as Array<{
+      where: { id: string };
+      data: { id: string; code: string };
+    }>;
+    expect(updates).toEqual([
+      {
+        where: { id: materialType.id },
+        data: expect.objectContaining({
+          id: materialType.id,
+          code: materialType.code,
+        }),
+      },
+    ]);
+
+    const upserts = argsOf('materialType', 'upsert') as Array<{
+      where: { code: string };
+    }>;
+    expect(upserts.map((call) => call.where)).toEqual(
+      rest.map((entry) => ({ code: entry.code })),
+    );
   });
 
   it('moves admin options after the seeded ones of the same kind', async () => {

@@ -13,6 +13,7 @@ import {
 import type { CatalogDataset } from '../../src/modules/catalog/dataset/catalog-dataset.schema';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
+import { optionIds } from '../../src/modules/catalog/dataset/data/options';
 import { createTestApp, type TestApp } from './app-factory';
 
 const SEED_TIMEOUT_MS = 120_000;
@@ -103,7 +104,7 @@ async function snapshotCatalogTables(
     prisma.image.findMany({ select: { id: true } }),
     prisma.roomType.findMany({ select: { id: true } }),
     prisma.roomTypeCategory.findMany({
-      select: { roomTypeId: true, categoryId: true },
+      select: { roomTypeId: true, categoryId: true, sortOrder: true },
     }),
     prisma.materialType.findMany({ select: { id: true } }),
     prisma.category.findMany({ select: { id: true } }),
@@ -117,7 +118,7 @@ async function snapshotCatalogTables(
       select: { styleId: true, roomTypeId: true, categoryId: true },
     }),
     prisma.engineeringPackageItem.findMany({ select: { id: true } }),
-    prisma.option.findMany({ select: { id: true } }),
+    prisma.option.findMany({ select: { id: true, sortOrder: true } }),
     prisma.optionRoomType.findMany({
       select: { optionId: true, roomTypeId: true },
     }),
@@ -127,7 +128,7 @@ async function snapshotCatalogTables(
     images: images.map((row) => row.id).sort(),
     roomTypes: roomTypes.map((row) => row.id).sort(),
     roomTypeCategories: roomTypeCategories
-      .map((row) => `${row.roomTypeId}:${row.categoryId}`)
+      .map((row) => `${row.roomTypeId}:${row.categoryId}:${row.sortOrder}`)
       .sort(),
     materialTypes: materialTypes.map((row) => row.id).sort(),
     categories: categories.map((row) => row.id).sort(),
@@ -143,7 +144,7 @@ async function snapshotCatalogTables(
     engineeringPackageItems: engineeringPackageItems
       .map((row) => row.id)
       .sort(),
-    options: options.map((row) => row.id).sort(),
+    options: options.map((row) => `${row.id}:${row.sortOrder}`).sort(),
     optionRoomTypes: optionRoomTypes
       .map((row) => `${row.optionId}:${row.roomTypeId}`)
       .sort(),
@@ -478,8 +479,8 @@ describe('seed e2e (US5)', () => {
   });
 
   it('exposes a heated-floor room-sqm engineering option and a heated-floor-compatible floor product', async () => {
-    const heatedFloorOption = await testApp.prisma.option.findFirst({
-      where: { kind: OptionKind.ENGINEERING, unit: OptionUnit.ROOM_SQM },
+    const heatedFloorOption = await testApp.prisma.option.findUnique({
+      where: { id: optionIds.heatedFloor },
       include: { optionRoomTypes: { include: { roomType: true } } },
     });
 
@@ -651,6 +652,26 @@ describe('seed e2e — admin edits survive a re-seed', () => {
         where: { materialTypeId: renamedId },
       }),
     ).toBe(0);
+  });
+
+  it('updates a material type by id when the dataset changes its code', async () => {
+    const [materialType] = dataset.materialTypes;
+    const countBefore = await testApp.prisma.materialType.count();
+
+    await testApp.prisma.materialType.update({
+      where: { id: materialType.id },
+      data: { code: 'changed_code' },
+    });
+
+    await applySeed(testApp);
+
+    const rows = await testApp.prisma.materialType.findMany({
+      where: { id: materialType.id },
+    });
+    expect(rows).toEqual([
+      expect.objectContaining({ code: materialType.code }),
+    ]);
+    expect(await testApp.prisma.materialType.count()).toBe(countBefore);
   });
 });
 
