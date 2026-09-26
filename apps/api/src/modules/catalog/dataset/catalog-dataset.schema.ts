@@ -28,6 +28,23 @@ function findDuplicate(ids: string[]): string | undefined {
   return undefined;
 }
 
+function findDuplicateIndices<T>(
+  items: readonly T[],
+  keyFn: (item: T) => string,
+): Array<{ index: number; key: string }> {
+  const seen = new Set<string>();
+  const duplicates: Array<{ index: number; key: string }> = [];
+  items.forEach((item, index) => {
+    const key = keyFn(item);
+    if (seen.has(key)) {
+      duplicates.push({ index, key });
+    } else {
+      seen.add(key);
+    }
+  });
+  return duplicates;
+}
+
 export const seedImageSchema = z.object({
   id: z.uuid(),
   publicId: z.string().startsWith('roomwise/seed/'),
@@ -310,6 +327,78 @@ export const catalogDatasetSchema = z
       });
     }
 
+    const duplicateImagePublicId = findDuplicateIndices(
+      dataset.images,
+      (image) => image.publicId,
+    );
+    for (const { index, key } of duplicateImagePublicId) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Duplicate image publicId ${key}`,
+        path: ['images', index, 'publicId'],
+      });
+    }
+
+    const duplicateProductId = findDuplicateIndices(
+      dataset.products,
+      (product) => product.id,
+    );
+    for (const { index, key } of duplicateProductId) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Duplicate product id ${key}`,
+        path: ['products', index, 'id'],
+      });
+    }
+
+    const duplicateStyleId = findDuplicateIndices(
+      dataset.styles,
+      (style) => style.id,
+    );
+    for (const { index, key } of duplicateStyleId) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Duplicate style id ${key}`,
+        path: ['styles', index, 'id'],
+      });
+    }
+
+    const duplicateEngineeringItemId = findDuplicateIndices(
+      dataset.engineeringItems,
+      (item) => item.id,
+    );
+    for (const { index, key } of duplicateEngineeringItemId) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Duplicate engineering item id ${key}`,
+        path: ['engineeringItems', index, 'id'],
+      });
+    }
+
+    const duplicateOptionId = findDuplicateIndices(
+      dataset.options,
+      (option) => option.id,
+    );
+    for (const { index, key } of duplicateOptionId) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Duplicate option id ${key}`,
+        path: ['options', index, 'id'],
+      });
+    }
+
+    const duplicateOptionKindSortOrder = findDuplicateIndices(
+      dataset.options,
+      (option) => `${option.kind}:${option.sortOrder}`,
+    );
+    for (const { index, key } of duplicateOptionKindSortOrder) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Duplicate option kind and sortOrder ${key}`,
+        path: ['options', index, 'sortOrder'],
+      });
+    }
+
     const categoryIds = new Set(
       dataset.categories.map((category) => category.id),
     );
@@ -511,6 +600,15 @@ export const catalogDatasetSchema = z
           });
         }
       });
+
+      const duplicateOptionRoomTypeId = findDuplicate(option.roomTypeIds);
+      if (duplicateOptionRoomTypeId) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Option ${option.id} has duplicate room type ${duplicateOptionRoomTypeId} in roomTypeIds`,
+          path: ['options', optionIndex, 'roomTypeIds'],
+        });
+      }
     });
   });
 
