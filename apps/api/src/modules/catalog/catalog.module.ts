@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CategoriesController } from './categories/categories.controller';
 import { CategoriesService } from './categories/categories.service';
 import { CatalogChangeInterceptor } from './common/catalog-change.interceptor';
+import { CatalogDatasetService } from './dataset/catalog-dataset.service';
 import { EngineeringPackageItemsController } from './engineering/engineering.controller';
 import { EngineeringPackageItemsService } from './engineering/engineering.service';
 import { CloudinaryService } from './images/cloudinary.service';
@@ -50,7 +51,8 @@ import { StylesService } from './styles/styles.service';
     StylesService,
     EngineeringPackageItemsService,
     OptionsService,
+    CatalogDatasetService,
   ],
-  exports: [PublicCatalogService, CatalogCache],
+  exports: [PublicCatalogService, CatalogCache, CatalogDatasetService],
 })
 export class CatalogModule {}

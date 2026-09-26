@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import * as readline from 'node:readline';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { z } from 'zod';
+import { postgresUrlSchema } from '../src/config/env';
 import { Prisma, PrismaClient } from '../src/generated/prisma/client';
 import {
   parseLoginArg,
@@ -24,21 +24,8 @@ function isReservedDemoLogin(login: string): boolean {
   return demoLogin.trim().toLowerCase() === login;
 }
 
-const databaseUrlSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .refine((value) => {
-    try {
-      const protocol = new URL(value).protocol;
-      return protocol === 'postgres:' || protocol === 'postgresql:';
-    } catch {
-      return false;
-    }
-  }, 'Must be a PostgreSQL URL');
-
 function readDatabaseUrl(): string {
-  const result = databaseUrlSchema.safeParse(process.env.DATABASE_URL);
+  const result = postgresUrlSchema.safeParse(process.env.DATABASE_URL);
 
   if (!result.success) {
     process.stderr.write(

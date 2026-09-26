@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     globals: true,
     root: import.meta.dirname,
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'prisma/**/*.test.ts'],
     passWithNoTests: true,
     setupFiles: [resolve(import.meta.dirname, './test/setup-env.ts')],
   },
