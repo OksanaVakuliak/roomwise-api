@@ -163,6 +163,70 @@ describe('admin engineering e2e', () => {
       expect(typeof response.body.revision).toBe('string');
     });
 
+    it('rejects a non-included item with a zero price with PRICE_REQUIRED', async () => {
+      const response = await createPackageItem({
+        includedInBase: false,
+        priceCents: 0,
+        unit: OptionUnit.PIECE,
+      });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.PRICE_REQUIRED);
+    });
+
+    it('rejects an included item with an explicit price with VALIDATION_FAILED', async () => {
+      const response = await createPackageItem({
+        includedInBase: true,
+        priceCents: 500,
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+      expect(response.body.error.fields).toEqual([
+        expect.objectContaining({ path: 'priceCents' }),
+      ]);
+    });
+
+    it('rejects an unknown field on create with VALIDATION_FAILED', async () => {
+      const response = await request(testApp.http)
+        .post('/api/v1/admin/engineering/package-items')
+        .set('Cookie', adminCookie)
+        .send({ ...buildPackageItemInput(), unexpectedField: 'nope' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('rejects an unknown field on PATCH with VALIDATION_FAILED', async () => {
+      const created = await createPackageItem();
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/engineering/package-items/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({ revision: created.body.revision, unexpectedField: 'nope' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('rejects PATCHing an explicit price onto an item already included in base with VALIDATION_FAILED', async () => {
+      const created = await createPackageItem({
+        includedInBase: true,
+        priceCents: undefined,
+      });
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/engineering/package-items/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({ priceCents: 500, revision: created.body.revision });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+      expect(response.body.error.fields).toEqual([
+        expect.objectContaining({ path: 'priceCents' }),
+      ]);
+    });
+
     it('rejects a stale revision on PATCH with STALE_REVISION', async () => {
       const created = await createPackageItem();
 
@@ -408,6 +472,50 @@ describe('admin engineering e2e', () => {
       expect(response.body.error.code).toBe(ERROR_CODES.ROOM_TYPES_NOT_ALLOWED);
     });
 
+    it('rejects duplicate roomTypeIds on create with VALIDATION_FAILED', async () => {
+      const response = await createOption({
+        unit: OptionUnit.ROOM_SQM,
+        roomTypeIds: [roomTypes.bathroom, roomTypes.bathroom],
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+      expect(response.body.error.fields[0].path).toBe('roomTypeIds');
+    });
+
+    it('rejects an unknown room type id on create with ROOM_TYPE_NOT_FOUND', async () => {
+      const response = await createOption({
+        unit: OptionUnit.ROOM_SQM,
+        roomTypeIds: [randomUUID()],
+      });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.ROOM_TYPE_NOT_FOUND);
+    });
+
+    it('rejects a PIECE option with minQuantity greater than maxQuantity with VALIDATION_FAILED', async () => {
+      const response = await createOption({
+        unit: OptionUnit.PIECE,
+        minQuantity: 5,
+        maxQuantity: 2,
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+      expect(response.body.error.fields[0].path).toBe('maxQuantity');
+    });
+
+    it('creates options concurrently for the same kind without a 500 on sortOrder', async () => {
+      const [first, second] = await Promise.all([
+        createOption({ kind: OptionKind.ADDITIONAL }),
+        createOption({ kind: OptionKind.ADDITIONAL }),
+      ]);
+
+      expect(first.status).toBe(201);
+      expect(second.status).toBe(201);
+      expect(first.body.id).not.toBe(second.body.id);
+    });
+
     it('rejects a stale revision on PATCH with STALE_REVISION', async () => {
       const created = await createOption();
 
@@ -438,6 +546,25 @@ describe('admin engineering e2e', () => {
 
       expect(response.status).toBe(422);
       expect(response.body.error.code).toBe(ERROR_CODES.TRANSLATION_MISSING);
+    });
+
+    it('publishes an option with a confirmed zero price', async () => {
+      const created = await createOption({
+        priceCents: 0,
+        confirmZeroPrice: true,
+      });
+      expect(created.status).toBe(201);
+
+      const response = await request(testApp.http)
+        .post(`/api/v1/admin/options/${created.body.id}/status`)
+        .set('Cookie', adminCookie)
+        .send({
+          status: PublicationStatus.PUBLISHED,
+          revision: created.body.revision,
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe(PublicationStatus.PUBLISHED);
     });
 
     it(
@@ -656,6 +783,64 @@ describe('admin engineering e2e', () => {
       expect(afterDelete.options.map((option) => option.id)).not.toContain(
         created.body.id,
       );
+    });
+
+    it('rejects duplicate roomTypeIds on PATCH with VALIDATION_FAILED', async () => {
+      const created = await createOption({ unit: OptionUnit.ROOM_SQM });
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/options/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({
+          roomTypeIds: [roomTypes.bathroom, roomTypes.bathroom],
+          revision: created.body.revision,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+      expect(response.body.error.fields[0].path).toBe('roomTypeIds');
+    });
+
+    it('rejects a PATCH that pushes maxQuantity below the existing minQuantity with VALIDATION_FAILED', async () => {
+      const created = await createOption({
+        unit: OptionUnit.PIECE,
+        minQuantity: 5,
+        maxQuantity: 10,
+      });
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/options/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({ maxQuantity: 3, revision: created.body.revision });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+      expect(response.body.error.fields[0].path).toBe('maxQuantity');
+    });
+
+    it('patches two options into the same kind concurrently without a 500 on sortOrder', async () => {
+      const createdA = await createOption({ kind: OptionKind.ENGINEERING });
+      const createdB = await createOption({ kind: OptionKind.ENGINEERING });
+
+      const [patchedA, patchedB] = await Promise.all([
+        request(testApp.http)
+          .patch(`/api/v1/admin/options/${createdA.body.id}`)
+          .set('Cookie', adminCookie)
+          .send({
+            kind: OptionKind.ADDITIONAL,
+            revision: createdA.body.revision,
+          }),
+        request(testApp.http)
+          .patch(`/api/v1/admin/options/${createdB.body.id}`)
+          .set('Cookie', adminCookie)
+          .send({
+            kind: OptionKind.ADDITIONAL,
+            revision: createdB.body.revision,
+          }),
+      ]);
+
+      expect(patchedA.status).toBe(200);
+      expect(patchedB.status).toBe(200);
     });
   });
 });

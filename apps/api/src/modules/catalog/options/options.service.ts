@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { updateWithRevision } from '../../../common/concurrency/revision';
+import {
+  type RevisionMutation,
+  updateWithRevision,
+} from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
@@ -9,6 +12,9 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { isPrismaError } from '../../../common/prisma/prisma-error';
 import { Prisma } from '../../../generated/prisma/client';
 import { OptionUnit, PublicationStatus } from '../../../generated/prisma/enums';
+import { assertRoomTypesExist } from '../common/assert-room-types-exist';
+import { assertZeroPriceConfirmed } from '../common/assert-zero-price-confirmed';
+import { isPerRoomUnit } from '../common/is-per-room-unit';
 import { assertImagesExist } from '../images/assert-images-exist';
 import { ImageUrlBuilder } from '../images/image-urls';
 import type { CreateOptionInput } from './dto/create-option.schema';
@@ -40,10 +46,6 @@ interface PublishableCandidate {
 interface ResolvedQuantityBounds {
   minQuantity: number | null;
   maxQuantity: number | null;
-}
-
-function isPerRoomUnit(unit: OptionUnit): boolean {
-  return unit === OptionUnit.ROOM_SQM || unit === OptionUnit.ROOM;
 }
 
 @Injectable()
@@ -82,47 +84,67 @@ export class OptionsService {
       input.minQuantity,
       input.maxQuantity,
     );
-    this.assertZeroPriceConfirmed(input.priceCents, input.confirmZeroPrice);
+    assertZeroPriceConfirmed(input.priceCents, input.confirmZeroPrice);
 
     await Promise.all([
       input.imageId
         ? assertImagesExist(this.prisma, [input.imageId])
         : Promise.resolve(),
       perRoom && input.roomTypeIds.length > 0
-        ? this.assertRoomTypesExist(this.prisma, input.roomTypeIds)
+        ? assertRoomTypesExist(this.prisma, input.roomTypeIds)
         : Promise.resolve(),
     ]);
 
+    return this.createWithSortOrder(input, adminId, perRoom, bounds, false);
+  }
+
+  private async createWithSortOrder(
+    input: CreateOptionInput,
+    adminId: string,
+    perRoom: boolean,
+    bounds: ResolvedQuantityBounds,
+    hasRetried: boolean,
+  ): Promise<OptionAdmin> {
     const aggregate = await this.prisma.option.aggregate({
       _max: { sortOrder: true },
       where: { kind: input.kind },
     });
     const sortOrder = (aggregate._max.sortOrder ?? -1) + 1;
 
-    const created = await this.prisma.option.create({
-      data: {
-        kind: input.kind,
-        name: input.name,
-        description: input.description,
-        imageId: input.imageId ?? null,
-        priceCents: input.priceCents,
-        unit: input.unit,
-        minQuantity: bounds.minQuantity,
-        maxQuantity: bounds.maxQuantity,
-        sortOrder,
-        status: PublicationStatus.DRAFT,
-        updatedById: adminId,
-        optionRoomTypes:
-          perRoom && input.roomTypeIds.length > 0
-            ? {
-                create: input.roomTypeIds.map((roomTypeId) => ({ roomTypeId })),
-              }
-            : undefined,
-      },
-      include: OPTION_ADMIN_INCLUDE,
-    });
+    try {
+      const created = await this.prisma.option.create({
+        data: {
+          kind: input.kind,
+          name: input.name,
+          description: input.description,
+          imageId: input.imageId ?? null,
+          priceCents: input.priceCents,
+          unit: input.unit,
+          minQuantity: bounds.minQuantity,
+          maxQuantity: bounds.maxQuantity,
+          sortOrder,
+          status: PublicationStatus.DRAFT,
+          updatedById: adminId,
+          optionRoomTypes:
+            perRoom && input.roomTypeIds.length > 0
+              ? {
+                  create: input.roomTypeIds.map((roomTypeId) => ({
+                    roomTypeId,
+                  })),
+                }
+              : undefined,
+        },
+        include: OPTION_ADMIN_INCLUDE,
+      });
 
-    return this.toOptionAdmin(created);
+      return this.toOptionAdmin(created);
+    } catch (error) {
+      if (!hasRetried && isPrismaError(error, 'P2002')) {
+        return this.createWithSortOrder(input, adminId, perRoom, bounds, true);
+      }
+
+      throw error;
+    }
   }
 
   async update(
@@ -176,7 +198,7 @@ export class OptionsService {
     const resolvedPriceCents =
       input.priceCents !== undefined ? input.priceCents : existing.priceCents;
     if (input.priceCents !== undefined) {
-      this.assertZeroPriceConfirmed(resolvedPriceCents, input.confirmZeroPrice);
+      assertZeroPriceConfirmed(resolvedPriceCents, input.confirmZeroPrice);
     }
 
     await Promise.all([
@@ -184,7 +206,7 @@ export class OptionsService {
         ? assertImagesExist(this.prisma, [input.imageId])
         : Promise.resolve(),
       input.roomTypeIds !== undefined && perRoom && input.roomTypeIds.length > 0
-        ? this.assertRoomTypesExist(this.prisma, input.roomTypeIds)
+        ? assertRoomTypesExist(this.prisma, input.roomTypeIds)
         : Promise.resolve(),
     ]);
 
@@ -204,69 +226,109 @@ export class OptionsService {
       expectedRevision: input.revision,
       updatedById: adminId,
       update: ({ id: optionId, expectedRevision, mutation }) =>
-        this.prisma.$transaction(async (tx) => {
-          let sortOrderUpdate: { sortOrder: number } | Record<string, never> =
-            {};
-
-          if (kindChanged) {
-            const aggregate = await tx.option.aggregate({
-              _max: { sortOrder: true },
-              where: { kind: input.kind },
-            });
-            sortOrderUpdate = {
-              sortOrder: (aggregate._max.sortOrder ?? -1) + 1,
-            };
-          }
-
-          const result = await tx.option.updateMany({
-            where: { id: optionId, revision: expectedRevision },
-            data: {
-              ...(input.kind !== undefined ? { kind: input.kind } : {}),
-              ...(input.name !== undefined ? { name: input.name } : {}),
-              ...(input.description !== undefined
-                ? { description: input.description }
-                : {}),
-              ...(input.imageId !== undefined
-                ? { imageId: input.imageId }
-                : {}),
-              ...(input.priceCents !== undefined
-                ? { priceCents: input.priceCents }
-                : {}),
-              ...(input.unit !== undefined ? { unit: input.unit } : {}),
-              minQuantity: bounds.minQuantity,
-              maxQuantity: bounds.maxQuantity,
-              ...sortOrderUpdate,
-              revision: mutation.revision,
-              updatedAt: mutation.updatedAt,
-              updatedById: mutation.updatedById,
-            },
-          });
-
-          if (result.count === 0) {
-            return 0;
-          }
-
-          if (!perRoom) {
-            await tx.optionRoomType.deleteMany({ where: { optionId } });
-          } else if (input.roomTypeIds !== undefined) {
-            await tx.optionRoomType.deleteMany({ where: { optionId } });
-
-            if (input.roomTypeIds.length > 0) {
-              await tx.optionRoomType.createMany({
-                data: input.roomTypeIds.map((roomTypeId) => ({
-                  optionId,
-                  roomTypeId,
-                })),
-              });
-            }
-          }
-
-          return result.count;
+        this.runOptionUpdateTransaction({
+          optionId,
+          expectedRevision,
+          mutation,
+          input,
+          kindChanged,
+          perRoom,
+          bounds,
+          hasRetried: false,
         }),
       readCurrentRevision: (optionId) => this.readRevision(optionId),
     });
 
     return this.getById(id);
+  }
+
+  private async runOptionUpdateTransaction(params: {
+    optionId: string;
+    expectedRevision: string;
+    mutation: RevisionMutation;
+    input: PatchOptionInput;
+    kindChanged: boolean;
+    perRoom: boolean;
+    bounds: ResolvedQuantityBounds;
+    hasRetried: boolean;
+  }): Promise<number> {
+    const {
+      optionId,
+      expectedRevision,
+      mutation,
+      input,
+      kindChanged,
+      perRoom,
+      bounds,
+    } = params;
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        let sortOrderUpdate: { sortOrder: number } | Record<string, never> = {};
+
+        if (kindChanged) {
+          const aggregate = await tx.option.aggregate({
+            _max: { sortOrder: true },
+            where: { kind: input.kind },
+          });
+          sortOrderUpdate = {
+            sortOrder: (aggregate._max.sortOrder ?? -1) + 1,
+          };
+        }
+
+        const result = await tx.option.updateMany({
+          where: { id: optionId, revision: expectedRevision },
+          data: {
+            ...(input.kind !== undefined ? { kind: input.kind } : {}),
+            ...(input.name !== undefined ? { name: input.name } : {}),
+            ...(input.description !== undefined
+              ? { description: input.description }
+              : {}),
+            ...(input.imageId !== undefined ? { imageId: input.imageId } : {}),
+            ...(input.priceCents !== undefined
+              ? { priceCents: input.priceCents }
+              : {}),
+            ...(input.unit !== undefined ? { unit: input.unit } : {}),
+            minQuantity: bounds.minQuantity,
+            maxQuantity: bounds.maxQuantity,
+            ...sortOrderUpdate,
+            revision: mutation.revision,
+            updatedAt: mutation.updatedAt,
+            updatedById: mutation.updatedById,
+          },
+        });
+
+        if (result.count === 0) {
+          return 0;
+        }
+
+        if (!perRoom) {
+          await tx.optionRoomType.deleteMany({ where: { optionId } });
+        } else if (input.roomTypeIds !== undefined) {
+          await tx.optionRoomType.deleteMany({ where: { optionId } });
+
+          if (input.roomTypeIds.length > 0) {
+            await tx.optionRoomType.createMany({
+              data: input.roomTypeIds.map((roomTypeId) => ({
+                optionId,
+                roomTypeId,
+              })),
+            });
+          }
+        }
+
+        return result.count;
+      });
+    } catch (error) {
+      if (kindChanged && !params.hasRetried && isPrismaError(error, 'P2002')) {
+        return this.runOptionUpdateTransaction({
+          ...params,
+          hasRetried: true,
+        });
+      }
+
+      throw error;
+    }
   }
 
   async reorder(input: OptionOrderInput, adminId: string): Promise<void> {
@@ -290,30 +352,29 @@ export class OptionsService {
 
     const updatedAt = new Date();
 
-    try {
-      await this.prisma.$transaction(async (tx) => {
-        for (const [index, id] of input.ids.entries()) {
-          await tx.option.update({
-            where: { id },
-            data: {
-              sortOrder: -(index + 1),
-              updatedAt,
-              updatedById: adminId,
-            },
-          });
-        }
+    const temporaryUpdates = input.ids.map((id, index) =>
+      this.prisma.option.update({
+        where: { id },
+        data: {
+          sortOrder: -(index + 1),
+          updatedAt,
+          updatedById: adminId,
+        },
+      }),
+    );
+    const finalUpdates = input.ids.map((id, index) =>
+      this.prisma.option.update({
+        where: { id },
+        data: {
+          sortOrder: index,
+          updatedAt,
+          updatedById: adminId,
+        },
+      }),
+    );
 
-        for (const [index, id] of input.ids.entries()) {
-          await tx.option.update({
-            where: { id },
-            data: {
-              sortOrder: index,
-              updatedAt,
-              updatedById: adminId,
-            },
-          });
-        }
-      });
+    try {
+      await this.prisma.$transaction([...temporaryUpdates, ...finalUpdates]);
     } catch (error) {
       if (isPrismaError(error, 'P2025')) {
         throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
@@ -387,24 +448,17 @@ export class OptionsService {
       return { minQuantity: null, maxQuantity: null };
     }
 
-    if (
-      minQuantity === undefined ||
-      maxQuantity === undefined ||
-      minQuantity > maxQuantity
-    ) {
+    if (minQuantity === undefined || maxQuantity === undefined) {
       throw new AppError(ERROR_CODES.QUANTITY_BOUNDS_REQUIRED);
     }
 
-    return { minQuantity, maxQuantity };
-  }
-
-  private assertZeroPriceConfirmed(
-    priceCents: number,
-    confirmZeroPrice: boolean | undefined,
-  ): void {
-    if (priceCents === 0 && confirmZeroPrice !== true) {
-      throw new AppError(ERROR_CODES.ZERO_PRICE_NOT_CONFIRMED);
+    if (minQuantity > maxQuantity) {
+      throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
+        fields: [{ path: 'maxQuantity', code: 'CUSTOM' }],
+      });
     }
+
+    return { minQuantity, maxQuantity };
   }
 
   private assertPublishable(candidate: PublishableCandidate): void {
@@ -412,33 +466,6 @@ export class OptionsService {
       name: candidate.name,
       description: candidate.description,
     });
-
-    if (candidate.priceCents === 0) {
-      throw new AppError(ERROR_CODES.PRICE_REQUIRED);
-    }
-  }
-
-  private async assertRoomTypesExist(
-    prisma: Prisma.TransactionClient,
-    roomTypeIds: string[],
-  ): Promise<void> {
-    if (roomTypeIds.length === 0) {
-      return;
-    }
-
-    const uniqueIds = [...new Set(roomTypeIds)];
-    const found = await prisma.roomType.findMany({
-      where: { id: { in: uniqueIds } },
-      select: { id: true },
-    });
-    const foundIds = new Set(found.map((roomType) => roomType.id));
-    const missing = uniqueIds.filter((roomTypeId) => !foundIds.has(roomTypeId));
-
-    if (missing.length > 0) {
-      throw new AppError(ERROR_CODES.UNPROCESSABLE, {
-        params: { roomTypeIds: missing },
-      });
-    }
   }
 
   private async readRevision(id: string): Promise<string | null> {

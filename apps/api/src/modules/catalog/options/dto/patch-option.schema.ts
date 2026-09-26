@@ -8,7 +8,11 @@ import { OptionKind, OptionUnit } from '../../../../generated/prisma/enums';
 import {
   OPTION_QUANTITY_MAX,
   OPTION_QUANTITY_MIN,
+  roomTypeIdsSchema,
 } from './create-option.schema';
+
+const MIN_QUANTITY_EXCEEDS_MAX_QUANTITY_MESSAGE =
+  'minQuantity must not exceed maxQuantity';
 
 export const patchOptionSchema = z
   .object({
@@ -33,10 +37,25 @@ export const patchOptionSchema = z
       .max(OPTION_QUANTITY_MAX)
       .nullable()
       .optional(),
-    roomTypeIds: z.array(z.uuid()).optional(),
+    roomTypeIds: roomTypeIdsSchema.optional(),
     revision: z.uuid(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    if (
+      data.minQuantity !== undefined &&
+      data.minQuantity !== null &&
+      data.maxQuantity !== undefined &&
+      data.maxQuantity !== null &&
+      data.minQuantity > data.maxQuantity
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: MIN_QUANTITY_EXCEEDS_MAX_QUANTITY_MESSAGE,
+        path: ['maxQuantity'],
+      });
+    }
+  });
 
 export type PatchOptionInput = z.infer<typeof patchOptionSchema>;
 

@@ -5,11 +5,11 @@ import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import type { Language } from '../../../common/i18n/resolve-lang';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
-  OptionUnit,
   PublicationStatus,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
 import { isDefaultProductAvailable } from '../common/default-product-availability';
+import { isPerRoomUnit } from '../common/is-per-room-unit';
 import { ImageUrlBuilder } from '../images/image-urls';
 import type { PublicDefaultMaterialsResponse } from './dto/default-materials.schema';
 import type { PublicEngineeringResponse } from './dto/engineering.schema';
@@ -337,9 +337,7 @@ export class PublicCatalogService {
           : null,
         priceCents: option.priceCents,
         unit: option.unit,
-        perRoom:
-          option.unit === OptionUnit.ROOM_SQM ||
-          option.unit === OptionUnit.ROOM,
+        perRoom: isPerRoomUnit(option.unit),
         roomTypeCodes: option.optionRoomTypes.map(
           (entry) => entry.roomType.code,
         ),

@@ -11,6 +11,7 @@ import {
   PublicationStatus,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
+import { assertZeroPriceConfirmed } from '../common/assert-zero-price-confirmed';
 import { assertImagesExist } from '../images/assert-images-exist';
 import { ImageUrlBuilder } from '../images/image-urls';
 import type {
@@ -145,7 +146,7 @@ export class ProductsService {
       this.assertMaterialTypeExists(input.materialTypeId),
       assertImagesExist(this.prisma, imageIds),
     ]);
-    this.assertZeroPriceConfirmed(input.priceCents, input.confirmZeroPrice);
+    assertZeroPriceConfirmed(input.priceCents, input.confirmZeroPrice);
 
     const created = await this.prisma.product.create({
       data: {
@@ -218,7 +219,7 @@ export class ProductsService {
 
     const resolvedPriceCents = input.priceCents ?? existing.priceCents;
     if (input.priceCents !== undefined) {
-      this.assertZeroPriceConfirmed(resolvedPriceCents, input.confirmZeroPrice);
+      assertZeroPriceConfirmed(resolvedPriceCents, input.confirmZeroPrice);
     }
 
     if (existing.status === PublicationStatus.PUBLISHED) {
@@ -533,15 +534,6 @@ export class ProductsService {
 
     if (!candidate.hasPrimaryImage) {
       throw new AppError(ERROR_CODES.PRIMARY_IMAGE_MISSING);
-    }
-  }
-
-  private assertZeroPriceConfirmed(
-    priceCents: number,
-    confirmZeroPrice: boolean | undefined,
-  ): void {
-    if (priceCents === 0 && confirmZeroPrice !== true) {
-      throw new AppError(ERROR_CODES.ZERO_PRICE_NOT_CONFIRMED);
     }
   }
 

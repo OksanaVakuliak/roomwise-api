@@ -159,6 +159,56 @@ describe('OptionsService.create', () => {
     );
   });
 
+  it('retries once with a recomputed sortOrder after a unique violation on (kind, sortOrder)', async () => {
+    const aggregate = vi
+      .fn()
+      .mockResolvedValueOnce({ _max: { sortOrder: 2 } })
+      .mockResolvedValueOnce({ _max: { sortOrder: 3 } });
+    const p2002 = new Prisma.PrismaClientKnownRequestError('Unique violation', {
+      code: 'P2002',
+      clientVersion: 'test',
+    });
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(p2002)
+      .mockResolvedValueOnce(createOptionRow());
+    const prisma = createPrisma({ option: { aggregate, create } });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    await service.create(baseCreateInput(), ADMIN_ID);
+
+    expect(aggregate).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({ sortOrder: 3 }),
+      }),
+    );
+    expect(create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({ sortOrder: 4 }),
+      }),
+    );
+  });
+
+  it('gives up after a second unique violation on (kind, sortOrder)', async () => {
+    const aggregate = vi.fn().mockResolvedValue({ _max: { sortOrder: 2 } });
+    const p2002 = new Prisma.PrismaClientKnownRequestError('Unique violation', {
+      code: 'P2002',
+      clientVersion: 'test',
+    });
+    const create = vi.fn().mockRejectedValue(p2002);
+    const prisma = createPrisma({ option: { aggregate, create } });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    await expect(service.create(baseCreateInput(), ADMIN_ID)).rejects.toBe(
+      p2002,
+    );
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
   it('rejects zero price without confirmation', async () => {
     const prisma = createPrisma();
     const service = new OptionsService(prisma, createImageUrls());
@@ -222,7 +272,7 @@ describe('OptionsService.create', () => {
     ).rejects.toMatchObject({ code: 'QUANTITY_BOUNDS_REQUIRED' });
   });
 
-  it('rejects a PIECE option where min exceeds max', async () => {
+  it('rejects a PIECE option where min exceeds max with VALIDATION_FAILED on maxQuantity', async () => {
     const prisma = createPrisma();
     const service = new OptionsService(prisma, createImageUrls());
 
@@ -235,7 +285,10 @@ describe('OptionsService.create', () => {
         }),
         ADMIN_ID,
       ),
-    ).rejects.toMatchObject({ code: 'QUANTITY_BOUNDS_REQUIRED' });
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      fields: [{ path: 'maxQuantity', code: 'CUSTOM' }],
+    });
   });
 
   it('nulls quantity bounds for non-PIECE units even when provided', async () => {
@@ -299,7 +352,7 @@ describe('OptionsService.create', () => {
         ADMIN_ID,
       ),
     ).rejects.toMatchObject({
-      code: 'UNPROCESSABLE',
+      code: 'ROOM_TYPE_NOT_FOUND',
       params: { roomTypeIds: ['missing-room'] },
     });
   });
@@ -336,7 +389,7 @@ describe('OptionsService.update', () => {
     });
   });
 
-  it('rejects QUANTITY_BOUNDS_REQUIRED on the merged state when only maxQuantity is patched too low', async () => {
+  it('rejects VALIDATION_FAILED on maxQuantity when the merged state has min exceeding max', async () => {
     const findUnique = vi.fn().mockResolvedValue(
       createOptionRow({
         unit: OptionUnit.PIECE,
@@ -353,7 +406,10 @@ describe('OptionsService.update', () => {
         { maxQuantity: 3, revision: REVISION },
         ADMIN_ID,
       ),
-    ).rejects.toMatchObject({ code: 'QUANTITY_BOUNDS_REQUIRED' });
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      fields: [{ path: 'maxQuantity', code: 'CUSTOM' }],
+    });
   });
 
   it('rejects switching to PIECE without quantity bounds', async () => {
@@ -453,6 +509,47 @@ describe('OptionsService.update', () => {
     expect(updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ sortOrder: 5 }),
+      }),
+    );
+  });
+
+  it('retries once with a recomputed sortOrder when changing kind hits a unique violation', async () => {
+    const findUnique = vi.fn().mockResolvedValue(createOptionRow());
+    const aggregate = vi
+      .fn()
+      .mockResolvedValueOnce({ _max: { sortOrder: 4 } })
+      .mockResolvedValueOnce({ _max: { sortOrder: 5 } });
+    const p2002 = new Prisma.PrismaClientKnownRequestError('Unique violation', {
+      code: 'P2002',
+      clientVersion: 'test',
+    });
+    const updateMany = vi
+      .fn()
+      .mockRejectedValueOnce(p2002)
+      .mockResolvedValueOnce({ count: 1 });
+    const prisma = createPrisma({
+      option: { findUnique, aggregate, updateMany },
+    });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    await service.update(
+      OPTION_ID,
+      { kind: OptionKind.ADDITIONAL, revision: REVISION },
+      ADMIN_ID,
+    );
+
+    expect(aggregate).toHaveBeenCalledTimes(2);
+    expect(updateMany).toHaveBeenCalledTimes(2);
+    expect(updateMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({ sortOrder: 5 }),
+      }),
+    );
+    expect(updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({ sortOrder: 6 }),
       }),
     );
   });
@@ -641,22 +738,28 @@ describe('OptionsService.updateStatus', () => {
     });
   });
 
-  it('rejects publishing a zero-priced option', async () => {
-    const findUnique = vi.fn().mockResolvedValueOnce({
-      name: localized('Heated floor', 'Тепла підлога'),
-      description: localized('Warms', 'Обігрів'),
-      priceCents: 0,
-    });
-    const prisma = createPrisma({ option: { findUnique } });
+  it('publishes an option with a confirmed zero price', async () => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValueOnce({
+        name: localized('Heated floor', 'Тепла підлога'),
+        description: localized('Warms', 'Обігрів'),
+        priceCents: 0,
+      })
+      .mockResolvedValueOnce(
+        createOptionRow({ priceCents: 0, status: PublicationStatus.PUBLISHED }),
+      );
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ option: { findUnique, updateMany } });
     const service = new OptionsService(prisma, createImageUrls());
 
-    await expect(
-      service.updateStatus(
-        OPTION_ID,
-        { status: PublicationStatus.PUBLISHED, revision: REVISION },
-        ADMIN_ID,
-      ),
-    ).rejects.toMatchObject({ code: 'PRICE_REQUIRED' });
+    const result = await service.updateStatus(
+      OPTION_ID,
+      { status: PublicationStatus.PUBLISHED, revision: REVISION },
+      ADMIN_ID,
+    );
+
+    expect(result.status).toBe(PublicationStatus.PUBLISHED);
   });
 
   it('publishes when translations and price are present', async () => {
