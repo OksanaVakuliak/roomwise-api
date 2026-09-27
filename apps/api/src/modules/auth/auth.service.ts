@@ -86,9 +86,10 @@ export class AuthService implements OnModuleInit {
 
     await this.verifyWithLockout(admin, password);
 
+    const adminMe = await this.buildAdminMe(admin);
     const session = await this.sessionService.create(admin.id);
 
-    return { admin: await this.buildAdminMe(admin), sessionId: session.id };
+    return { admin: adminMe, sessionId: session.id };
   }
 
   async changePassword(

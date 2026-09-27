@@ -218,6 +218,18 @@ describe('AuthService.login', () => {
       demoLimits: { writesPerHour: 60, uploadsPerHour: 10 },
     });
   });
+
+  it('does not create a session when building AdminMe fails for a demo admin', async () => {
+    compareMock.mockResolvedValue(true);
+    const admin = createAdmin({ isDemo: true });
+    const { service, sessionService, sandbox } = await createService(admin);
+    vi.mocked(sandbox.getSandboxInfo).mockRejectedValue(new Error('boom'));
+
+    await expect(service.login('admin', 'correct-password')).rejects.toThrow(
+      'boom',
+    );
+    expect(sessionService.create).not.toHaveBeenCalled();
+  });
 });
 
 describe('AuthService.buildAdminMe', () => {
