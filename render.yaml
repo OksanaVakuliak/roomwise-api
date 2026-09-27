@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: roomwise-api
+    runtime: node
+    plan: free
+    branch: main
+    autoDeploy: true
+    buildCommand: >-
+      pnpm install --frozen-lockfile --prod=false &&
+      pnpm --filter api prisma:generate &&
+      pnpm --filter api build &&
+      pnpm --filter api exec prisma migrate deploy --config prisma.config.ts
+    startCommand: pnpm --filter api run start:prod
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: MAINTENANCE_TOKEN
+        sync: false
+      - key: DEMO_ADMIN_LOGIN
+        sync: false
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false
+      - key: SANDBOX_RESET_TIME
+        value: "03:00"
+      - key: SANDBOX_TIMEZONE
+        value: Europe/Kyiv
+      - key: TRUST_PROXY_HOPS
+        sync: false
