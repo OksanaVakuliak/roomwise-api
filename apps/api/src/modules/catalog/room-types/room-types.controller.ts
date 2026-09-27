@@ -2,13 +2,15 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Param,
   Patch,
   Put,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiParam } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import {
   type AuthenticatedAdmin,
   CurrentAdmin,
@@ -30,6 +32,11 @@ import { RoomTypesService } from './room-types.service';
 
 @Controller('admin/room-types')
 @ApiCookieAuth(SESSION_COOKIE_NAME)
+@ApiResponse({
+  status: HttpStatus.UNAUTHORIZED,
+  description: 'UNAUTHENTICATED',
+  type: ErrorResponseDto,
+})
 @UseInterceptors(CatalogChangeInterceptor)
 export class RoomTypesController {
   constructor(private readonly roomTypesService: RoomTypesService) {}
@@ -43,6 +50,11 @@ export class RoomTypesController {
   @Patch(':id')
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: 200, type: RoomTypeAdminDto })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION',
+    type: ErrorResponseDto,
+  })
   async updateName(
     @Param() params: RoomTypeIdParamDto,
     @Body() body: PatchRoomTypeDto,
@@ -54,6 +66,16 @@ export class RoomTypesController {
   @Put(':id/categories')
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: 200, type: RoomTypeAdminDto })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'CATEGORY_ARCHIVED | CATEGORY_NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION',
+    type: ErrorResponseDto,
+  })
   async replaceCategories(
     @Param() params: RoomTypeIdParamDto,
     @Body() body: ReplaceRoomTypeCategoriesDto,

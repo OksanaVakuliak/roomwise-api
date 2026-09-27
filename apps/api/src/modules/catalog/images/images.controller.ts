@@ -6,10 +6,16 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiBody, ApiConsumes, ApiCookieAuth } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiCookieAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
+import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import {
   type AuthenticatedAdmin,
   CurrentAdmin,
@@ -39,6 +45,31 @@ export class ImagesController {
     },
   })
   @ZodResponse({ status: HttpStatus.CREATED, type: AdminImageDto })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'UNAUTHENTICATED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.PAYLOAD_TOO_LARGE,
+    description: 'PAYLOAD_TOO_LARGE',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+    description: 'UNSUPPORTED_IMAGE_TYPE',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: 'RATE_LIMITED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_GATEWAY,
+    description: 'IMAGE_STORAGE_FAILED',
+    type: ErrorResponseDto,
+  })
   async upload(
     @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentAdmin() admin: AuthenticatedAdmin,

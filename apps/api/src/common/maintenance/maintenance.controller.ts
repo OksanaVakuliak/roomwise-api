@@ -5,9 +5,11 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { Public } from '../../modules/auth/public.decorator';
 import { Clock } from '../clock/clock';
+import { ErrorResponseDto } from '../http/error-response.dto';
 import {
   type MaintenanceRunResponse,
   MaintenanceRunResponseDto,
@@ -27,6 +29,11 @@ export class MaintenanceController {
   @Post('run')
   @HttpCode(HttpStatus.OK)
   @ZodResponse({ status: HttpStatus.OK, type: MaintenanceRunResponseDto })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'UNAUTHENTICATED',
+    type: ErrorResponseDto,
+  })
   async run(): Promise<MaintenanceRunResponse> {
     const tasks = await this.registry.runDue(this.clock.now());
 

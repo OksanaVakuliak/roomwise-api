@@ -11,8 +11,9 @@ import {
   Put,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiParam } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import {
   type AuthenticatedAdmin,
   CurrentAdmin,
@@ -36,6 +37,11 @@ import { EngineeringPackageItemsService } from './engineering.service';
 
 @Controller('admin/engineering/package-items')
 @ApiCookieAuth(SESSION_COOKIE_NAME)
+@ApiResponse({
+  status: HttpStatus.UNAUTHORIZED,
+  description: 'UNAUTHENTICATED',
+  type: ErrorResponseDto,
+})
 @UseInterceptors(CatalogChangeInterceptor)
 export class EngineeringPackageItemsController {
   constructor(private readonly items: EngineeringPackageItemsService) {}
@@ -54,6 +60,11 @@ export class EngineeringPackageItemsController {
     status: HttpStatus.CREATED,
     type: EngineeringPackageItemAdminDto,
   })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'PRICE_REQUIRED',
+    type: ErrorResponseDto,
+  })
   async create(
     @Body() body: CreateEngineeringPackageItemDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,
@@ -66,6 +77,21 @@ export class EngineeringPackageItemsController {
   @ZodResponse({
     status: HttpStatus.OK,
     type: EngineeringPackageItemAdminDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'PRICE_REQUIRED',
+    type: ErrorResponseDto,
   })
   async update(
     @Param() params: EngineeringPackageItemIdParamDto,
@@ -82,6 +108,21 @@ export class EngineeringPackageItemsController {
     status: HttpStatus.OK,
     type: EngineeringPackageItemAdminDto,
   })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'TRANSLATION_MISSING',
+    type: ErrorResponseDto,
+  })
   async updateStatus(
     @Param() params: EngineeringPackageItemIdParamDto,
     @Body() body: UpdateEngineeringPackageItemStatusDto,
@@ -92,6 +133,16 @@ export class EngineeringPackageItemsController {
 
   @Put('order')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'CONFLICT',
+    type: ErrorResponseDto,
+  })
   async reorder(
     @Body() body: EngineeringPackageItemOrderDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,
@@ -102,6 +153,11 @@ export class EngineeringPackageItemsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
   async remove(
     @Param() params: EngineeringPackageItemIdParamDto,
   ): Promise<void> {

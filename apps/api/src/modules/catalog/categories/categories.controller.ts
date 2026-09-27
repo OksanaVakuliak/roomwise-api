@@ -11,8 +11,14 @@ import {
   Query,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import { PublicationStatus } from '../../../generated/prisma/enums';
 import {
   type AuthenticatedAdmin,
@@ -37,6 +43,11 @@ import { PatchCategoryDto } from './dto/patch-category.schema';
 
 @Controller('admin/categories')
 @ApiCookieAuth(SESSION_COOKIE_NAME)
+@ApiResponse({
+  status: HttpStatus.UNAUTHORIZED,
+  description: 'UNAUTHENTICATED',
+  type: ErrorResponseDto,
+})
 @UseInterceptors(CatalogChangeInterceptor)
 export class CategoriesController {
   constructor(private readonly categories: CategoriesService) {}
@@ -52,6 +63,11 @@ export class CategoriesController {
 
   @Post()
   @ZodResponse({ status: HttpStatus.CREATED, type: CategoryAdminDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
   async create(
     @Body() body: CreateCategoryDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,
@@ -62,6 +78,16 @@ export class CategoriesController {
   @Patch(':id')
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: HttpStatus.OK, type: CategoryAdminDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION',
+    type: ErrorResponseDto,
+  })
   async update(
     @Param() params: CategoryIdParamDto,
     @Body() body: PatchCategoryDto,
@@ -74,6 +100,21 @@ export class CategoriesController {
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: HttpStatus.OK, type: CategoryAdminDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'TRANSLATION_MISSING',
+    type: ErrorResponseDto,
+  })
   async updateStatus(
     @Param() params: CategoryIdParamDto,
     @Body() body: UpdateCategoryStatusDto,
@@ -85,6 +126,16 @@ export class CategoriesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'CATEGORY_IN_USE',
+    type: ErrorResponseDto,
+  })
   async remove(@Param() params: CategoryIdParamDto): Promise<void> {
     await this.categories.remove(params.id);
   }

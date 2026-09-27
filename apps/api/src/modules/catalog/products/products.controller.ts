@@ -11,8 +11,14 @@ import {
   Query,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import { PublicationStatus } from '../../../generated/prisma/enums';
 import {
   type AuthenticatedAdmin,
@@ -37,6 +43,11 @@ import { ProductsService } from './products.service';
 
 @Controller('admin/products')
 @ApiCookieAuth(SESSION_COOKIE_NAME)
+@ApiResponse({
+  status: HttpStatus.UNAUTHORIZED,
+  description: 'UNAUTHENTICATED',
+  type: ErrorResponseDto,
+})
 @UseInterceptors(CatalogChangeInterceptor)
 export class ProductsController {
   constructor(private readonly products: ProductsService) {}
@@ -56,12 +67,28 @@ export class ProductsController {
   @Get(':id')
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: HttpStatus.OK, type: ProductAdminDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
   async get(@Param() params: ProductIdParamDto): Promise<ProductAdmin> {
     return this.products.get(params.id);
   }
 
   @Post()
   @ZodResponse({ status: HttpStatus.CREATED, type: ProductAdminDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description:
+      'CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED',
+    type: ErrorResponseDto,
+  })
   async create(
     @Body() body: CreateProductDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,
@@ -72,6 +99,22 @@ export class ProductsController {
   @Patch(':id')
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: HttpStatus.OK, type: ProductAdminDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION | PRODUCT_IN_USE',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description:
+      'CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED | SURFACE_DATA_MISSING | PRIMARY_IMAGE_MISSING',
+    type: ErrorResponseDto,
+  })
   async update(
     @Param() params: ProductIdParamDto,
     @Body() body: PatchProductDto,
@@ -84,6 +127,22 @@ export class ProductsController {
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: HttpStatus.OK, type: ProductStatusResponseDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description:
+      'TRANSLATION_MISSING | SURFACE_DATA_MISSING | PRIMARY_IMAGE_MISSING',
+    type: ErrorResponseDto,
+  })
   async changeStatus(
     @Param() params: ProductIdParamDto,
     @Body() body: UpdateProductStatusDto,
@@ -95,6 +154,16 @@ export class ProductsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'PRODUCT_IN_USE',
+    type: ErrorResponseDto,
+  })
   async remove(@Param() params: ProductIdParamDto): Promise<void> {
     await this.products.remove(params.id);
   }
