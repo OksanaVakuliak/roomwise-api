@@ -310,3 +310,14 @@ model OptionRoomType {
   @@id([optionId, roomTypeId])
   @@map("option_room_types")
 }
+
+model SandboxState {
+  id              Int       @id
+  lastResetAt     DateTime? @map("last_reset_at") @db.Timestamptz(3)
+  lastResetStatus String?   @map("last_reset_status")
+  lastResetError  String?   @map("last_reset_error")
+  nextResetAt     DateTime  @map("next_reset_at") @db.Timestamptz(3)
+  lockedAt        DateTime? @map("locked_at") @db.Timestamptz(3)
+
+  @@map("sandbox_state")
+}

@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { seedDemoAdmin } from '../../prisma/seed/admins';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import type { AppConfigService } from '../../src/config/env';
 import {
@@ -10,6 +11,7 @@ import {
   RoomTypeCode,
   SurfaceKind,
 } from '../../src/generated/prisma/client';
+import { verifyPassword } from '../../src/modules/auth/password-hasher';
 import type { CatalogDataset } from '../../src/modules/catalog/dataset/catalog-dataset.schema';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
@@ -672,6 +674,41 @@ describe('seed e2e — admin edits survive a re-seed', () => {
       expect.objectContaining({ code: materialType.code }),
     ]);
     expect(await testApp.prisma.materialType.count()).toBe(countBefore);
+  });
+});
+
+describe('seed e2e — demo admin (T054)', () => {
+  let testApp: TestApp;
+
+  beforeAll(async () => {
+    testApp = await createTestApp();
+  });
+
+  afterAll(async () => {
+    await testApp.close();
+  });
+
+  it('creates the demo admin and keeps a single row on re-seed', async () => {
+    const login = process.env.DEMO_ADMIN_LOGIN as string;
+    const password = process.env.DEMO_ADMIN_PASSWORD as string;
+
+    await seedDemoAdmin(testApp.prisma, { login, password });
+
+    const created = await testApp.prisma.admin.findUnique({
+      where: { isDemo: true },
+    });
+    expect(created?.login).toBe(login);
+    expect(
+      created ? await verifyPassword(password, created.passwordHash) : false,
+    ).toBe(true);
+
+    await seedDemoAdmin(testApp.prisma, { login, password });
+
+    const admins = await testApp.prisma.admin.findMany({
+      where: { isDemo: true },
+    });
+    expect(admins).toHaveLength(1);
+    expect(admins[0].id).toBe(created?.id);
   });
 });
 
