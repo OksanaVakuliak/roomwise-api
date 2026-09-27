@@ -1,13 +1,19 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { postgresUrlSchema } from '../../src/config/env';
+import { envSchema, postgresUrlSchema } from '../../src/config/env';
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
+import { seedDemoAdmin } from './admins';
 
 const EXIT_FAILURE = 1;
 const TRANSACTION_TIMEOUT_MS = 120_000;
 const TRANSACTION_MAX_WAIT_MS = 30_000;
+
+const demoAdminEnvSchema = envSchema.pick({
+  DEMO_ADMIN_LOGIN: true,
+  DEMO_ADMIN_PASSWORD: true,
+});
 
 async function countCatalog(prisma: PrismaClient) {
   const [
@@ -68,6 +74,16 @@ async function main(): Promise<void> {
     return;
   }
 
+  const demoAdminEnv = demoAdminEnvSchema.safeParse(process.env);
+
+  if (!demoAdminEnv.success) {
+    process.stderr.write(
+      'Invalid or missing DEMO_ADMIN_LOGIN/DEMO_ADMIN_PASSWORD environment variables.\n',
+    );
+    process.exitCode = EXIT_FAILURE;
+    return;
+  }
+
   const adapter = new PrismaPg({ connectionString: databaseUrl.data });
   const prisma = new PrismaClient({ adapter });
   const service = new CatalogDatasetService();
@@ -83,6 +99,14 @@ async function main(): Promise<void> {
     for (const [table, count] of Object.entries(counts)) {
       process.stdout.write(`  ${table}: ${count}\n`);
     }
+
+    await seedDemoAdmin(prisma, {
+      login: demoAdminEnv.data.DEMO_ADMIN_LOGIN,
+      password: demoAdminEnv.data.DEMO_ADMIN_PASSWORD,
+    });
+    process.stdout.write(
+      `Demo admin ensured: ${demoAdminEnv.data.DEMO_ADMIN_LOGIN}\n`,
+    );
   } finally {
     await prisma.$disconnect();
   }

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import type { AppConfigService } from '../../config/env';
+import { SandboxModule } from '../sandbox/sandbox.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { DenyDemoGuard } from './deny-demo.guard';
@@ -18,6 +19,7 @@ import { SessionCookieService } from './session-cookie';
         verifyOptions: { algorithms: ['HS256'] },
       }),
     }),
+    SandboxModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, SessionService, SessionCookieService, DenyDemoGuard],

@@ -4,6 +4,7 @@ import { Clock } from '../../common/clock/clock';
 import { ERROR_CODES } from '../../common/http/error-codes';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { Admin } from '../../generated/prisma/client';
+import type { SandboxService } from '../sandbox/sandbox.service';
 import { AuthService } from './auth.service';
 import type { SessionService } from './session.service';
 
@@ -62,14 +63,32 @@ function createClock(): Clock {
   return { now: () => NOW } as Clock;
 }
 
+const SANDBOX_NEXT_RESET_AT = new Date('2026-09-28T00:00:00.000Z');
+
+function createSandboxService(): SandboxService {
+  return {
+    getSandboxInfo: vi.fn().mockResolvedValue({
+      nextResetAt: SANDBOX_NEXT_RESET_AT,
+      resetTime: '03:00',
+      timezone: 'Europe/Kyiv',
+    }),
+  } as unknown as SandboxService;
+}
+
 async function createService(admin: Admin | null) {
   const prisma = createPrisma(admin);
   const sessionService = createSessionService();
-  const service = new AuthService(prisma, sessionService, createClock());
+  const sandbox = createSandboxService();
+  const service = new AuthService(
+    prisma,
+    sessionService,
+    createClock(),
+    sandbox,
+  );
   await service.onModuleInit();
   hashMock.mockClear();
 
-  return { service, prisma, sessionService };
+  return { service, prisma, sessionService, sandbox };
 }
 
 function reservationValues(prisma: PrismaService): unknown[] {
@@ -156,7 +175,8 @@ describe('AuthService.login', () => {
   it('resets failedLoginCount and lockedUntil on success and creates a session', async () => {
     compareMock.mockResolvedValue(true);
     const admin = createAdmin({ failedLoginCount: 3 });
-    const { service, prisma, sessionService } = await createService(admin);
+    const { service, prisma, sessionService, sandbox } =
+      await createService(admin);
 
     const result = await service.login('admin', 'correct-password');
 
@@ -175,6 +195,76 @@ describe('AuthService.login', () => {
       },
       sessionId: SESSION_ID,
     });
+    expect(sandbox.getSandboxInfo).not.toHaveBeenCalled();
+  });
+
+  it('fills sandbox and demoLimits for a demo admin on login', async () => {
+    compareMock.mockResolvedValue(true);
+    const admin = createAdmin({ isDemo: true });
+    const { service, sandbox } = await createService(admin);
+
+    const result = await service.login('admin', 'correct-password');
+
+    expect(sandbox.getSandboxInfo).toHaveBeenCalledTimes(1);
+    expect(result.admin).toEqual({
+      id: ADMIN_ID,
+      login: 'admin',
+      isDemo: true,
+      sandbox: {
+        nextResetAt: SANDBOX_NEXT_RESET_AT.toISOString(),
+        resetTime: '03:00',
+        timezone: 'Europe/Kyiv',
+      },
+      demoLimits: { writesPerHour: 60, uploadsPerHour: 10 },
+    });
+  });
+
+  it('does not create a session when building AdminMe fails for a demo admin', async () => {
+    compareMock.mockResolvedValue(true);
+    const admin = createAdmin({ isDemo: true });
+    const { service, sessionService, sandbox } = await createService(admin);
+    vi.mocked(sandbox.getSandboxInfo).mockRejectedValue(new Error('boom'));
+
+    await expect(service.login('admin', 'correct-password')).rejects.toThrow(
+      'boom',
+    );
+    expect(sessionService.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthService.buildAdminMe', () => {
+  it('returns null sandbox and demoLimits without calling the sandbox service for a regular admin', async () => {
+    const { service, sandbox } = await createService(createAdmin());
+
+    const result = await service.buildAdminMe(createAdmin({ isDemo: false }));
+
+    expect(result).toEqual({
+      id: ADMIN_ID,
+      login: 'admin',
+      isDemo: false,
+      sandbox: null,
+      demoLimits: null,
+    });
+    expect(sandbox.getSandboxInfo).not.toHaveBeenCalled();
+  });
+
+  it('fills sandbox and demoLimits for a demo admin', async () => {
+    const { service, sandbox } = await createService(createAdmin());
+
+    const result = await service.buildAdminMe(createAdmin({ isDemo: true }));
+
+    expect(result).toEqual({
+      id: ADMIN_ID,
+      login: 'admin',
+      isDemo: true,
+      sandbox: {
+        nextResetAt: SANDBOX_NEXT_RESET_AT.toISOString(),
+        resetTime: '03:00',
+        timezone: 'Europe/Kyiv',
+      },
+      demoLimits: { writesPerHour: 60, uploadsPerHour: 10 },
+    });
+    expect(sandbox.getSandboxInfo).toHaveBeenCalledTimes(1);
   });
 });
 

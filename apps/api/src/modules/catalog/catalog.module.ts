@@ -53,6 +53,11 @@ import { StylesService } from './styles/styles.service';
     OptionsService,
     CatalogDatasetService,
   ],
-  exports: [PublicCatalogService, CatalogCache, CatalogDatasetService],
+  exports: [
+    PublicCatalogService,
+    CatalogCache,
+    CatalogDatasetService,
+    CloudinaryService,
+  ],
 })
 export class CatalogModule {}

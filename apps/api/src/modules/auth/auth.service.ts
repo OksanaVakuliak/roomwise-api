@@ -3,7 +3,12 @@ import { Clock } from '../../common/clock/clock';
 import { AppError } from '../../common/http/app-error';
 import { ERROR_CODES } from '../../common/http/error-codes';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  DEMO_UPLOADS_PER_HOUR,
+  DEMO_WRITES_PER_HOUR,
+} from '../../common/throttling/demo-throttle.constants';
 import type { Admin } from '../../generated/prisma/client';
+import { SandboxService } from '../sandbox/sandbox.service';
 import { type AdminMe, isPasswordSameAsLogin } from './auth.schemas';
 import { hashPassword, verifyPassword } from './password-hasher';
 import { SessionService } from './session.service';
@@ -39,10 +44,36 @@ export class AuthService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly sessionService: SessionService,
     private readonly clock: Clock,
+    private readonly sandbox: SandboxService,
   ) {}
 
   async onModuleInit(): Promise<void> {
     this.dummyHash = await hashPassword(DUMMY_PASSWORD);
+  }
+
+  async buildAdminMe(
+    admin: Pick<Admin, 'id' | 'login' | 'isDemo'>,
+  ): Promise<AdminMe> {
+    const base = toAdminMe(admin);
+
+    if (!admin.isDemo) {
+      return base;
+    }
+
+    const sandboxInfo = await this.sandbox.getSandboxInfo();
+
+    return {
+      ...base,
+      sandbox: {
+        nextResetAt: sandboxInfo.nextResetAt.toISOString(),
+        resetTime: sandboxInfo.resetTime,
+        timezone: sandboxInfo.timezone,
+      },
+      demoLimits: {
+        writesPerHour: DEMO_WRITES_PER_HOUR,
+        uploadsPerHour: DEMO_UPLOADS_PER_HOUR,
+      },
+    };
   }
 
   async login(login: string, password: string): Promise<LoginResult> {
@@ -55,9 +86,10 @@ export class AuthService implements OnModuleInit {
 
     await this.verifyWithLockout(admin, password);
 
+    const adminMe = await this.buildAdminMe(admin);
     const session = await this.sessionService.create(admin.id);
 
-    return { admin: toAdminMe(admin), sessionId: session.id };
+    return { admin: adminMe, sessionId: session.id };
   }
 
   async changePassword(
