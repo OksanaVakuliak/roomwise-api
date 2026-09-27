@@ -20,11 +20,17 @@ describe('resolveAdminSeedAction', () => {
     expect(action).toEqual({ kind: 'conflict' });
   });
 
-  it('prefers updating the demo admin even if a conflicting row was also found', () => {
+  it('reports a conflict when renaming the demo admin onto a login already taken by another admin', () => {
     const action = resolveAdminSeedAction(
       { id: 'demo-id' },
       { id: 'other-id' },
     );
+
+    expect(action).toEqual({ kind: 'conflict' });
+  });
+
+  it('updates the demo admin when the login already belongs to it', () => {
+    const action = resolveAdminSeedAction({ id: 'demo-id' }, { id: 'demo-id' });
 
     expect(action).toEqual({ kind: 'update', adminId: 'demo-id' });
   });

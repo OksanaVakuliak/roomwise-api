@@ -17,13 +17,16 @@ export type AdminSeedAction =
 
 export function resolveAdminSeedAction(
   existingDemoAdmin: AdminSeedRow | null,
-  conflictingAdmin: AdminSeedRow | null,
+  adminWithLogin: AdminSeedRow | null,
 ): AdminSeedAction {
+  const conflicting =
+    adminWithLogin !== null && adminWithLogin.id !== existingDemoAdmin?.id;
+
+  if (conflicting) {
+    return { kind: 'conflict' };
+  }
   if (existingDemoAdmin) {
     return { kind: 'update', adminId: existingDemoAdmin.id };
-  }
-  if (conflictingAdmin) {
-    return { kind: 'conflict' };
   }
   return { kind: 'create' };
 }
@@ -37,15 +40,12 @@ export async function seedDemoAdmin(
     where: { isDemo: true },
     select: { id: true },
   });
-  const conflictingAdmin =
-    existingDemoAdmin === null
-      ? await prisma.admin.findUnique({
-          where: { login },
-          select: { id: true },
-        })
-      : null;
+  const adminWithLogin = await prisma.admin.findUnique({
+    where: { login },
+    select: { id: true },
+  });
 
-  const action = resolveAdminSeedAction(existingDemoAdmin, conflictingAdmin);
+  const action = resolveAdminSeedAction(existingDemoAdmin, adminWithLogin);
 
   if (action.kind === 'conflict') {
     throw new Error(
