@@ -2,7 +2,7 @@ name: Maintenance
 
 on:
   schedule:
-    - cron: '30 0 * * *'
+    - cron: '30 1 * * *'
   workflow_dispatch:
 
 permissions:
@@ -24,12 +24,12 @@ jobs:
             -H "x-maintenance-token: ${{ secrets.MAINTENANCE_TOKEN }}" \
             --retry 5 \
             --retry-delay 15 \
-            --retry-all-errors \
+            --retry-connrefused \
             --max-time 90)
 
           echo "$response"
 
-          if echo "$response" | jq -e '.tasks | any(.status == "FAILED")' > /dev/null; then
-            echo "A maintenance task reported FAILED"
+          echo "$response" | jq -e '(.tasks | type == "array") and (.tasks | all(.status != "FAILED"))' > /dev/null || {
+            echo "Maintenance response is invalid or a task reported FAILED"
             exit 1
-          fi
+          }
