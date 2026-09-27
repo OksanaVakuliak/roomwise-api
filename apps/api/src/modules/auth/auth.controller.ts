@@ -18,7 +18,7 @@ import {
   ChangePasswordDto,
   LoginDto,
 } from './auth.schemas';
-import { AuthService, toAdminMe } from './auth.service';
+import { AuthService } from './auth.service';
 import {
   type AuthenticatedAdmin,
   CurrentAdmin,
@@ -80,8 +80,8 @@ export class AuthController {
   @Get('me')
   @ApiCookieAuth(SESSION_COOKIE_NAME)
   @ZodResponse({ status: HttpStatus.OK, type: AdminMeDto })
-  me(@CurrentAdmin() admin: AuthenticatedAdmin): AdminMe {
-    return toAdminMe(admin);
+  async me(@CurrentAdmin() admin: AuthenticatedAdmin): Promise<AdminMe> {
+    return this.authService.buildAdminMe(admin);
   }
 
   @Post('password')
