@@ -1,7 +1,8 @@
+import { Logger } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import type { Clock } from '../../common/clock/clock';
 import { SANDBOX_RESET_OUTCOME, type SandboxService } from './sandbox.service';
-import { SandboxSchedule } from './sandbox-schedule';
+import { SandboxResetSkippedError, SandboxSchedule } from './sandbox-schedule';
 
 const NOW = new Date('2026-09-27T00:30:00.000Z');
 const PAST = new Date('2026-09-27T00:00:00.000Z');
@@ -47,6 +48,16 @@ describe('SandboxSchedule', () => {
     expect(sandbox.reset).toHaveBeenCalledWith(NOW);
   });
 
+  it('reports a skipped reset as a failure without changing the outcome contract', async () => {
+    const sandbox = createSandbox(PAST);
+    sandbox.reset.mockResolvedValue(SANDBOX_RESET_OUTCOME.SKIPPED);
+
+    await expect(createSchedule(sandbox).run(NOW)).rejects.toBeInstanceOf(
+      SandboxResetSkippedError,
+    );
+    expect(sandbox.reset).toHaveBeenCalledWith(NOW);
+  });
+
   it('catches up with a due reset', async () => {
     const sandbox = createSandbox(PAST);
 
@@ -76,6 +87,25 @@ describe('SandboxSchedule', () => {
 
     await expect(createSchedule(sandbox).catchUp(NOW)).resolves.toBeUndefined();
     expect(sandbox.reset).not.toHaveBeenCalled();
+  });
+
+  it('logs a skipped catch-up at debug level, not as an error', async () => {
+    const sandbox = createSandbox(PAST);
+    sandbox.reset.mockResolvedValue(SANDBOX_RESET_OUTCOME.SKIPPED);
+    const debugSpy = vi
+      .spyOn(Logger.prototype, 'debug')
+      .mockImplementation(() => undefined);
+    const errorSpy = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+
+    await createSchedule(sandbox).catchUp(NOW);
+
+    expect(debugSpy).toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+
+    debugSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('starts the catch-up on bootstrap without waiting for it', () => {

@@ -161,18 +161,43 @@ export class SandboxService {
 
   private async recordSuccess(now: Date): Promise<void> {
     const nextResetAt = computeNextResetAt(now, this.resetTime, this.timezone);
-    this.cachedNextResetAt = nextResetAt;
 
-    await this.prisma.sandboxState.update({
-      where: { id: SANDBOX_STATE_ID },
-      data: {
-        lastResetAt: now,
-        lastResetStatus: SANDBOX_RESET_STATUS.SUCCESS,
-        lastResetError: null,
-        nextResetAt,
-        lockedAt: null,
-      },
-    });
+    try {
+      await this.prisma.sandboxState.update({
+        where: { id: SANDBOX_STATE_ID },
+        data: {
+          lastResetAt: now,
+          lastResetStatus: SANDBOX_RESET_STATUS.SUCCESS,
+          lastResetError: null,
+          nextResetAt,
+          lockedAt: null,
+        },
+      });
+      this.cachedNextResetAt = nextResetAt;
+    } catch (error) {
+      this.logger.error(
+        'Failed to record the sandbox reset success',
+        error instanceof Error ? error.stack : undefined,
+      );
+      Sentry.captureException(error);
+      this.cachedNextResetAt = nextResetAt;
+      await this.releaseLockBestEffort();
+    }
+  }
+
+  private async releaseLockBestEffort(): Promise<void> {
+    try {
+      await this.prisma.sandboxState.update({
+        where: { id: SANDBOX_STATE_ID },
+        data: { lockedAt: null },
+      });
+    } catch (error) {
+      this.logger.error(
+        'Failed to release the sandbox lock after a reset',
+        error instanceof Error ? error.stack : undefined,
+      );
+      Sentry.captureException(error);
+    }
   }
 
   private async recordFailure(now: Date, description: string): Promise<void> {

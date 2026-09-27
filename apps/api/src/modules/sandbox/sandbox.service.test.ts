@@ -301,6 +301,27 @@ describe('SandboxService', () => {
       expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error));
     });
 
+    it('runs cleanups and best-effort releases the lock when recording success fails', async () => {
+      const { prisma, sandboxState } = createPrisma(createState());
+      sandboxState.update.mockRejectedValueOnce(new Error('connection lost'));
+      const steps: string[] = [];
+      const service = createService(prisma, [
+        createParticipant('catalog', steps),
+      ]);
+
+      const outcome = await service.reset(NOW);
+
+      expect(outcome).toBe(SANDBOX_RESET_OUTCOME.COMPLETED);
+      expect(steps).toEqual(['catalog.replace', 'catalog.afterCommit']);
+      expect(sandboxState.update).toHaveBeenCalledTimes(2);
+      expect(sandboxState.update).toHaveBeenNthCalledWith(2, {
+        where: { id: 1 },
+        data: { lockedAt: null },
+      });
+      expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error));
+      expect(await service.getNextResetAt()).toEqual(NEXT_AFTER_NOW);
+    });
+
     it('shares one in-flight reset between concurrent callers', async () => {
       const { prisma, $transaction } = createPrisma(createState());
       const service = createService(prisma);
