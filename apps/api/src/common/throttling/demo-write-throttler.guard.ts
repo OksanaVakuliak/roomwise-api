@@ -1,6 +1,10 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
-import { ThrottlerGuard, type ThrottlerLimitDetail } from '@nestjs/throttler';
+import {
+  hours,
+  ThrottlerGuard,
+  type ThrottlerLimitDetail,
+} from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import type { AuthenticatedAdmin } from '../../modules/auth/current-admin.decorator';
 import {
@@ -10,7 +14,6 @@ import {
 
 type AdminRequest = Request & { admin?: AuthenticatedAdmin };
 
-const HOUR_IN_MS = 60 * 60 * 1000;
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const DEMO_WRITES_THROTTLER = 'demo-writes';
 const DEMO_UPLOADS_THROTTLER = 'demo-uploads';
@@ -27,12 +30,12 @@ export class DemoWriteThrottlerGuard extends ThrottlerGuard {
     this.throttlers = [
       {
         name: DEMO_WRITES_THROTTLER,
-        ttl: HOUR_IN_MS,
+        ttl: hours(1),
         limit: DEMO_WRITES_PER_HOUR,
       },
       {
         name: DEMO_UPLOADS_THROTTLER,
-        ttl: HOUR_IN_MS,
+        ttl: hours(1),
         limit: DEMO_UPLOADS_PER_HOUR,
         skipIf: (context) => !isImagesUploadRoute(context),
       },
