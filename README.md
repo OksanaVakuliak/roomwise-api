@@ -85,6 +85,7 @@ Run from the repository root unless noted.
 | `pnpm --filter api db:seed` | Upsert the demo dataset (idempotent) |
 | `pnpm --filter api seed:images` | Upload demo dataset images to Cloudinary |
 | `pnpm --filter api admin:create --login <login>` | Create an administrator (password read from stdin) |
+| `pnpm --filter api sandbox:due` | Make the sandbox reset due now, for local verification |
 | `pnpm --filter api openapi:generate` | Regenerate `apps/api/openapi.json` |
 | `pnpm --filter api openapi:check` | Fail if `openapi.json` is out of date |
 
