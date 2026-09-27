@@ -6,10 +6,13 @@ import { PrismaService } from '../../src/common/prisma/prisma.service';
 import type { AppConfigService } from '../../src/config/env';
 import { configureApplication } from '../../src/main';
 
-export interface ProviderOverride {
-  provide: unknown;
-  useValue: unknown;
-}
+export type ProviderOverride =
+  | { provide: unknown; useValue: unknown }
+  | {
+      provide: unknown;
+      useFactory: (...args: never[]) => unknown;
+      inject: unknown[];
+    };
 
 export interface CreateTestAppOptions {
   overrides?: ProviderOverride[];
@@ -28,9 +31,16 @@ export async function createTestApp(
   const moduleBuilder = Test.createTestingModule({ imports: [AppModule] });
 
   for (const override of options.overrides ?? []) {
-    moduleBuilder
-      .overrideProvider(override.provide)
-      .useValue(override.useValue);
+    const overriddenProvider = moduleBuilder.overrideProvider(override.provide);
+
+    if ('useFactory' in override) {
+      overriddenProvider.useFactory({
+        factory: override.useFactory,
+        inject: override.inject,
+      });
+    } else {
+      overriddenProvider.useValue(override.useValue);
+    }
   }
 
   const moduleRef = await moduleBuilder.compile();
