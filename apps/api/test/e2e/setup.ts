@@ -1,7 +1,9 @@
 import { Client } from 'pg';
 import { beforeAll } from 'vitest';
 
-async function truncateAllTables(): Promise<void> {
+const SANDBOX_RESET_NEVER = '9999-12-31T00:00:00.000Z';
+
+async function resetDatabase(): Promise<void> {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
@@ -16,11 +18,15 @@ async function truncateAllTables(): Promise<void> {
 
     const tables = rows.map((row) => `"${row.tablename}"`).join(', ');
     await client.query(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE`);
+    await client.query(
+      'INSERT INTO sandbox_state (id, next_reset_at) VALUES (1, $1)',
+      [SANDBOX_RESET_NEVER],
+    );
   } finally {
     await client.end();
   }
 }
 
 beforeAll(async () => {
-  await truncateAllTables();
+  await resetDatabase();
 });

@@ -445,6 +445,35 @@ describe('CatalogDatasetService.replace', () => {
     ]);
   });
 
+  it('leaves revisions of recreated rows to the database default so each reset issues new ones', async () => {
+    const { tx, argsOf } = createTx();
+
+    await new CatalogDatasetService().replace(catalogDataset, tx);
+
+    const models = [
+      'materialType',
+      'category',
+      'product',
+      'style',
+      'engineeringPackageItem',
+      'option',
+    ];
+    for (const model of models) {
+      const [{ data }] = argsOf(model, 'createMany') as [
+        { data: Record<string, unknown>[] },
+      ];
+      expect(data.length).toBeGreaterThan(0);
+      for (const row of data) {
+        expect(row).not.toHaveProperty('revision');
+      }
+    }
+    for (const call of argsOf('roomType', 'upsert') as {
+      update: { revision: string };
+    }[]) {
+      expect(call.update.revision).toEqual(expect.any(String));
+    }
+  });
+
   it('deletes only uploaded and seed images', async () => {
     const { tx, argsOf } = createTx();
 

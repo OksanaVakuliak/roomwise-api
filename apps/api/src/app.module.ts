@@ -16,6 +16,7 @@ import { AdminAuthGuard } from './modules/auth/admin-auth.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
+import { SandboxModule } from './modules/sandbox/sandbox.module';
 
 const RATE_LIMIT_TTL_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 100;
@@ -40,6 +41,7 @@ const RATE_LIMIT_MAX_REQUESTS = 100;
     MaintenanceModule,
     AuthModule,
     CatalogModule,
+    SandboxModule,
   ],
   providers: [
     {

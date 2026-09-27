@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ZodResponse } from 'nestjs-zod';
 import { Public } from '../../modules/auth/public.decorator';
+import { Clock } from '../clock/clock';
 import {
   type MaintenanceRunResponse,
   MaintenanceRunResponseDto,
@@ -16,7 +17,10 @@ import { MaintenanceTokenGuard } from './maintenance-token.guard';
 
 @Controller('internal/maintenance')
 export class MaintenanceController {
-  constructor(private readonly registry: MaintenanceRegistry) {}
+  constructor(
+    private readonly registry: MaintenanceRegistry,
+    private readonly clock: Clock,
+  ) {}
 
   @Public()
   @UseGuards(MaintenanceTokenGuard)
@@ -24,7 +28,7 @@ export class MaintenanceController {
   @HttpCode(HttpStatus.OK)
   @ZodResponse({ status: HttpStatus.OK, type: MaintenanceRunResponseDto })
   async run(): Promise<MaintenanceRunResponse> {
-    const tasks = await this.registry.runDue(new Date());
+    const tasks = await this.registry.runDue(this.clock.now());
 
     return { tasks };
   }
