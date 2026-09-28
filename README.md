@@ -212,10 +212,10 @@ enable` to the build command — Render's Node image ships pnpm at a fixed,
 read-only path, and `corepack enable` trying to replace it is a known
 source of build failures on Render.
 
-`TRUST_PROXY_HOPS` is deliberately left unset in `render.yaml` — the real
-proxy chain is browser → Vercel rewrite → Render, likely 2 hops, but this
-should be confirmed by inspecting the `X-Forwarded-For` header on the first
-real deploy rather than assumed.
+`TRUST_PROXY_HOPS` is set to `2` in `render.yaml` — the real proxy chain is
+browser → Vercel rewrite → Render. Verify the hop count by inspecting the
+`X-Forwarded-For` header after the first real deploy and adjust the value if
+it doesn't match.
 
 ### Database: Neon
 

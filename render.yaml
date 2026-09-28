@@ -40,4 +40,4 @@ services:
       - key: SANDBOX_TIMEZONE
         value: Europe/Kyiv
       - key: TRUST_PROXY_HOPS
-        sync: false
+        value: "2"
