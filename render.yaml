@@ -3,6 +3,7 @@ services:
     name: roomwise-api
     runtime: node
     plan: free
+    region: frankfurt
     branch: main
     autoDeploy: true
     buildCommand: >-
