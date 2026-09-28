@@ -46,6 +46,11 @@ export class ImagesController {
   })
   @ZodResponse({ status: HttpStatus.CREATED, type: AdminImageDto })
   @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
     description: 'UNAUTHENTICATED',
     type: ErrorResponseDto,

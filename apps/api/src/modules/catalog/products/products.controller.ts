@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
+  ApiNoContentResponse,
   ApiParam,
   ApiQuery,
   ApiResponse,
@@ -86,7 +87,7 @@ export class ProductsController {
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description:
-      'CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED',
+      'CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | IMAGE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED',
     type: ErrorResponseDto,
   })
   async create(
@@ -112,7 +113,7 @@ export class ProductsController {
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description:
-      'CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED | SURFACE_DATA_MISSING | PRIMARY_IMAGE_MISSING',
+      'CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | IMAGE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED | SURFACE_DATA_MISSING | PRIMARY_IMAGE_MISSING',
     type: ErrorResponseDto,
   })
   async update(
@@ -154,6 +155,7 @@ export class ProductsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiNoContentResponse({ description: 'Deleted.' })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'NOT_FOUND',

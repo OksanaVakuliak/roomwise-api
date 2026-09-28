@@ -51,6 +51,11 @@ export class RoomTypesController {
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: 200, type: RoomTypeAdminDto })
   @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
     status: HttpStatus.CONFLICT,
     description: 'STALE_REVISION',
     type: ErrorResponseDto,
@@ -66,6 +71,11 @@ export class RoomTypesController {
   @Put(':id/categories')
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: 200, type: RoomTypeAdminDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description: 'CATEGORY_ARCHIVED | CATEGORY_NOT_FOUND',

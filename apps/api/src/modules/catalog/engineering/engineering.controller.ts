@@ -11,7 +11,12 @@ import {
   Put,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiNoContentResponse,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import {
@@ -79,6 +84,11 @@ export class EngineeringPackageItemsController {
     type: EngineeringPackageItemAdminDto,
   })
   @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'NOT_FOUND',
     type: ErrorResponseDto,
@@ -133,6 +143,7 @@ export class EngineeringPackageItemsController {
 
   @Put('order')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Reordered.' })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
     description: 'VALIDATION_FAILED',
@@ -153,6 +164,7 @@ export class EngineeringPackageItemsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiNoContentResponse({ description: 'Deleted.' })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'NOT_FOUND',

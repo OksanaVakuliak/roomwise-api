@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
+  ApiNoContentResponse,
   ApiParam,
   ApiQuery,
   ApiResponse,
@@ -88,6 +89,11 @@ export class CategoriesController {
     description: 'STALE_REVISION',
     type: ErrorResponseDto,
   })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'SURFACE_DATA_MISSING',
+    type: ErrorResponseDto,
+  })
   async update(
     @Param() params: CategoryIdParamDto,
     @Body() body: PatchCategoryDto,
@@ -126,6 +132,7 @@ export class CategoriesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiNoContentResponse({ description: 'Deleted.' })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'NOT_FOUND',

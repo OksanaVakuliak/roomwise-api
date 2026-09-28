@@ -8,7 +8,12 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { ApiBody, ApiCookieAuth, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiCookieAuth,
+  ApiNoContentResponse,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { ZodResponse } from 'nestjs-zod';
@@ -110,7 +115,13 @@ export class AuthController {
   @DenyDemo('change-password')
   @Throttle(CREDENTIALS_THROTTLE)
   @ApiCookieAuth(SESSION_COOKIE_NAME)
+  @ApiNoContentResponse({ description: 'Password changed.' })
   @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
     description: 'UNAUTHENTICATED | INVALID_CREDENTIALS',
@@ -119,6 +130,16 @@ export class AuthController {
   @ApiResponse({
     status: HttpStatus.FORBIDDEN,
     description: 'DEMO_FORBIDDEN',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.LOCKED,
+    description: 'ACCOUNT_LOCKED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: 'RATE_LIMITED',
     type: ErrorResponseDto,
   })
   async changePassword(

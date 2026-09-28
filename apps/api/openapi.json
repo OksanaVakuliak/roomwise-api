@@ -184,6 +184,19 @@
           }
         },
         "responses": {
+          "204": {
+            "description": "Password changed."
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "401": {
             "description": "UNAUTHENTICATED | INVALID_CREDENTIALS",
             "content": {
@@ -196,6 +209,26 @@
           },
           "403": {
             "description": "DEMO_FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "ACCOUNT_LOCKED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
             "content": {
               "application/json": {
                 "schema": {
@@ -498,6 +531,16 @@
               }
             }
           },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -630,6 +673,16 @@
               }
             }
           },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "STALE_REVISION",
             "content": {
@@ -678,6 +731,16 @@
           },
           "401": {
             "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
             "content": {
               "application/json": {
                 "schema": {
@@ -865,6 +928,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "SURFACE_DATA_MISSING",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -890,6 +963,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -1271,7 +1347,7 @@
             }
           },
           "422": {
-            "description": "CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED",
+            "description": "CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | IMAGE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1401,7 +1477,7 @@
             }
           },
           "422": {
-            "description": "CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED | SURFACE_DATA_MISSING | PRIMARY_IMAGE_MISSING",
+            "description": "CATEGORY_NOT_FOUND | MATERIAL_TYPE_NOT_FOUND | IMAGE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED | SURFACE_DATA_MISSING | PRIMARY_IMAGE_MISSING",
             "content": {
               "application/json": {
                 "schema": {
@@ -1434,6 +1510,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -1619,6 +1698,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "IMAGE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1751,7 +1840,7 @@
             }
           },
           "422": {
-            "description": "TRANSLATION_MISSING | STYLE_IMAGE_MISSING",
+            "description": "IMAGE_NOT_FOUND | TRANSLATION_MISSING | STYLE_IMAGE_MISSING",
             "content": {
               "application/json": {
                 "schema": {
@@ -1784,6 +1873,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -1830,6 +1922,9 @@
           }
         },
         "responses": {
+          "204": {
+            "description": "Reordered."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -1992,6 +2087,16 @@
               }
             }
           },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "STALE_REVISION",
             "content": {
@@ -2128,6 +2233,16 @@
               }
             }
           },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -2192,6 +2307,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -2304,6 +2422,9 @@
         "operationId": "EngineeringPackageItemsController_reorder",
         "parameters": [],
         "responses": {
+          "204": {
+            "description": "Reordered."
+          },
           "400": {
             "description": "VALIDATION_FAILED",
             "content": {
@@ -2407,6 +2528,16 @@
               }
             }
           },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -2418,7 +2549,7 @@
             }
           },
           "422": {
-            "description": "QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED",
+            "description": "IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED",
             "content": {
               "application/json": {
                 "schema": {
@@ -2517,6 +2648,16 @@
               }
             }
           },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -2548,7 +2689,7 @@
             }
           },
           "422": {
-            "description": "QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED",
+            "description": "IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED",
             "content": {
               "application/json": {
                 "schema": {
@@ -2581,6 +2722,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -2617,6 +2761,9 @@
         "operationId": "OptionsController_reorder",
         "parameters": [],
         "responses": {
+          "204": {
+            "description": "Reordered."
+          },
           "400": {
             "description": "VALIDATION_FAILED",
             "content": {
@@ -2737,7 +2884,7 @@
   },
   "info": {
     "title": "Roomwise API",
-    "description": "API for the Roomwise renovation cost configurator",
+    "description": "API for the Roomwise renovation cost configurator. Any endpoint may also return 400 VALIDATION_FAILED for an invalid body or params, and 429 RATE_LIMITED from the global rate limiter, both in the ErrorResponse envelope.",
     "version": "1.0",
     "contact": {}
   },

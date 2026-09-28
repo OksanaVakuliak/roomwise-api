@@ -11,7 +11,13 @@ import {
   Put,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiBody, ApiCookieAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiCookieAuth,
+  ApiNoContentResponse,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import {
@@ -68,6 +74,11 @@ export class StylesController {
   @Post()
   @ApiBody({ type: CreateStyleDto })
   @ZodResponse({ status: HttpStatus.CREATED, type: StyleAdminDto })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'IMAGE_NOT_FOUND',
+    type: ErrorResponseDto,
+  })
   async create(
     @Body() body: CreateStyleDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,
@@ -91,7 +102,7 @@ export class StylesController {
   })
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
-    description: 'TRANSLATION_MISSING | STYLE_IMAGE_MISSING',
+    description: 'IMAGE_NOT_FOUND | TRANSLATION_MISSING | STYLE_IMAGE_MISSING',
     type: ErrorResponseDto,
   })
   async update(
@@ -105,6 +116,7 @@ export class StylesController {
   @Put('order')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBody({ type: StyleOrderDto })
+  @ApiNoContentResponse({ description: 'Reordered.' })
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description: 'STYLE_SET_MISMATCH',
@@ -150,6 +162,11 @@ export class StylesController {
   @ApiBody({ type: StyleDefaultMaterialsDto })
   @ZodResponse({ status: HttpStatus.OK, type: StyleAdminDto })
   @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
     status: HttpStatus.CONFLICT,
     description: 'STALE_REVISION',
     type: ErrorResponseDto,
@@ -171,6 +188,7 @@ export class StylesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiNoContentResponse({ description: 'Deleted.' })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'NOT_FOUND',

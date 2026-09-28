@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
+  ApiNoContentResponse,
   ApiParam,
   ApiQuery,
   ApiResponse,
@@ -78,9 +79,14 @@ export class OptionsController {
   @Post()
   @ZodResponse({ status: HttpStatus.CREATED, type: OptionAdminDto })
   @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description:
-      'QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED',
+      'IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED',
     type: ErrorResponseDto,
   })
   async create(
@@ -94,6 +100,11 @@ export class OptionsController {
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: HttpStatus.OK, type: OptionAdminDto })
   @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'NOT_FOUND',
     type: ErrorResponseDto,
@@ -106,7 +117,7 @@ export class OptionsController {
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description:
-      'QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED',
+      'IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED',
     type: ErrorResponseDto,
   })
   async update(
@@ -119,6 +130,7 @@ export class OptionsController {
 
   @Put('order')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Reordered.' })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
     description: 'VALIDATION_FAILED',
@@ -166,6 +178,7 @@ export class OptionsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiNoContentResponse({ description: 'Deleted.' })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'NOT_FOUND',

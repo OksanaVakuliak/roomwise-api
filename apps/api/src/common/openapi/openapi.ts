@@ -10,7 +10,9 @@ import { SESSION_COOKIE_NAME } from '../../modules/auth/session-cookie';
 export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
     .setTitle('Roomwise API')
-    .setDescription('API for the Roomwise renovation cost configurator')
+    .setDescription(
+      'API for the Roomwise renovation cost configurator. Any endpoint may also return 400 VALIDATION_FAILED for an invalid body or params, and 429 RATE_LIMITED from the global rate limiter, both in the ErrorResponse envelope.',
+    )
     .setVersion('1.0')
     .setOpenAPIVersion('3.1.0')
     .addCookieAuth(SESSION_COOKIE_NAME)
