@@ -66,9 +66,15 @@ async function timedGet(
 }
 
 function revisionedRows(
-  rows: Array<{ id: string; revision: string }>,
+  rows: Array<{ id: string; revision: string; sortOrder?: number }>,
 ): string[] {
-  return rows.map((row) => `${row.id}:${row.revision}`).sort();
+  return rows
+    .map((row) =>
+      row.sortOrder === undefined
+        ? `${row.id}:${row.revision}`
+        : `${row.id}:${row.revision}:${row.sortOrder}`,
+    )
+    .sort();
 }
 
 interface CatalogSnapshot {
@@ -105,15 +111,21 @@ async function snapshotCatalogState(
     styleDefaultMaterials,
     optionRoomTypes,
   ] = await Promise.all([
-    prisma.roomType.findMany({ select: { id: true, revision: true } }),
+    prisma.roomType.findMany({
+      select: { id: true, revision: true, sortOrder: true },
+    }),
     prisma.category.findMany({ select: { id: true, revision: true } }),
     prisma.materialType.findMany({ select: { id: true, revision: true } }),
     prisma.product.findMany({ select: { id: true, revision: true } }),
-    prisma.style.findMany({ select: { id: true, revision: true } }),
-    prisma.engineeringPackageItem.findMany({
-      select: { id: true, revision: true },
+    prisma.style.findMany({
+      select: { id: true, revision: true, sortOrder: true },
     }),
-    prisma.option.findMany({ select: { id: true, revision: true } }),
+    prisma.engineeringPackageItem.findMany({
+      select: { id: true, revision: true, sortOrder: true },
+    }),
+    prisma.option.findMany({
+      select: { id: true, revision: true, sortOrder: true },
+    }),
     prisma.image.findMany({ select: { id: true } }),
     prisma.roomTypeCategory.findMany({
       select: { roomTypeId: true, categoryId: true, sortOrder: true },
@@ -313,7 +325,6 @@ describe('performance e2e (SC-001, SC-003, SC-007)', () => {
 
       const stale = await request(testApp.http).get(categoryPath);
       expect(stale.status).toBe(200);
-      const staleIds = stale.body.items.map((item: { id: string }) => item.id);
 
       const created = await request(testApp.http)
         .post('/api/v1/admin/products')
@@ -338,7 +349,6 @@ describe('performance e2e (SC-001, SC-003, SC-007)', () => {
           attributes: [],
         });
       expect(created.status).toBe(201);
-      expect(staleIds).not.toContain(created.body.id);
 
       const publishStart = performance.now();
       const published = await request(testApp.http)
