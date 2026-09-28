@@ -1,7 +1,8 @@
-import { Controller, Get, Param, Query, Res } from '@nestjs/common';
-import { ApiParam, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, HttpStatus, Param, Query, Res } from '@nestjs/common';
+import { ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { ZodResponse } from 'nestjs-zod';
+import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import { SUPPORTED_LANGUAGES } from '../../../common/i18n/resolve-lang';
 import { Public } from '../../auth/public.decorator';
 import { CATALOG_CACHE_CONTROL_HEADER, CatalogCache } from './catalog-cache';
@@ -67,6 +68,11 @@ export class PublicCatalogController {
   @ApiParam({ name: 'categoryId', type: String, format: 'uuid' })
   @ApiQuery({ name: 'lang', required: false, enum: SUPPORTED_LANGUAGES })
   @ZodResponse({ status: 200, type: PublicProductCardsResponseDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
   async listCategoryProducts(
     @Param() params: CategoryIdParamDto,
     @Query() query: LangQueryDto,
@@ -85,6 +91,11 @@ export class PublicCatalogController {
   @ApiParam({ name: 'productId', type: String, format: 'uuid' })
   @ApiQuery({ name: 'lang', required: false, enum: SUPPORTED_LANGUAGES })
   @ZodResponse({ status: 200, type: PublicProductDetailsResponseDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND | PRODUCT_UNAVAILABLE',
+    type: ErrorResponseDto,
+  })
   async getProduct(
     @Param() params: ProductIdParamDto,
     @Query() query: LangQueryDto,
@@ -102,6 +113,11 @@ export class PublicCatalogController {
   @Get('styles/:styleId/default-materials')
   @ApiParam({ name: 'styleId', type: String, format: 'uuid' })
   @ZodResponse({ status: 200, type: PublicDefaultMaterialsResponseDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
   async getStyleDefaultMaterials(
     @Param() params: StyleIdParamDto,
     @Res({ passthrough: true }) response: Response,

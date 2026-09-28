@@ -12,7 +12,7 @@ import {
 } from './sandbox-dataset-participant';
 
 const SANDBOX_STATE_ID = 1;
-const LOCK_TIMEOUT_MS = 600_000;
+export const LOCK_TIMEOUT_MS = 600_000;
 const RETRY_AFTER_FAILURE_MS = 900_000;
 const RESET_TRANSACTION_TIMEOUT_MS = 120_000;
 const RESET_TRANSACTION_MAX_WAIT_MS = 30_000;

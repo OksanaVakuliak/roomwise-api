@@ -12,8 +12,15 @@ import {
   Query,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiNoContentResponse,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
+import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import { OptionKind } from '../../../generated/prisma/enums';
 import {
   type AuthenticatedAdmin,
@@ -39,6 +46,11 @@ import { OptionsService } from './options.service';
 
 @Controller('admin/options')
 @ApiCookieAuth(SESSION_COOKIE_NAME)
+@ApiResponse({
+  status: HttpStatus.UNAUTHORIZED,
+  description: 'UNAUTHENTICATED',
+  type: ErrorResponseDto,
+})
 @UseInterceptors(CatalogChangeInterceptor)
 export class OptionsController {
   constructor(private readonly options: OptionsService) {}
@@ -55,12 +67,28 @@ export class OptionsController {
   @Get(':id')
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: HttpStatus.OK, type: OptionAdminDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
   async get(@Param() params: OptionIdParamDto): Promise<OptionAdmin> {
     return this.options.get(params.id);
   }
 
   @Post()
   @ZodResponse({ status: HttpStatus.CREATED, type: OptionAdminDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description:
+      'IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED',
+    type: ErrorResponseDto,
+  })
   async create(
     @Body() body: CreateOptionDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,
@@ -71,6 +99,27 @@ export class OptionsController {
   @Patch(':id')
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: HttpStatus.OK, type: OptionAdminDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description:
+      'IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED',
+    type: ErrorResponseDto,
+  })
   async update(
     @Param() params: OptionIdParamDto,
     @Body() body: PatchOptionDto,
@@ -81,6 +130,17 @@ export class OptionsController {
 
   @Put('order')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Reordered.' })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'CONFLICT',
+    type: ErrorResponseDto,
+  })
   async reorder(
     @Body() body: OptionOrderDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,
@@ -92,6 +152,21 @@ export class OptionsController {
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ZodResponse({ status: HttpStatus.OK, type: OptionAdminDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'STALE_REVISION',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'TRANSLATION_MISSING',
+    type: ErrorResponseDto,
+  })
   async updateStatus(
     @Param() params: OptionIdParamDto,
     @Body() body: UpdateOptionStatusDto,
@@ -103,6 +178,12 @@ export class OptionsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiNoContentResponse({ description: 'Deleted.' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
   async remove(@Param() params: OptionIdParamDto): Promise<void> {
     await this.options.remove(params.id);
   }

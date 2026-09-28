@@ -8,10 +8,16 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { ApiBody, ApiCookieAuth } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiCookieAuth,
+  ApiNoContentResponse,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { ZodResponse } from 'nestjs-zod';
+import { ErrorResponseDto } from '../../common/http/error-response.dto';
 import {
   type AdminMe,
   AdminMeDto,
@@ -51,6 +57,21 @@ export class AuthController {
   @Post('login')
   @ApiBody({ type: LoginDto })
   @ZodResponse({ status: HttpStatus.OK, type: AdminMeDto })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'INVALID_CREDENTIALS',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.LOCKED,
+    description: 'ACCOUNT_LOCKED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: 'RATE_LIMITED',
+    type: ErrorResponseDto,
+  })
   async login(
     @Body() body: LoginDto,
     @Res({ passthrough: true }) response: Response,
@@ -80,6 +101,11 @@ export class AuthController {
   @Get('me')
   @ApiCookieAuth(SESSION_COOKIE_NAME)
   @ZodResponse({ status: HttpStatus.OK, type: AdminMeDto })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'UNAUTHENTICATED',
+    type: ErrorResponseDto,
+  })
   async me(@CurrentAdmin() admin: AuthenticatedAdmin): Promise<AdminMe> {
     return this.authService.buildAdminMe(admin);
   }
@@ -89,7 +115,33 @@ export class AuthController {
   @DenyDemo('change-password')
   @Throttle(CREDENTIALS_THROTTLE)
   @ApiCookieAuth(SESSION_COOKIE_NAME)
+  @ApiNoContentResponse({ description: 'Password changed.' })
   @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'UNAUTHENTICATED | INVALID_CREDENTIALS',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'DEMO_FORBIDDEN',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.LOCKED,
+    description: 'ACCOUNT_LOCKED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: 'RATE_LIMITED',
+    type: ErrorResponseDto,
+  })
   async changePassword(
     @CurrentAdmin() admin: AuthenticatedAdmin,
     @Body() body: ChangePasswordDto,
