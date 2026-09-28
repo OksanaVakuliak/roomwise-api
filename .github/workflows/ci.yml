@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: roomwise
+          POSTGRES_PASSWORD: roomwise
+          POSTGRES_DB: roomwise_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://roomwise:roomwise@localhost:5432/roomwise_test
+      DIRECT_URL: postgresql://roomwise:roomwise@localhost:5432/roomwise_test
+      JWT_SECRET: test-jwt-secret-with-at-least-32-characters
+      CORS_ORIGIN: http://localhost:3000
+      CLOUDINARY_URL: cloudinary://key:secret@test
+      MAINTENANCE_TOKEN: test-maintenance-token-with-32-characters
+      DEMO_ADMIN_LOGIN: demo
+      DEMO_ADMIN_PASSWORD: test-demo-password
+      SANDBOX_RESET_TIME: 03:00
+      SANDBOX_TIMEZONE: Europe/Kyiv
+      PORT: 4000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm exec biome ci .
+
+      - name: Generate Prisma Client
+        run: pnpm --filter api prisma:generate
+
+      - name: Migrate test database
+        run: pnpm --filter api exec prisma migrate deploy --config prisma.config.ts
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Test e2e
+        run: pnpm --filter api test:e2e
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check OpenAPI
+        run: pnpm --filter api openapi:check

@@ -1,0 +1,28 @@
+import type { INestApplication } from '@nestjs/common';
+import {
+  DocumentBuilder,
+  type OpenAPIObject,
+  SwaggerModule,
+} from '@nestjs/swagger';
+import { cleanupOpenApiDoc } from 'nestjs-zod';
+import { SESSION_COOKIE_NAME } from '../../modules/auth/session-cookie';
+
+export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
+  const config = new DocumentBuilder()
+    .setTitle('Roomwise API')
+    .setDescription(
+      'API for the Roomwise renovation cost configurator. Any endpoint may also return 400 VALIDATION_FAILED for an invalid body or params, and 429 RATE_LIMITED from the global rate limiter, both in the ErrorResponse envelope.',
+    )
+    .setVersion('1.0')
+    .setOpenAPIVersion('3.1.0')
+    .addCookieAuth(SESSION_COOKIE_NAME)
+    .build();
+
+  return cleanupOpenApiDoc(SwaggerModule.createDocument(app, config), {
+    version: '3.1',
+  });
+}
+
+export function setupOpenApi(app: INestApplication): void {
+  SwaggerModule.setup('api/docs', app, createOpenApiDocument(app));
+}
