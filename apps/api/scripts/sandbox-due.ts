@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { isLocalDatabaseUrl } from '../src/config/database-url';
 import { postgresUrlSchema } from '../src/config/env';
 import { PrismaClient } from '../src/generated/prisma/client';
+import { LOCK_TIMEOUT_MS } from '../src/modules/sandbox/sandbox.service';
 
 const EXIT_FAILURE = 1;
 const SANDBOX_STATE_ID = 1;
@@ -29,11 +31,34 @@ async function main(): Promise<void> {
   }
 
   const databaseUrl = readDatabaseUrl();
+
+  if (!isLocalDatabaseUrl(databaseUrl)) {
+    process.stderr.write(
+      'Refusing to run sandbox:due against a non-local DATABASE_URL host.\n',
+    );
+    process.exitCode = EXIT_FAILURE;
+    return;
+  }
+
   const adapter = new PrismaPg({ connectionString: databaseUrl });
   const prisma = new PrismaClient({ adapter });
 
   try {
     const now = new Date();
+    const existing = await prisma.sandboxState.findUnique({
+      where: { id: SANDBOX_STATE_ID },
+    });
+
+    if (
+      existing?.lockedAt &&
+      now.getTime() - existing.lockedAt.getTime() < LOCK_TIMEOUT_MS
+    ) {
+      process.stderr.write(
+        'Refusing to run sandbox:due: a sandbox reset is currently in progress.\n',
+      );
+      process.exitCode = EXIT_FAILURE;
+      return;
+    }
 
     await prisma.sandboxState.upsert({
       where: { id: SANDBOX_STATE_ID },

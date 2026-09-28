@@ -89,6 +89,10 @@ Run from the repository root unless noted.
 | `pnpm --filter api openapi:generate` | Regenerate `apps/api/openapi.json` |
 | `pnpm --filter api openapi:check` | Fail if `openapi.json` is out of date |
 
+`sandbox:due` only runs against a local `DATABASE_URL` (it refuses anything
+else) and won't be picked up by an already-running server until it's
+restarted, since the sandbox schedule caches `nextResetAt` in memory.
+
 ## Environment variables
 
 Validated by `apps/api/src/config/env.ts` at startup; the process exits with
