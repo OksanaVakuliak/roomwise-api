@@ -52,7 +52,7 @@ const trustProxyHopsSchema = z.preprocess(
 
 const nbuApiUrlSchema = z.preprocess(
   emptyStringToUndefined,
-  z.url().default(DEFAULT_NBU_API_URL),
+  z.httpUrl().default(DEFAULT_NBU_API_URL),
 );
 
 const timezoneSchema = requiredStringSchema.refine((value) => {

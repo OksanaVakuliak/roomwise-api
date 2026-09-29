@@ -101,9 +101,11 @@ describe('validateEnv', () => {
   });
 
   it('rejects an invalid NBU_API_URL', () => {
-    expect(() =>
-      validateEnv({ ...validEnv, NBU_API_URL: 'not-a-url' }),
-    ).toThrowError(EnvValidationError);
+    for (const value of ['not-a-url', 'file:///etc/passwd']) {
+      expect(() =>
+        validateEnv({ ...validEnv, NBU_API_URL: value }),
+      ).toThrowError(EnvValidationError);
+    }
   });
 
   it('defaults TRUST_PROXY_HOPS to 1 when absent', () => {
