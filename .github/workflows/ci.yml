@@ -60,9 +60,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build calc-engine
-        run: pnpm --filter @roomwise/calc-engine build
-
       - name: Lint
         run: pnpm exec biome ci .
 
@@ -75,11 +72,8 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Typecheck calc-engine
-        run: pnpm --filter @roomwise/calc-engine typecheck
-
       - name: Test
-        run: pnpm test
+        run: pnpm --filter api test
 
       - name: Test calc-engine coverage
         run: pnpm --filter @roomwise/calc-engine test:coverage

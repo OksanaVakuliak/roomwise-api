@@ -73,7 +73,7 @@ Run from the repository root unless noted.
 | --- | --- |
 | `pnpm lint` | Biome check across the workspace |
 | `pnpm format` | Biome check with `--write` across the workspace |
-| `pnpm typecheck` | Typecheck `apps/api` |
+| `pnpm typecheck` | Typecheck `packages/calc-engine`, then `apps/api` |
 | `pnpm test` | Run unit tests (Vitest) |
 | `pnpm build` | Build `packages/calc-engine`, then `apps/api` |
 | `pnpm --filter api test:e2e` | Run end-to-end tests against Postgres |
