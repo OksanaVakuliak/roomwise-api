@@ -9,7 +9,7 @@ services:
     buildCommand: >-
       pnpm install --frozen-lockfile --prod=false &&
       pnpm --filter api prisma:generate &&
-      pnpm --filter api build &&
+      pnpm build &&
       pnpm --filter api exec prisma migrate deploy --config prisma.config.ts
     startCommand: pnpm --filter api run start:prod
     healthCheckPath: /api/v1/health

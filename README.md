@@ -75,7 +75,7 @@ Run from the repository root unless noted.
 | `pnpm format` | Biome check with `--write` across the workspace |
 | `pnpm typecheck` | Typecheck `apps/api` |
 | `pnpm test` | Run unit tests (Vitest) |
-| `pnpm build` | Build `apps/api` |
+| `pnpm build` | Build `packages/calc-engine`, then `apps/api` |
 | `pnpm --filter api test:e2e` | Run end-to-end tests against Postgres |
 | `pnpm --filter api start:dev` | Run the API with hot reload |
 | `pnpm --filter api start:prod` | Run the built app (`dist/main.js`) |
@@ -115,6 +115,7 @@ lists every key without values.
 | `SANDBOX_TIMEZONE` | Yes | — | IANA timezone the reset time is interpreted in |
 | `PORT` | No | `3000` | Port the HTTP server listens on |
 | `TRUST_PROXY_HOPS` | No | `1` | Number of trusted reverse-proxy hops in front of the app (affects `X-Forwarded-For` parsing) |
+| `NBU_API_URL` | No | `https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange` | Base URL of the National Bank of Ukraine exchange-rate API |
 
 ## Local setup
 
@@ -188,7 +189,7 @@ new version goes live:
 ```
 pnpm install --frozen-lockfile --prod=false
 pnpm --filter api prisma:generate
-pnpm --filter api build
+pnpm build
 pnpm --filter api exec prisma migrate deploy --config prisma.config.ts
 ```
 

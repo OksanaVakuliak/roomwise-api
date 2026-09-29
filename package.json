@@ -10,7 +10,7 @@
     "format": "biome check --write .",
     "typecheck": "pnpm --filter api run typecheck",
     "test": "vitest run",
-    "build": "pnpm --filter api run build",
+    "build": "pnpm -r build",
     "commit": "cz",
     "prepare": "git config core.hooksPath .git/hooks && lefthook install --force || echo 'lefthook install failed — git hooks are NOT active'"
   },

@@ -8,6 +8,8 @@ const MAX_PORT = 65_535;
 const MIN_TRUST_PROXY_HOPS = 0;
 const MAX_TRUST_PROXY_HOPS = 5;
 const DEFAULT_TRUST_PROXY_HOPS = 1;
+const DEFAULT_NBU_API_URL =
+  'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange';
 
 const requiredStringSchema = z.string().trim().min(1);
 
@@ -46,6 +48,11 @@ const trustProxyHopsSchema = z.preprocess(
     .min(MIN_TRUST_PROXY_HOPS)
     .max(MAX_TRUST_PROXY_HOPS)
     .default(DEFAULT_TRUST_PROXY_HOPS),
+);
+
+const nbuApiUrlSchema = z.preprocess(
+  emptyStringToUndefined,
+  z.url().default(DEFAULT_NBU_API_URL),
 );
 
 const timezoneSchema = requiredStringSchema.refine((value) => {
@@ -91,6 +98,7 @@ export const envSchema = z.object({
   SANDBOX_TIMEZONE: timezoneSchema,
   PORT: portSchema,
   TRUST_PROXY_HOPS: trustProxyHopsSchema,
+  NBU_API_URL: nbuApiUrlSchema,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
