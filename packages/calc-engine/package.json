@@ -1,0 +1,45 @@
+{
+  "name": "@roomwise/calc-engine",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jsep-plugin/ternary": "^1.1.4",
+    "jsep": "^1.4.0"
+  },
+  "peerDependencies": {
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.11",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11",
+    "zod": "4.6.5"
+  }
+}
