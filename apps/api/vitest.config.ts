@@ -18,6 +18,10 @@ export default defineConfig({
   resolve: {
     alias: {
       src: resolve(import.meta.dirname, './src'),
+      '@roomwise/calc-engine': resolve(
+        import.meta.dirname,
+        '../../packages/calc-engine/src/index.ts',
+      ),
     },
   },
 });

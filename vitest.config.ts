@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    projects: ['apps/api'],
+    projects: ['apps/api', 'packages/calc-engine'],
     passWithNoTests: true,
   },
 });
