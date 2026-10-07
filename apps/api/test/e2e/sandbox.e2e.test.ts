@@ -12,6 +12,7 @@ import {
   PublicationStatus,
   SurfaceKind,
 } from '../../src/generated/prisma/client';
+import { CatalogChangeNotifier } from '../../src/modules/catalog/common/catalog-change.notifier';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
 import { optionIds } from '../../src/modules/catalog/dataset/data/options';
@@ -349,11 +350,17 @@ describe('sandbox e2e (US6)', () => {
               datasetService: CatalogDatasetService,
               cache: CatalogCache,
               cloudinary: CloudinaryService,
+              notifier: CatalogChangeNotifier,
             ) => [
-              catalogParticipant(datasetService, cache, cloudinary),
+              catalogParticipant(datasetService, cache, cloudinary, notifier),
               brokenParticipant,
             ],
-            inject: [CatalogDatasetService, CatalogCache, CloudinaryService],
+            inject: [
+              CatalogDatasetService,
+              CatalogCache,
+              CloudinaryService,
+              CatalogChangeNotifier,
+            ],
           },
         ],
       });

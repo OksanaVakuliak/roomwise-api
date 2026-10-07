@@ -3,6 +3,7 @@ import { firstValueFrom, type Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import type { CatalogCache } from '../public/catalog-cache';
 import { CatalogChangeInterceptor } from './catalog-change.interceptor';
+import type { CatalogChangeNotifier } from './catalog-change.notifier';
 
 function createContext(method: string): ExecutionContext {
   return {
@@ -24,12 +25,19 @@ function createCatalogCache(): CatalogCache {
   } as unknown as CatalogCache;
 }
 
+function createNotifier(): CatalogChangeNotifier {
+  return {
+    notify: vi.fn(),
+  } as unknown as CatalogChangeNotifier;
+}
+
 describe('CatalogChangeInterceptor', () => {
   it.each(['POST', 'PATCH', 'PUT', 'DELETE'])(
     'invalidates the catalog cache after a successful %s',
     async (method) => {
       const catalogCache = createCatalogCache();
-      const interceptor = new CatalogChangeInterceptor(catalogCache);
+      const notifier = createNotifier();
+      const interceptor = new CatalogChangeInterceptor(catalogCache, notifier);
       const handler = createHandler(of('result'));
 
       const result = await firstValueFrom(
@@ -38,12 +46,14 @@ describe('CatalogChangeInterceptor', () => {
 
       expect(result).toBe('result');
       expect(catalogCache.invalidate).toHaveBeenCalledTimes(1);
+      expect(notifier.notify).toHaveBeenCalledTimes(1);
     },
   );
 
   it('does not invalidate the catalog cache on GET', async () => {
     const catalogCache = createCatalogCache();
-    const interceptor = new CatalogChangeInterceptor(catalogCache);
+    const notifier = createNotifier();
+    const interceptor = new CatalogChangeInterceptor(catalogCache, notifier);
     const handler = createHandler(of('result'));
 
     const result = await firstValueFrom(
@@ -52,16 +62,19 @@ describe('CatalogChangeInterceptor', () => {
 
     expect(result).toBe('result');
     expect(catalogCache.invalidate).not.toHaveBeenCalled();
+    expect(notifier.notify).not.toHaveBeenCalled();
   });
 
   it('does not invalidate the catalog cache when the handler throws', async () => {
     const catalogCache = createCatalogCache();
-    const interceptor = new CatalogChangeInterceptor(catalogCache);
+    const notifier = createNotifier();
+    const interceptor = new CatalogChangeInterceptor(catalogCache, notifier);
     const handler = createHandler(throwError(() => new Error('boom')));
 
     await expect(
       firstValueFrom(interceptor.intercept(createContext('POST'), handler)),
     ).rejects.toThrow('boom');
     expect(catalogCache.invalidate).not.toHaveBeenCalled();
+    expect(notifier.notify).not.toHaveBeenCalled();
   });
 });
