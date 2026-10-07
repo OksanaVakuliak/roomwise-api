@@ -88,3 +88,11 @@ describe('convertCentsToKopecks', () => {
     expect(() => convertCentsToKopecks(100, '1e3')).toThrow(RangeError);
   });
 });
+
+describe('convertCentsToKopecks overflow', () => {
+  it('throws when the result exceeds the safe integer range', () => {
+    expect(() => convertCentsToKopecks(Number.MAX_SAFE_INTEGER, 2)).toThrow(
+      RangeError,
+    );
+  });
+});
