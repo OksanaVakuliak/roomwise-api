@@ -29,8 +29,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@jsep-plugin/ternary": "^1.1.4",
-    "jsep": "^1.4.0"
+    "@jsep-plugin/ternary": "1.1.4",
+    "jsep": "1.4.0"
   },
   "peerDependencies": {
     "zod": "^4.0.0"
