@@ -176,10 +176,10 @@ importers:
   packages/calc-engine:
     dependencies:
       '@jsep-plugin/ternary':
-        specifier: ^1.1.4
+        specifier: 1.1.4
         version: 1.1.4(jsep@1.4.0)
       jsep:
-        specifier: ^1.4.0
+        specifier: 1.4.0
         version: 1.4.0
     devDependencies:
       '@vitest/coverage-v8':
