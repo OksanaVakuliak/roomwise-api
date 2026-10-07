@@ -1,3 +1,4 @@
+import { COEFFICIENT_NAMESPACE, FORMULA_FUNCTION_TABLE } from './language';
 import type { FormulaNode, Span } from './types';
 
 export type FormulaValue = number | boolean | string;
@@ -31,36 +32,6 @@ type NodeOf<Type extends FormulaNode['type']> = Extract<
   FormulaNode,
   { type: Type }
 >;
-
-interface FunctionSpec {
-  readonly minArgs: number;
-  readonly maxArgs: number;
-  readonly apply: (args: readonly number[]) => number;
-}
-
-const FUNCTIONS: ReadonlyMap<string, FunctionSpec> = new Map([
-  [
-    'min',
-    {
-      minArgs: 1,
-      maxArgs: Number.POSITIVE_INFINITY,
-      apply: (args) => Math.min(...args),
-    },
-  ],
-  [
-    'max',
-    {
-      minArgs: 1,
-      maxArgs: Number.POSITIVE_INFINITY,
-      apply: (args) => Math.max(...args),
-    },
-  ],
-  ['round', { minArgs: 1, maxArgs: 1, apply: (args) => Math.round(args[0]) }],
-  ['ceil', { minArgs: 1, maxArgs: 1, apply: (args) => Math.ceil(args[0]) }],
-  ['floor', { minArgs: 1, maxArgs: 1, apply: (args) => Math.floor(args[0]) }],
-]);
-
-const COEFFICIENT_NAMESPACE = 'coef';
 
 class EvaluationFailure {
   constructor(readonly error: EvaluationError) {}
@@ -133,7 +104,7 @@ function evaluateMember(
 function evaluateCall(node: NodeOf<'Call'>, scope: EvaluationScope): number {
   const spec =
     node.callee.type === 'Identifier'
-      ? FUNCTIONS.get(node.callee.name)
+      ? FORMULA_FUNCTION_TABLE.get(node.callee.name)
       : undefined;
   if (spec === undefined) {
     return fail(node.callee, 'UNKNOWN_FUNCTION');

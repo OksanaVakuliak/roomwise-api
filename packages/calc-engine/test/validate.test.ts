@@ -90,7 +90,7 @@ describe('validateFormula valid formulas', () => {
 
   it('accepts every allowed function', () => {
     for (const name of FORMULA_FUNCTIONS) {
-      expect(check(`${name}(floorArea, 2)`, 'CATEGORY', 'quantity').valid).toBe(
+      expect(check(`${name}(floorArea)`, 'CATEGORY', 'quantity').valid).toBe(
         true,
       );
     }
@@ -297,5 +297,107 @@ describe('formula constants stay in sync with variable derivation', () => {
     expect(FORMULA_VARIABLES.CATEGORY.map((v) => v.name)).not.toContain(
       FORMULA_QUANTITY_VARIABLE.name,
     );
+  });
+});
+
+describe('validateFormula static typing', () => {
+  const syntax = (
+    position: number,
+    length: number,
+    params: Record<string, string | number>,
+  ) => ({ code: 'FORMULA_SYNTAX', position, length, params });
+  const mismatch = (position: number, length: number, expected: string) =>
+    syntax(position, length, { reason: 'TYPE_MISMATCH', expected });
+
+  it('keeps well typed formulas valid', () => {
+    for (const source of [
+      'floorArea * price * (1 + waste)',
+      'roomType == "BATHROOM" ? 1 : 0',
+      'heatedFloor && floorArea > 2 ? coef.labor * floorArea : 0',
+      'min(floorArea, 10)',
+      'max(1, 2, 3)',
+      'unit != "SQM" ? 1 : 2',
+      'heatedFloor == true ? 1 : 0',
+      'roomType == unit ? 1 : 0',
+    ]) {
+      expect(check(source, 'CATEGORY', 'quantity').errors).toEqual([]);
+    }
+  });
+
+  it('rejects calls with a wrong argument count', () => {
+    expect(check('round(1, 2)').errors).toEqual([
+      syntax(0, 11, { reason: 'ARGUMENT_COUNT', min: 1, max: 1 }),
+    ]);
+    expect(check('min()').errors).toEqual([
+      syntax(0, 5, { reason: 'ARGUMENT_COUNT', min: 1 }),
+    ]);
+  });
+
+  it('rejects non-numeric arguments', () => {
+    expect(check('max(1, true)').errors).toEqual([mismatch(7, 4, 'number')]);
+  });
+
+  it('rejects arithmetic on booleans', () => {
+    expect(check('price + true').errors).toEqual([mismatch(8, 4, 'number')]);
+    expect(check('heatedFloor * 2').errors).toEqual([
+      mismatch(0, 11, 'number'),
+    ]);
+    expect(check('-heatedFloor').errors).toEqual([mismatch(1, 11, 'number')]);
+  });
+
+  it('rejects logical operators on numbers', () => {
+    expect(check('!price').errors).toEqual([mismatch(1, 5, 'boolean')]);
+    expect(check('price && gas').errors).toEqual([mismatch(0, 5, 'boolean')]);
+  });
+
+  it('requires a boolean condition', () => {
+    expect(check('price ? 1 : 2').errors).toEqual([mismatch(0, 5, 'boolean')]);
+  });
+
+  it('rejects conditional branches of different types', () => {
+    expect(check('gas ? 1 : true').errors).toEqual([mismatch(10, 4, 'number')]);
+  });
+
+  it('reports enum values that do not exist', () => {
+    expect(check('roomType == "BATHRUM" ? 1 : 0').errors).toEqual([
+      syntax(12, 9, {
+        reason: 'UNKNOWN_ENUM_VALUE',
+        value: 'BATHRUM',
+        variable: 'roomType',
+      }),
+    ]);
+    expect(check('"BATHRUM" != roomType ? 1 : 0').errors).toEqual([
+      syntax(0, 9, {
+        reason: 'UNKNOWN_ENUM_VALUE',
+        value: 'BATHRUM',
+        variable: 'roomType',
+      }),
+    ]);
+  });
+
+  it('rejects strings outside an enum comparison', () => {
+    expect(check('"BATHROOM" + 1').errors).toEqual([mismatch(0, 10, 'number')]);
+    expect(check('roomType == 1').errors).toEqual([
+      mismatch(12, 1, 'roomType'),
+      mismatch(0, 13, 'number'),
+    ]);
+    expect(check('price == "X" ? 1 : 0').errors).toEqual([
+      mismatch(0, 5, 'enum variable'),
+    ]);
+    expect(check('(1 + 1) == "X" ? 1 : 0').errors).toEqual([
+      mismatch(0, 7, 'enum variable'),
+    ]);
+  });
+
+  it('rejects formulas that do not produce a number', () => {
+    expect(check('floorArea > 2').errors).toEqual([mismatch(0, 13, 'number')]);
+    expect(check('roomType').errors).toEqual([mismatch(0, 8, 'number')]);
+  });
+
+  it('does not cascade after an earlier error', () => {
+    expect(check('florArea + 1').errors).toHaveLength(1);
+    expect(check('unknownFn(1) + 1').errors).toHaveLength(1);
+    expect(check('coef.nope * 2').errors).toHaveLength(1);
+    expect(check('quantity * 2', 'OBJECT', 'quantity').errors).toHaveLength(1);
   });
 });

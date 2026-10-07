@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EvaluationScope, FormulaNode } from '../src/formula';
-import { evaluate, parse } from '../src/formula';
+import { evaluate, FORMULA_FUNCTIONS, parse } from '../src/formula';
 
 const scope: EvaluationScope = {
   variables: {
@@ -343,5 +343,15 @@ describe('evaluate unexpected errors', () => {
       coefficients: {},
     };
     expect(() => run('x', throwing)).toThrow('boom');
+  });
+});
+
+describe('shared function table', () => {
+  it('lists exactly the functions the evaluator can call', () => {
+    for (const name of FORMULA_FUNCTIONS) {
+      expect(error(`${name}(true)`).code).toBe('FORMULA_RUNTIME_ERROR');
+    }
+    expect(FORMULA_FUNCTIONS).toEqual(['min', 'max', 'round', 'ceil', 'floor']);
+    expect(error('other(1)').code).toBe('UNKNOWN_FUNCTION');
   });
 });

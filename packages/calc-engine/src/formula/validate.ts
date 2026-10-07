@@ -5,6 +5,7 @@ import {
   RoomTypeCodeSchema,
   type RuleLevel,
 } from '../schemas';
+import { COEFFICIENT_NAMESPACE, FORMULA_FUNCTION_TABLE } from './language';
 import { parse } from './parse';
 import { suggestNearest } from './suggest';
 import type { FormulaError, FormulaNode } from './types';
@@ -16,6 +17,31 @@ export interface FormulaVariable {
   readonly name: string;
   readonly kind: 'number' | 'boolean' | 'enum';
   readonly values?: readonly string[];
+}
+
+type StaticType =
+  | { readonly kind: 'number' }
+  | { readonly kind: 'boolean' }
+  | { readonly kind: 'string' }
+  | { readonly kind: 'unknown' }
+  | {
+      readonly kind: 'enum';
+      readonly name: string;
+      readonly values: readonly string[];
+    };
+
+type NodeOf<Type extends FormulaNode['type']> = Extract<
+  FormulaNode,
+  { type: Type }
+>;
+
+const NUMBER: StaticType = { kind: 'number' };
+const BOOLEAN: StaticType = { kind: 'boolean' };
+const STRING: StaticType = { kind: 'string' };
+const UNKNOWN: StaticType = { kind: 'unknown' };
+
+function typeName(type: StaticType): string {
+  return type.kind === 'enum' ? type.name : type.kind;
 }
 
 const number = (name: string): FormulaVariable => ({ name, kind: 'number' });
@@ -73,16 +99,6 @@ export const FORMULA_VARIABLES: Record<RuleLevel, readonly FormulaVariable[]> =
     ],
   };
 
-export const FORMULA_FUNCTIONS = [
-  'min',
-  'max',
-  'round',
-  'ceil',
-  'floor',
-] as const;
-
-export const COEFFICIENT_NAMESPACE = 'coef';
-
 export interface ValidateFormulaInput {
   readonly level: RuleLevel;
   readonly kind: FormulaKind;
@@ -112,25 +128,56 @@ export function validateFormula(
     return { valid: false, coefficientKeys: [], errors: [parsed.error] };
   }
 
-  const allowed = new Set(
-    FORMULA_VARIABLES[input.level].map((variable) => variable.name),
+  const variables = FORMULA_VARIABLES[input.level];
+  const variableTypes = new Map<string, StaticType>(
+    variables.map((variable) => [
+      variable.name,
+      variable.kind === 'enum'
+        ? { kind: 'enum', name: variable.name, values: variable.values ?? [] }
+        : { kind: variable.kind },
+    ]),
   );
-  const allowedNames = [...allowed];
+  const allowedNames = variables.map((variable) => variable.name);
   const knownCoefficients = new Set(input.coefficientKeys);
   const usedCoefficients = new Set<string>();
   const errors: FormulaError[] = [];
   const quantityAllowed = input.kind === 'cost' && input.level !== 'OBJECT';
 
-  function identifier(node: FormulaNode & { type: 'Identifier' }): void {
+  function mismatch(node: FormulaNode, expected: string): void {
+    errors.push({
+      code: 'FORMULA_SYNTAX',
+      ...span(node),
+      params: { reason: 'TYPE_MISMATCH', expected },
+    });
+  }
+
+  function expectType(
+    node: FormulaNode,
+    expected: 'number' | 'boolean',
+  ): boolean {
+    const type = infer(node);
+    if (type.kind === 'unknown') {
+      return false;
+    }
+    if (type.kind !== expected) {
+      mismatch(node, expected);
+      return false;
+    }
+    return true;
+  }
+
+  function identifier(node: NodeOf<'Identifier'>): StaticType {
     const { name } = node;
     if (name === FORMULA_QUANTITY_VARIABLE.name) {
       if (!quantityAllowed) {
         errors.push({ code: 'QUANTITY_NOT_ALLOWED', ...span(node) });
+        return UNKNOWN;
       }
-      return;
+      return NUMBER;
     }
-    if (allowed.has(name)) {
-      return;
+    const type = variableTypes.get(name);
+    if (type !== undefined) {
+      return type;
     }
     if (ALL_VARIABLE_NAMES.has(name)) {
       errors.push({
@@ -138,7 +185,7 @@ export function validateFormula(
         ...span(node),
         params: { variable: name, level: input.level },
       });
-      return;
+      return UNKNOWN;
     }
     const suggestion = suggestNearest(name, allowedNames);
     errors.push({
@@ -146,70 +193,171 @@ export function validateFormula(
       ...span(node),
       params: suggestion === undefined ? { name } : { name, suggestion },
     });
+    return UNKNOWN;
   }
 
-  function walk(node: FormulaNode): void {
-    switch (node.type) {
-      case 'Literal':
-        return;
-      case 'Identifier':
-        identifier(node);
-        return;
-      case 'Member': {
-        const { object, property } = node;
-        if (
-          object.type !== 'Identifier' ||
-          object.name !== COEFFICIENT_NAMESPACE
-        ) {
-          errors.push({
-            code: 'UNKNOWN_VARIABLE',
-            ...span(node),
-            params: { name: input.source.slice(node.start, node.end) },
-          });
-          return;
-        }
-        usedCoefficients.add(property.name);
-        if (!knownCoefficients.has(property.name)) {
-          errors.push({
-            code: 'UNKNOWN_COEFFICIENT',
-            ...span(node),
-            params: { key: property.name },
-          });
-        }
-        return;
+  function member(node: NodeOf<'Member'>): StaticType {
+    const { object, property } = node;
+    if (object.type !== 'Identifier' || object.name !== COEFFICIENT_NAMESPACE) {
+      errors.push({
+        code: 'UNKNOWN_VARIABLE',
+        ...span(node),
+        params: { name: input.source.slice(node.start, node.end) },
+      });
+      return UNKNOWN;
+    }
+    usedCoefficients.add(property.name);
+    if (!knownCoefficients.has(property.name)) {
+      errors.push({
+        code: 'UNKNOWN_COEFFICIENT',
+        ...span(node),
+        params: { key: property.name },
+      });
+      return UNKNOWN;
+    }
+    return NUMBER;
+  }
+
+  function call(node: NodeOf<'Call'>): StaticType {
+    const { callee } = node;
+    const fn =
+      callee.type === 'Identifier'
+        ? FORMULA_FUNCTION_TABLE.get(callee.name)
+        : undefined;
+    if (fn === undefined) {
+      errors.push({
+        code: 'UNKNOWN_FUNCTION',
+        ...span(callee),
+        params: { name: input.source.slice(callee.start, callee.end) },
+      });
+      for (const argument of node.args) {
+        infer(argument);
       }
-      case 'Call': {
-        const { callee } = node;
-        if (
-          callee.type !== 'Identifier' ||
-          !(FORMULA_FUNCTIONS as readonly string[]).includes(callee.name)
-        ) {
-          errors.push({
-            code: 'UNKNOWN_FUNCTION',
-            ...span(callee),
-            params: { name: input.source.slice(callee.start, callee.end) },
-          });
-        }
-        for (const argument of node.args) {
-          walk(argument);
-        }
-        return;
-      }
-      case 'Unary':
-        walk(node.argument);
-        return;
-      case 'Binary':
-        walk(node.left);
-        walk(node.right);
-        return;
-      case 'Conditional':
-        walk(node.test);
-        walk(node.consequent);
-        walk(node.alternate);
+      return UNKNOWN;
+    }
+    let sound = true;
+    if (node.args.length < fn.minArgs || node.args.length > fn.maxArgs) {
+      errors.push({
+        code: 'FORMULA_SYNTAX',
+        ...span(node),
+        params: {
+          reason: 'ARGUMENT_COUNT',
+          min: fn.minArgs,
+          ...(Number.isFinite(fn.maxArgs) ? { max: fn.maxArgs } : {}),
+        },
+      });
+      sound = false;
+    }
+    for (const argument of node.args) {
+      sound = expectType(argument, 'number') && sound;
+    }
+    return sound ? NUMBER : UNKNOWN;
+  }
+
+  function enumLiteral(literal: NodeOf<'Literal'>, other: FormulaNode): void {
+    const type = infer(other);
+    if (type.kind === 'unknown') {
+      return;
+    }
+    if (other.type !== 'Identifier' || type.kind !== 'enum') {
+      mismatch(other, 'enum variable');
+      return;
+    }
+    if (!type.values.includes(literal.value as string)) {
+      errors.push({
+        code: 'FORMULA_SYNTAX',
+        ...span(literal),
+        params: {
+          reason: 'UNKNOWN_ENUM_VALUE',
+          value: literal.value as string,
+          variable: type.name,
+        },
+      });
     }
   }
 
-  walk(parsed.ast);
+  function equality(node: NodeOf<'Binary'>): StaticType {
+    const { left, right } = node;
+    const literal = [left, right].find(
+      (side): side is NodeOf<'Literal'> =>
+        side.type === 'Literal' && typeof side.value === 'string',
+    );
+    if (literal !== undefined) {
+      enumLiteral(literal, literal === left ? right : left);
+      return BOOLEAN;
+    }
+    const a = infer(left);
+    const b = infer(right);
+    if (a.kind !== 'unknown' && b.kind !== 'unknown' && a.kind !== b.kind) {
+      mismatch(right, typeName(a));
+    }
+    return BOOLEAN;
+  }
+
+  function binary(node: NodeOf<'Binary'>): StaticType {
+    const { operator, left, right } = node;
+    if (operator === '==' || operator === '!=') {
+      return equality(node);
+    }
+    const logical = operator === '&&' || operator === '||';
+    const operand = logical ? 'boolean' : 'number';
+    const leftSound = expectType(left, operand);
+    const rightSound = expectType(right, operand);
+    if (!(leftSound && rightSound)) {
+      return UNKNOWN;
+    }
+    const arithmetic = ['+', '-', '*', '/'].includes(operator);
+    return logical || !arithmetic ? BOOLEAN : NUMBER;
+  }
+
+  function unary(node: NodeOf<'Unary'>): StaticType {
+    const operand = node.operator === '!' ? 'boolean' : 'number';
+    return expectType(node.argument, operand) ? { kind: operand } : UNKNOWN;
+  }
+
+  function conditional(node: NodeOf<'Conditional'>): StaticType {
+    const testSound = expectType(node.test, 'boolean');
+    const consequent = infer(node.consequent);
+    const alternate = infer(node.alternate);
+    if (consequent.kind === 'unknown') {
+      return alternate;
+    }
+    if (alternate.kind === 'unknown') {
+      return consequent;
+    }
+    if (consequent.kind !== alternate.kind) {
+      mismatch(node.alternate, typeName(consequent));
+      return UNKNOWN;
+    }
+    return testSound ? consequent : UNKNOWN;
+  }
+
+  function infer(node: FormulaNode): StaticType {
+    switch (node.type) {
+      case 'Literal':
+        if (typeof node.value === 'string') {
+          return STRING;
+        }
+        return typeof node.value === 'number' ? NUMBER : BOOLEAN;
+      case 'Identifier':
+        return identifier(node);
+      case 'Member':
+        return member(node);
+      case 'Call':
+        return call(node);
+      case 'Unary':
+        return unary(node);
+      case 'Binary':
+        return binary(node);
+      case 'Conditional':
+        return conditional(node);
+    }
+  }
+
+  const resultType = infer(parsed.ast);
+  if (resultType.kind !== 'unknown' && resultType.kind !== 'number') {
+    mismatch(parsed.ast, 'number');
+  }
 
   return {
     valid: errors.length === 0,
