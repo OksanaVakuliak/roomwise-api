@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Prisma } from '../../generated/prisma/client';
+import type { CatalogChangeNotifier } from '../catalog/common/catalog-change.notifier';
 import type { CatalogDatasetService } from '../catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../catalog/dataset/data';
 import type { CloudinaryService } from '../catalog/images/cloudinary.service';
@@ -17,6 +18,7 @@ function createDependencies() {
     },
     cache: { invalidate: vi.fn() },
     cloudinary: { deleteByPrefix: vi.fn().mockResolvedValue(undefined) },
+    notifier: { notify: vi.fn() },
   };
 }
 
@@ -27,6 +29,7 @@ function createParticipant(
     dependencies.datasetService as unknown as CatalogDatasetService,
     dependencies.cache as unknown as CatalogCache,
     dependencies.cloudinary as unknown as CloudinaryService,
+    dependencies.notifier as unknown as CatalogChangeNotifier,
   );
 }
 
@@ -43,18 +46,29 @@ describe('catalogParticipant', () => {
     );
   });
 
-  it('invalidates the catalog cache and removes uploaded images after commit', async () => {
+  it('invalidates the catalog cache, notifies subscribers and removes uploaded images after commit', async () => {
     const dependencies = createDependencies();
 
     await createParticipant(dependencies).afterCommit?.();
 
     expect(dependencies.cache.invalidate).toHaveBeenCalled();
+    expect(dependencies.notifier.notify).toHaveBeenCalledOnce();
     expect(dependencies.cloudinary.deleteByPrefix).toHaveBeenCalledWith(
       'roomwise/uploads/',
     );
   });
 
-  it('invalidates the cache even when the image cleanup fails', async () => {
+  it('does not notify subscribers before the transaction commits', async () => {
+    const dependencies = createDependencies();
+
+    await createParticipant(dependencies).replace(
+      {} as Prisma.TransactionClient,
+    );
+
+    expect(dependencies.notifier.notify).not.toHaveBeenCalled();
+  });
+
+  it('invalidates the cache and notifies even when the image cleanup fails', async () => {
     const dependencies = createDependencies();
     dependencies.cloudinary.deleteByPrefix.mockRejectedValue(new Error('down'));
 
@@ -62,6 +76,7 @@ describe('catalogParticipant', () => {
       createParticipant(dependencies).afterCommit?.(),
     ).rejects.toThrow('down');
     expect(dependencies.cache.invalidate).toHaveBeenCalled();
+    expect(dependencies.notifier.notify).toHaveBeenCalledOnce();
   });
 });
 
@@ -73,6 +88,7 @@ describe('sandboxDatasetParticipantsProvider', () => {
       dependencies.datasetService,
       dependencies.cache,
       dependencies.cloudinary,
+      dependencies.notifier,
     );
 
     expect(sandboxDatasetParticipantsProvider.provide).toBe(

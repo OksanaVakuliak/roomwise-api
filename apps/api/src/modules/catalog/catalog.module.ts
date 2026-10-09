@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CategoriesController } from './categories/categories.controller';
 import { CategoriesService } from './categories/categories.service';
 import { CatalogChangeInterceptor } from './common/catalog-change.interceptor';
+import { CatalogChangeNotifier } from './common/catalog-change.notifier';
 import { CatalogDatasetService } from './dataset/catalog-dataset.service';
 import { EngineeringPackageItemsController } from './engineering/engineering.controller';
 import { EngineeringPackageItemsService } from './engineering/engineering.service';
@@ -14,6 +15,7 @@ import { MaterialTypesController } from './material-types/material-types.control
 import { MaterialTypesService } from './material-types/material-types.service';
 import { OptionsController } from './options/options.controller';
 import { OptionsService } from './options/options.service';
+import { CatalogPricingReadService } from './pricing-read/catalog-pricing-read.service';
 import { ProductsController } from './products/products.controller';
 import { ProductsService } from './products/products.service';
 import { CatalogCache } from './public/catalog-cache';
@@ -40,6 +42,8 @@ import { StylesService } from './styles/styles.service';
     PublicCatalogService,
     CatalogCache,
     CatalogChangeInterceptor,
+    CatalogChangeNotifier,
+    CatalogPricingReadService,
     ImageUrlBuilder,
     CloudinaryService,
     ImagesService,
@@ -57,6 +61,8 @@ import { StylesService } from './styles/styles.service';
     PublicCatalogService,
     CatalogCache,
     CatalogDatasetService,
+    CatalogChangeNotifier,
+    CatalogPricingReadService,
     CloudinaryService,
   ],
 })
