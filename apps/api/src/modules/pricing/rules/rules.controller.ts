@@ -77,8 +77,11 @@ export class RulesController {
 
   @Put('order')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async reorder(@Body() body: RuleOrderDto): Promise<void> {
-    await this.rulesService.reorder(body);
+  async reorder(
+    @Body() body: RuleOrderDto,
+    @CurrentAdmin() admin: AuthenticatedAdmin,
+  ): Promise<void> {
+    await this.rulesService.reorder(body, admin.id);
   }
 
   @Patch(':id')

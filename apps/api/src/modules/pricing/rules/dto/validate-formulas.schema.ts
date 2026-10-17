@@ -1,13 +1,28 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { RuleLevel } from '../../../../generated/prisma/enums';
-import { formulaSchema } from './rule-input.schema';
+import {
+  addShapeIssues,
+  findQuantityFormulaIssues,
+  formulaSchema,
+} from './rule-input.schema';
 
-export const validateFormulasSchema = z.object({
+export const validateFormulasBaseSchema = z.object({
   level: z.enum(RuleLevel),
   quantityFormula: formulaSchema.nullable().optional(),
   costFormula: formulaSchema,
 });
+
+export function refineQuantityFormula(
+  rule: z.infer<typeof validateFormulasBaseSchema>,
+  context: z.RefinementCtx,
+): void {
+  addShapeIssues(findQuantityFormulaIssues(rule), context);
+}
+
+export const validateFormulasSchema = validateFormulasBaseSchema.superRefine(
+  refineQuantityFormula,
+);
 
 export const formulaIssueSchema = z.object({
   formula: z.enum(['quantity', 'cost']),

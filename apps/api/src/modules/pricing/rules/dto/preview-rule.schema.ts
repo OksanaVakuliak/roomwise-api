@@ -1,11 +1,14 @@
 import { RulePreviewSchema, RuleSampleSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { validateFormulasSchema } from './validate-formulas.schema';
+import {
+  refineQuantityFormula,
+  validateFormulasBaseSchema,
+} from './validate-formulas.schema';
 
-export const previewRuleSchema = validateFormulasSchema.extend({
-  sample: RuleSampleSchema,
-});
+export const previewRuleSchema = validateFormulasBaseSchema
+  .extend({ sample: RuleSampleSchema })
+  .superRefine(refineQuantityFormula);
 
 export type PreviewRuleInput = z.infer<typeof previewRuleSchema>;
 

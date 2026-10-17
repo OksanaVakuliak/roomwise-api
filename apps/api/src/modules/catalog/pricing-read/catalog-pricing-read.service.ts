@@ -43,13 +43,15 @@ export class CatalogPricingReadService {
   > {
     const rows = await this.prisma.category.findMany({
       select: { id: true, name: true },
-      orderBy: { id: 'asc' },
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      name: toLocalizedText(row.name),
-    }));
+    return rows
+      .map((row) => ({ id: row.id, name: toLocalizedText(row.name) }))
+      .sort(
+        (left, right) =>
+          left.name.en.localeCompare(right.name.en) ||
+          (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
+      );
   }
 
   async materialTypes(): Promise<PricingMaterialType[]> {

@@ -94,10 +94,11 @@ export class RulesService {
     const quantityFormula = input.quantityFormula ?? null;
 
     await this.assertReferencesExist(categoryId, materialTypeId);
-    const coefficientKeys = await this.assertFormulasValid(
+    const coefficientKeys = this.assertFormulasValid(
       input.level,
       quantityFormula,
       input.costFormula,
+      await this.pricingData.coefficients(),
     );
     await this.assertNotDuplicate(input.level, categoryId, materialTypeId);
 
@@ -173,10 +174,11 @@ export class RulesService {
       });
     }
 
-    const coefficientKeys = await this.assertFormulasValid(
+    const coefficientKeys = this.assertFormulasValid(
       existing.level,
       quantityFormula,
       costFormula,
+      await this.pricingData.coefficients(),
     );
 
     await updateWithRevision({
@@ -207,7 +209,7 @@ export class RulesService {
     return this.getById(id);
   }
 
-  async reorder(input: RuleOrderInput): Promise<void> {
+  async reorder(input: RuleOrderInput, adminId: string): Promise<void> {
     const existing = await this.prisma.pricingRule.findMany({
       where: { level: RuleLevel.OBJECT },
       select: { id: true },
@@ -226,12 +228,14 @@ export class RulesService {
       });
     }
 
+    const updatedAt = new Date();
+
     try {
       await this.prisma.$transaction(
         input.ids.map((id, index) =>
           this.prisma.pricingRule.update({
             where: { id },
-            data: { sortOrder: index },
+            data: { sortOrder: index, updatedAt, updatedById: adminId },
           }),
         ),
       );
@@ -265,24 +269,55 @@ export class RulesService {
   async validate(
     input: ValidateFormulasInput,
   ): Promise<ValidateFormulasResponse> {
-    const known = await this.coefficientKeys();
+    return this.checkFormulas(
+      input.level,
+      input.quantityFormula ?? null,
+      input.costFormula,
+      await this.pricingData.coefficients(),
+    );
+  }
+
+  async preview(input: PreviewRuleInput): Promise<RulePreview> {
+    const quantityFormula = input.quantityFormula ?? null;
+    const coefficients = await this.pricingData.coefficients();
+
+    this.assertFormulasValid(
+      input.level,
+      quantityFormula,
+      input.costFormula,
+      coefficients,
+    );
+
+    return previewRule({
+      level: input.level,
+      quantityFormula,
+      costFormula: input.costFormula,
+      coefficients,
+      sample: input.sample,
+    });
+  }
+
+  private checkFormulas(
+    level: RuleLevel,
+    quantityFormula: string | null,
+    costFormula: string,
+    coefficients: Record<string, number>,
+  ): ValidateFormulasResponse {
+    const known = Object.keys(coefficients);
     const errors: FormulaIssue[] = [];
     const used: string[] = [];
-    const formulas: Array<['quantity' | 'cost', string | null | undefined]> = [
-      [
-        'quantity',
-        input.level === RuleLevel.OBJECT ? null : input.quantityFormula,
-      ],
-      ['cost', input.costFormula],
+    const formulas: Array<['quantity' | 'cost', string | null]> = [
+      ['quantity', quantityFormula],
+      ['cost', costFormula],
     ];
 
     for (const [formula, source] of formulas) {
-      if (source === null || source === undefined) {
+      if (source === null) {
         continue;
       }
 
       const result = validateFormula({
-        level: input.level,
+        level,
         kind: formula,
         source,
         coefficientKeys: known,
@@ -299,49 +334,18 @@ export class RulesService {
     };
   }
 
-  async preview(input: PreviewRuleInput): Promise<RulePreview> {
-    const quantityFormula =
-      input.level === RuleLevel.OBJECT ? null : (input.quantityFormula ?? null);
-
-    await this.assertFormulasValid(
-      input.level,
-      quantityFormula,
-      input.costFormula,
-    );
-
-    return previewRule({
-      level: input.level,
-      quantityFormula,
-      costFormula: input.costFormula,
-      coefficients: await this.coefficients(),
-      sample: input.sample,
-    });
-  }
-
-  async coefficients(): Promise<Record<string, number>> {
-    const rows = await this.prisma.coefficient.findMany({
-      orderBy: { key: 'asc' },
-    });
-
-    return Object.fromEntries(
-      rows.map((row) => [row.key, row.value.toNumber()]),
-    );
-  }
-
-  private async coefficientKeys(): Promise<string[]> {
-    const rows = await this.prisma.coefficient.findMany({
-      select: { key: true },
-    });
-
-    return rows.map((row) => row.key);
-  }
-
-  private async assertFormulasValid(
+  private assertFormulasValid(
     level: RuleLevel,
     quantityFormula: string | null,
     costFormula: string,
-  ): Promise<string[]> {
-    const result = await this.validate({ level, quantityFormula, costFormula });
+    coefficients: Record<string, number>,
+  ): string[] {
+    const result = this.checkFormulas(
+      level,
+      quantityFormula,
+      costFormula,
+      coefficients,
+    );
 
     if (!result.valid) {
       throw new AppError(ERROR_CODES.FORMULA_INVALID, {

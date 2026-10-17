@@ -71,9 +71,6 @@ function setup(
   };
   const prisma = {
     pricingRule: rule,
-    coefficient: {
-      findMany: vi.fn().mockResolvedValue([{ key: 'tile_glue' }]),
-    },
     $transaction: vi.fn().mockResolvedValue([]),
   } as unknown as PrismaService;
   const catalog = {
@@ -88,7 +85,10 @@ function setup(
       { id: 'category-2', name: localized('Walls', 'Стіни') },
     ]),
   };
-  const pricingData = { invalidate: vi.fn() };
+  const pricingData = {
+    invalidate: vi.fn(),
+    coefficients: vi.fn().mockResolvedValue({ tile_glue: 1 }),
+  };
   const service = new RulesService(
     prisma,
     catalog as unknown as CatalogPricingReadService,
@@ -203,11 +203,11 @@ describe('RulesService.list', () => {
 
 describe('RulesService.create', () => {
   it('stores sorted unique coefficient keys from both formulas', async () => {
-    const { service, rule, prisma } = setup();
-    vi.mocked(prisma.coefficient.findMany).mockResolvedValue([
-      { key: 'tile_glue' },
-      { key: 'laminate_underlay' },
-    ] as never);
+    const { service, rule, pricingData } = setup();
+    pricingData.coefficients.mockResolvedValue({
+      tile_glue: 1,
+      laminate_underlay: 2,
+    });
 
     await service.create(
       {
@@ -398,11 +398,11 @@ describe('RulesService.create', () => {
 
 describe('RulesService.update', () => {
   it('re-validates merged formulas and recomputes coefficient keys', async () => {
-    const { service, rule, prisma } = setup();
-    vi.mocked(prisma.coefficient.findMany).mockResolvedValue([
-      { key: 'tile_glue' },
-      { key: 'laminate_underlay' },
-    ] as never);
+    const { service, rule, pricingData } = setup();
+    pricingData.coefficients.mockResolvedValue({
+      tile_glue: 1,
+      laminate_underlay: 2,
+    });
 
     await service.update(
       RULE_ID,
@@ -524,15 +524,23 @@ describe('RulesService.reorder', () => {
     const { service, rule, prisma, pricingData } = setup();
     rule.findMany.mockResolvedValue(objectRules);
 
-    await service.reorder({ ids: ['c', 'a', 'b'] });
+    await service.reorder({ ids: ['c', 'a', 'b'] }, ADMIN_ID);
 
     expect(rule.update).toHaveBeenCalledWith({
       where: { id: 'c' },
-      data: { sortOrder: 0 },
+      data: {
+        sortOrder: 0,
+        updatedAt: expect.any(Date),
+        updatedById: ADMIN_ID,
+      },
     });
     expect(rule.update).toHaveBeenCalledWith({
       where: { id: 'b' },
-      data: { sortOrder: 2 },
+      data: {
+        sortOrder: 2,
+        updatedAt: expect.any(Date),
+        updatedById: ADMIN_ID,
+      },
     });
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(pricingData.invalidate).toHaveBeenCalledTimes(1);
@@ -546,7 +554,7 @@ describe('RulesService.reorder', () => {
     const { service, rule, prisma, pricingData } = setup();
     rule.findMany.mockResolvedValue(objectRules);
 
-    await expect(service.reorder({ ids })).rejects.toMatchObject({
+    await expect(service.reorder({ ids }, ADMIN_ID)).rejects.toMatchObject({
       code: ERROR_CODES.VALIDATION_FAILED,
     });
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -559,7 +567,7 @@ describe('RulesService.reorder', () => {
     vi.mocked(prisma.$transaction).mockRejectedValue(p2025());
 
     await expect(
-      service.reorder({ ids: ['a', 'b', 'c'] }),
+      service.reorder({ ids: ['a', 'b', 'c'] }, ADMIN_ID),
     ).rejects.toMatchObject({ code: ERROR_CODES.VALIDATION_FAILED });
     expect(pricingData.invalidate).not.toHaveBeenCalled();
   });
@@ -619,26 +627,42 @@ describe('RulesService.validate', () => {
     ]);
   });
 
-  it('ignores the quantity formula of an object rule', async () => {
-    const { service } = setup();
+  it('reads coefficients once', async () => {
+    const { service, pricingData } = setup();
 
-    const result = await service.validate({
-      level: RuleLevel.OBJECT,
-      quantityFormula: '1 +',
-      costFormula: '1',
+    await service.validate({
+      level: RuleLevel.CATEGORY,
+      quantityFormula: QUANTITY,
+      costFormula: COST,
     });
 
-    expect(result.valid).toBe(true);
+    expect(pricingData.coefficients).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('RulesService.coefficients', () => {
-  it('returns coefficient values by key', async () => {
-    const { service, prisma } = setup();
-    vi.mocked(prisma.coefficient.findMany).mockResolvedValue([
-      { key: 'tile_glue', value: new Prisma.Decimal('10.5') },
-    ] as never);
+describe('RulesService.preview', () => {
+  it('reads coefficients once and passes them to the preview', async () => {
+    const { service, pricingData } = setup();
+    pricingData.coefficients.mockResolvedValue({ tile_glue: 10 });
 
-    await expect(service.coefficients()).resolves.toEqual({ tile_glue: 10.5 });
+    const result = await service.preview({
+      level: RuleLevel.OBJECT,
+      costFormula: 'coef.tile_glue',
+      sample: {
+        object: {
+          totalAreaSqm: 60,
+          balconyAreaSqm: 0,
+          balconyTiles: false,
+          gas: false,
+          kitchenType: 'SEPARATE',
+          finishLevel: 'ROUGH',
+          roomsCount: 2,
+          bathroomsCount: 1,
+        },
+      },
+    });
+
+    expect(pricingData.coefficients).toHaveBeenCalledTimes(1);
+    expect(result.coefficients).toEqual({ tile_glue: 10 });
   });
 });

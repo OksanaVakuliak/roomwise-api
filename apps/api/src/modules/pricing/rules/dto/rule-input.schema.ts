@@ -19,34 +19,32 @@ export interface RuleShapeIssue {
   message: string;
 }
 
-export function findRuleShapeIssues(rule: RuleShape): RuleShapeIssue[] {
+function expectField(
+  issues: RuleShapeIssue[],
+  level: RuleLevel,
+  path: RuleShapeIssue['path'],
+  value: string | null | undefined,
+  required: boolean,
+): void {
+  const present = value !== undefined && value !== null;
+
+  if (required && !present) {
+    issues.push({ path, message: `${path} is required for ${level}` });
+  }
+
+  if (!required && present) {
+    issues.push({ path, message: `${path} is not allowed for ${level}` });
+  }
+}
+
+export function findQuantityFormulaIssues(
+  rule: Pick<RuleShape, 'level' | 'quantityFormula'>,
+): RuleShapeIssue[] {
   const issues: RuleShapeIssue[] = [];
-  const expect = (
-    path: RuleShapeIssue['path'],
-    value: string | null | undefined,
-    required: boolean,
-  ) => {
-    const present = value !== undefined && value !== null;
 
-    if (required && !present) {
-      issues.push({ path, message: `${path} is required for ${rule.level}` });
-    }
-
-    if (!required && present) {
-      issues.push({
-        path,
-        message: `${path} is not allowed for ${rule.level}`,
-      });
-    }
-  };
-
-  expect('categoryId', rule.categoryId, rule.level !== RuleLevel.OBJECT);
-  expect(
-    'materialTypeId',
-    rule.materialTypeId,
-    rule.level === RuleLevel.MATERIAL_TYPE,
-  );
-  expect(
+  expectField(
+    issues,
+    rule.level,
     'quantityFormula',
     rule.quantityFormula,
     rule.level !== RuleLevel.OBJECT,
@@ -55,23 +53,51 @@ export function findRuleShapeIssues(rule: RuleShape): RuleShapeIssue[] {
   return issues;
 }
 
+export function findRuleShapeIssues(rule: RuleShape): RuleShapeIssue[] {
+  const issues: RuleShapeIssue[] = [];
+
+  expectField(
+    issues,
+    rule.level,
+    'categoryId',
+    rule.categoryId,
+    rule.level !== RuleLevel.OBJECT,
+  );
+  expectField(
+    issues,
+    rule.level,
+    'materialTypeId',
+    rule.materialTypeId,
+    rule.level === RuleLevel.MATERIAL_TYPE,
+  );
+
+  return [...issues, ...findQuantityFormulaIssues(rule)];
+}
+
+export function addShapeIssues(
+  issues: RuleShapeIssue[],
+  context: z.RefinementCtx,
+): void {
+  for (const issue of issues) {
+    context.addIssue({
+      code: 'custom',
+      path: [issue.path],
+      message: issue.message,
+    });
+  }
+}
+
 export const ruleInputSchema = z
   .object({
     level: z.enum(RuleLevel),
-    categoryId: z.uuid().optional(),
-    materialTypeId: z.uuid().optional(),
+    categoryId: z.uuid().nullable().optional(),
+    materialTypeId: z.uuid().nullable().optional(),
     name: localizedNameDraftSchema,
     quantityFormula: formulaSchema.nullable().optional(),
     costFormula: formulaSchema,
   })
   .superRefine((rule, context) => {
-    for (const issue of findRuleShapeIssues(rule)) {
-      context.addIssue({
-        code: 'custom',
-        path: [issue.path],
-        message: issue.message,
-      });
-    }
+    addShapeIssues(findRuleShapeIssues(rule), context);
   });
 
 export type RuleInput = z.infer<typeof ruleInputSchema>;

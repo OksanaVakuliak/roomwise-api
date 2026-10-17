@@ -140,7 +140,7 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       this.catalog.options(),
       this.readSettings(),
       this.readBaseRates(),
-      this.readCoefficients(),
+      this.coefficients(),
       this.readRules(),
       this.prisma.exchangeRate.findFirst({
         where: { source: RateSource.NBU },
@@ -205,7 +205,7 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
     }));
   }
 
-  private async readCoefficients(): Promise<Record<string, number>> {
+  async coefficients(): Promise<Record<string, number>> {
     const rows = await this.prisma.coefficient.findMany({
       orderBy: { key: 'asc' },
     });

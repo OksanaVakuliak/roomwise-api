@@ -44,6 +44,7 @@ interface RuleBody {
   costFormula: string;
   sortOrder: number;
   revision: string;
+  updatedBy: { id: string; login: string } | null;
 }
 
 interface EstimateLine {
@@ -102,6 +103,7 @@ function floorRoom(clientId: string, productId: string, length: number) {
 describe('admin pricing rules e2e', () => {
   let testApp: TestApp;
   let adminCookie: string;
+  let adminId: string;
 
   beforeAll(async () => {
     testApp = await createTestApp();
@@ -117,6 +119,7 @@ describe('admin pricing rules e2e', () => {
     testApp.app.get(PricingDataService).invalidate();
 
     const admin = await createAdmin(testApp.prisma);
+    adminId = admin.id;
     adminCookie = await login(testApp.http, admin.login, admin.password);
   });
 
@@ -241,7 +244,11 @@ describe('admin pricing rules e2e', () => {
 
     it('reports a syntax error with a position', async () => {
       const validated = await authed('post', VALIDATE_PATH)
-        .send({ level: 'CATEGORY', costFormula: SYNTAX_ERROR_FORMULA })
+        .send({
+          level: 'CATEGORY',
+          quantityFormula: FLOOR_QUANTITY,
+          costFormula: SYNTAX_ERROR_FORMULA,
+        })
         .expect(200);
 
       expect(validated.body.valid).toBe(false);
@@ -291,6 +298,57 @@ describe('admin pricing rules e2e', () => {
         .expect(400);
 
       expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+  });
+
+  describe('rule shape in validate and preview', () => {
+    it('rejects validate for a category rule without a quantity formula', async () => {
+      const response = await authed('post', VALIDATE_PATH)
+        .send({ level: 'CATEGORY', costFormula: 'quantity * price' })
+        .expect(400);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('rejects validate for an object rule with a quantity formula', async () => {
+      const response = await authed('post', VALIDATE_PATH)
+        .send({
+          level: 'OBJECT',
+          quantityFormula: FLOOR_QUANTITY,
+          costFormula: 'totalArea',
+        })
+        .expect(400);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('rejects preview for an object rule with a quantity formula', async () => {
+      const response = await authed('post', `${RULES_PATH}/preview`)
+        .send({
+          level: 'OBJECT',
+          quantityFormula: FLOOR_QUANTITY,
+          costFormula: 'totalArea',
+          sample: livingRoomSample,
+        })
+        .expect(400);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('creates an object rule with explicit null references', async () => {
+      const created = await authed('post', RULES_PATH)
+        .send({
+          level: 'OBJECT',
+          categoryId: null,
+          materialTypeId: null,
+          name: { en: 'Null refs', uk: 'Нульові посилання' },
+          costFormula: 'totalArea',
+        })
+        .expect(201);
+
+      expect(created.body.categoryId).toBeNull();
+
+      await authed('delete', `${RULES_PATH}/${created.body.id}`).expect(204);
     });
   });
 
@@ -495,6 +553,14 @@ describe('admin pricing rules e2e', () => {
         .map((item) => item.id);
 
       expect(reordered).toEqual(reversed);
+
+      const rules = (await listRules()).items.filter(
+        (item) => item.level === 'OBJECT',
+      );
+
+      for (const rule of rules) {
+        expect(rule.updatedBy?.id).toBe(adminId);
+      }
     });
 
     it('rejects an order that misses an object rule', async () => {
