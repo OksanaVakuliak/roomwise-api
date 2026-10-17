@@ -130,6 +130,7 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       baseRates,
       coefficients,
       ruleRows,
+      nbuRate,
     ] = await Promise.all([
       this.catalog.roomTypes(),
       this.catalog.categories(),
@@ -141,15 +142,13 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       this.readBaseRates(),
       this.readCoefficients(),
       this.readRules(),
+      this.prisma.exchangeRate.findFirst({
+        where: { source: RateSource.NBU },
+        orderBy: { effectiveDate: 'desc' },
+      }),
     ]);
     const limits = toLimits(settings);
-    const exchangeRate = toExchangeRate(
-      settings.manualRate ??
-        (await this.prisma.exchangeRate.findFirst({
-          where: { source: RateSource.NBU },
-          orderBy: { effectiveDate: 'desc' },
-        })),
-    );
+    const exchangeRate = toExchangeRate(settings.manualRate ?? nbuRate);
 
     const categoryIds = new Set(categories.map((category) => category.id));
     const materialTypeIds = new Set(
@@ -159,7 +158,8 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       (rule) =>
         (rule.categoryId === null || categoryIds.has(rule.categoryId)) &&
         (rule.materialTypeId === null ||
-          materialTypeIds.has(rule.materialTypeId)),
+          materialTypeIds.has(rule.materialTypeId)) &&
+        (rule.level === 'OBJECT') === (rule.quantityFormula === null),
     );
 
     const body: PricingDataBody = {

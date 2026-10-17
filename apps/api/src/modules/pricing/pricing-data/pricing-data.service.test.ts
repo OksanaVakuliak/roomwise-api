@@ -184,6 +184,28 @@ describe('PricingDataService', () => {
     expect(data.rules.map((rule) => rule.id)).toEqual([object.id, kept.id]);
   });
 
+  it('excludes rules whose quantity formula does not match their level', async () => {
+    const kept = ruleRow({ id: '66666666-6666-4666-8666-666666666666' });
+    const { service } = createService({
+      rules: [
+        kept,
+        ruleRow({
+          id: '77777777-7777-4777-8777-777777777777',
+          quantityFormula: null,
+        }),
+        ruleRow({
+          id: '88888888-8888-4888-8888-888888888888',
+          level: RuleLevel.OBJECT,
+          categoryId: null,
+        }),
+      ],
+    });
+
+    const data = await service.get();
+
+    expect(data.rules.map((rule) => rule.id)).toEqual([kept.id]);
+  });
+
   it('orders rules by level, sort order and id', async () => {
     const { service } = createService({
       rules: [
@@ -241,7 +263,7 @@ describe('PricingDataService', () => {
     });
 
     it('prefers the manual rate over the official one', async () => {
-      const { service, prisma } = createService({
+      const { service } = createService({
         manualRate: {
           source: RateSource.MANUAL,
           rate: decimal('42'),
@@ -261,7 +283,6 @@ describe('PricingDataService', () => {
         date: '2026-10-17',
         source: 'MANUAL',
       });
-      expect(prisma.exchangeRate.findFirst).not.toHaveBeenCalled();
     });
   });
 

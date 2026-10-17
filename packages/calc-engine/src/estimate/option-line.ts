@@ -1,4 +1,3 @@
-import { toCents } from '../money';
 import type {
   Configuration,
   EstimateLine,
@@ -7,7 +6,7 @@ import type {
   PricingOption,
   RoomConfiguration,
 } from '../schemas';
-import { createLine, failedLine, roundQuantity } from './line';
+import { failedLine, pricedLine, roundQuantity } from './line';
 import { lineId } from './line-id';
 
 export function unitQuantity(
@@ -55,17 +54,22 @@ export function optionLine(
     allowed,
     selection.quantity ?? option.minQuantity ?? 1,
   );
-  return createLine({
-    ...init,
-    quantity: roundQuantity(quantity),
-    unit: option.unit,
-    unitPriceCents: option.priceCents,
-    amountCents: toCents((option.priceCents / 100) * quantity),
-    warnings: rejected.map((room) => ({
-      code: 'OPTION_ROOM_TYPE_NOT_ALLOWED',
-      params: { roomClientId: room.clientId, roomTypeCode: room.roomTypeCode },
-    })),
-  });
+  return pricedLine(
+    {
+      ...init,
+      quantity: roundQuantity(quantity),
+      unit: option.unit,
+      unitPriceCents: option.priceCents,
+      warnings: rejected.map((room) => ({
+        code: 'OPTION_ROOM_TYPE_NOT_ALLOWED',
+        params: {
+          roomClientId: room.clientId,
+          roomTypeCode: room.roomTypeCode,
+        },
+      })),
+    },
+    (option.priceCents / 100) * quantity,
+  );
 }
 
 export function optionLines(

@@ -1,11 +1,10 @@
-import { toCents } from '../money';
 import type {
   Configuration,
   EstimateLine,
   PricingData,
   PricingPackageItem,
 } from '../schemas';
-import { createLine, failedLine, roundQuantity } from './line';
+import { createLine, failedLine, pricedLine, roundQuantity } from './line';
 import { lineId } from './line-id';
 import { optionLines, unitQuantity } from './option-line';
 
@@ -28,13 +27,15 @@ function packageLine(
     });
   }
   const quantity = unitQuantity(item.unit, configuration.rooms, 1);
-  return createLine({
-    ...init,
-    quantity: roundQuantity(quantity),
-    unit: item.unit,
-    unitPriceCents: item.priceCents,
-    amountCents: toCents((item.priceCents / 100) * quantity),
-  });
+  return pricedLine(
+    {
+      ...init,
+      quantity: roundQuantity(quantity),
+      unit: item.unit,
+      unitPriceCents: item.priceCents,
+    },
+    (item.priceCents / 100) * quantity,
+  );
 }
 
 export function engineeringLines(

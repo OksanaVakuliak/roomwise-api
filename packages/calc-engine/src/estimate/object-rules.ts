@@ -1,7 +1,6 @@
-import { toCents } from '../money';
 import type { Configuration, EstimateLine, PricingData } from '../schemas';
 import { objectVariables } from '../variables';
-import { createLine, failedLine } from './line';
+import { failedLine, pricedLine } from './line';
 import { lineId } from './line-id';
 import { runNumericFormula } from './run-formula';
 
@@ -24,7 +23,7 @@ export function objectRuleLines(
       } as const;
       const outcome = runNumericFormula(rule.costFormula, scope);
       return outcome.ok
-        ? createLine({ ...init, amountCents: toCents(outcome.value) })
+        ? pricedLine(init, outcome.value)
         : failedLine(init, 'ERROR', outcome.error);
     });
 }

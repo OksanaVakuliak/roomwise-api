@@ -6,6 +6,7 @@ import {
   type PricingData,
   PricingDataSchema,
 } from '../src';
+import { MAX_LINE_CENTS } from '../src/estimate/line';
 import reference from './fixtures/reference/us1-reference.json';
 import referenceRequest from './fixtures/reference/us1-reference.request.json';
 
@@ -241,6 +242,53 @@ describe('estimate references and options', () => {
     expect(result.totals.uahKopecks).toBeNull();
     expect(result.lines.every((line) => line.amountUahKopecks === null)).toBe(
       true,
+    );
+  });
+});
+
+describe('estimate amount bounds', () => {
+  it('fails only the line whose amount is out of range', () => {
+    const result = estimate(
+      { ...request, options: [{ optionId: 'opt-ac', quantity: 9e15 }] },
+      data,
+    );
+    expect(lineOf(result, 'ENGINEERING:option:opt-ac')).toMatchObject({
+      status: 'ERROR',
+      amountCents: 0,
+      error: {
+        code: 'AMOUNT_OUT_OF_RANGE',
+        params: { maxCents: MAX_LINE_CENTS },
+      },
+    });
+    expect(result.incomplete).toBe(true);
+    expect(Number.isSafeInteger(result.totals.usdCents)).toBe(true);
+    expect(Number.isSafeInteger(result.totals.uahKopecks)).toBe(true);
+  });
+
+  it('fails a line whose formula result is too large', () => {
+    const result = estimate(
+      request,
+      withRules((rule) =>
+        rule.id === 'rule-walls' ? { ...rule, costFormula: '1e17' } : rule,
+      ),
+    );
+    expect(lineOf(result, 'MATERIALS:living:cat-walls')?.error?.code).toBe(
+      'AMOUNT_OUT_OF_RANGE',
+    );
+    expect(lineOf(result, 'BASE')?.status).toBe('OK');
+  });
+
+  it('accepts a line at the bound', () => {
+    const result = estimate(
+      request,
+      withRules((rule) =>
+        rule.id === 'rule-walls'
+          ? { ...rule, costFormula: String(MAX_LINE_CENTS / 100) }
+          : rule,
+      ),
+    );
+    expect(lineOf(result, 'MATERIALS:living:cat-walls')?.amountCents).toBe(
+      MAX_LINE_CENTS,
     );
   });
 });

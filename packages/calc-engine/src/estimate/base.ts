@@ -1,6 +1,5 @@
-import { toCents } from '../money';
 import type { Configuration, EstimateLine, PricingData } from '../schemas';
-import { createLine, failedLine, roundQuantity } from './line';
+import { failedLine, pricedLine, roundQuantity } from './line';
 import { lineId } from './line-id';
 
 export function baseLine(
@@ -21,11 +20,13 @@ export function baseLine(
       params: { totalAreaSqm: area, finishLevel: configuration.finishLevel },
     });
   }
-  return createLine({
-    ...init,
-    quantity: roundQuantity(area),
-    unit: 'SQM',
-    unitPriceCents: rate.rateCentsPerSqm,
-    amountCents: toCents((rate.rateCentsPerSqm / 100) * area),
-  });
+  return pricedLine(
+    {
+      ...init,
+      quantity: roundQuantity(area),
+      unit: 'SQM',
+      unitPriceCents: rate.rateCentsPerSqm,
+    },
+    (rate.rateCentsPerSqm / 100) * area,
+  );
 }

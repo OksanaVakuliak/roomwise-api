@@ -1,4 +1,3 @@
-import { toCents } from '../money';
 import type {
   Configuration,
   EstimateLine,
@@ -7,7 +6,7 @@ import type {
   RoomConfiguration,
 } from '../schemas';
 import { objectVariables, productVariables, roomVariables } from '../variables';
-import { createLine, failedLine, roundQuantity } from './line';
+import { failedLine, pricedLine, roundQuantity } from './line';
 import { lineId } from './line-id';
 import { runNumericFormula } from './run-formula';
 
@@ -87,13 +86,15 @@ function materialLine(
   if (!cost.ok) {
     return failedLine(ruled, 'ERROR', cost.error);
   }
-  return createLine({
-    ...ruled,
-    quantity: roundQuantity(quantity.value),
-    unit: product.unit,
-    unitPriceCents: product.priceCents,
-    amountCents: toCents(cost.value),
-  });
+  return pricedLine(
+    {
+      ...ruled,
+      quantity: roundQuantity(quantity.value),
+      unit: product.unit,
+      unitPriceCents: product.priceCents,
+    },
+    cost.value,
+  );
 }
 
 export function materialLines(

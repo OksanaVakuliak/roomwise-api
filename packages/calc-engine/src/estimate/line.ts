@@ -1,4 +1,7 @@
+import { toCents } from '../money';
 import type { EstimateLine, EstimateMessage } from '../schemas';
+
+export const MAX_LINE_CENTS = 10_000_000_000;
 
 type LineInit = Pick<EstimateLine, 'id' | 'section'> & Partial<EstimateLine>;
 
@@ -28,6 +31,20 @@ export function failedLine(
   error: EstimateMessage,
 ): EstimateLine {
   return createLine({ ...init, status, error });
+}
+
+export function pricedLine(init: LineInit, dollars: number): EstimateLine {
+  if (
+    !Number.isFinite(dollars) ||
+    dollars < 0 ||
+    dollars * 100 > MAX_LINE_CENTS
+  ) {
+    return failedLine(init, 'ERROR', {
+      code: 'AMOUNT_OUT_OF_RANGE',
+      params: { maxCents: MAX_LINE_CENTS },
+    });
+  }
+  return createLine({ ...init, amountCents: toCents(dollars) });
 }
 
 export function roundQuantity(quantity: number): number {
