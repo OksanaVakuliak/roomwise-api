@@ -7,6 +7,8 @@ import type {
   PricingProduct,
   PricingRoomType,
 } from '@roomwise/calc-engine';
+import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
+import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { PublicationStatus } from '../../../generated/prisma/enums';
 
@@ -33,6 +35,20 @@ export class CatalogPricingReadService {
       id: row.id,
       wastePercent: row.wastePercent.toNumber(),
       surface: row.surface,
+    }));
+  }
+
+  async categorySummaries(): Promise<
+    Array<{ id: string; name: LocalizedText }>
+  > {
+    const rows = await this.prisma.category.findMany({
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: toLocalizedText(row.name),
     }));
   }
 

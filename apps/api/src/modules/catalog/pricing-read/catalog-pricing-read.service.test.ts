@@ -51,6 +51,16 @@ describe('CatalogPricingReadService', () => {
     ]);
   });
 
+  it('reads category summaries as id and localized name', async () => {
+    const { service } = createService({
+      category: [{ id: 'category-1', name: { en: 'Floor', uk: 'Підлога' } }],
+    });
+
+    await expect(service.categorySummaries()).resolves.toEqual([
+      { id: 'category-1', name: { en: 'Floor', uk: 'Підлога' } },
+    ]);
+  });
+
   it('reads material types as id and code', async () => {
     const { service } = createService({
       materialType: [{ id: 'material-1', code: 'tile' }],
