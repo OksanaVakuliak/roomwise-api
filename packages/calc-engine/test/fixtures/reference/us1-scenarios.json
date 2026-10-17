@@ -1,0 +1,338 @@
+[
+  {
+    "name": "us1-1-base-cost",
+    "description": "62 m2 in range [55, 70) at 118.50 USD per m2: 62 * 11850 = 734700 cents. Without rules and package items the base line is the only one.",
+    "pricingData": {
+      "packageItems": [],
+      "rules": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 1,
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": 62,
+          "unit": "SQM",
+          "unitPriceCents": 11850,
+          "amountCents": 734700
+        }
+      ],
+      "totals": {
+        "usdCents": 734700
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "us1-2-laminate-line",
+    "description": "Living room 5 x 4, laminate 18 USD, waste 5%, underlay 2: quantity 21 m2, cost 21 * 20 = 420 USD = 42000 cents. Base 734700 plus a zero object line plus 42000: 776700.",
+    "pricingData": {
+      "packageItems": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate"
+            }
+          ]
+        }
+      ],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 3,
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": 62,
+          "unit": "SQM",
+          "unitPriceCents": 11850,
+          "amountCents": 734700
+        },
+        {
+          "id": "OBJECT:rule-balcony-tile",
+          "section": "OBJECT",
+          "status": "OK",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 0
+        },
+        {
+          "id": "MATERIALS:living:cat-floor",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 21,
+          "unit": "SQM",
+          "unitPriceCents": 1800,
+          "amountCents": 42000,
+          "roomClientId": "living"
+        }
+      ],
+      "totals": {
+        "usdCents": 776700
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "us1-3-disabled-category",
+    "description": "The bedroom ceiling is disabled (productId null): no line for that pair and the other sums stay. Bedroom floor: 12 * 1.05 = 12.6 m2, 12.6 * 20 = 252 USD. Total 734700 + 0 + 42000 + 25200 = 801900.",
+    "pricingData": {
+      "packageItems": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate"
+            }
+          ]
+        },
+        {
+          "clientId": "bed",
+          "roomTypeCode": "BEDROOM",
+          "lengthM": 4,
+          "widthM": 3,
+          "heightM": 2.5,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate"
+            },
+            {
+              "categoryId": "cat-ceiling",
+              "productId": null
+            }
+          ]
+        }
+      ],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 4,
+      "lines": [
+        {
+          "id": "MATERIALS:living:cat-floor",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 21,
+          "unit": "SQM",
+          "unitPriceCents": 1800,
+          "amountCents": 42000,
+          "roomClientId": "living"
+        },
+        {
+          "id": "MATERIALS:bed:cat-floor",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 12.6,
+          "unit": "SQM",
+          "unitPriceCents": 1800,
+          "amountCents": 25200,
+          "roomClientId": "bed"
+        }
+      ],
+      "absentLineIds": ["MATERIALS:bed:cat-ceiling"],
+      "totals": {
+        "usdCents": 801900
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "us1-4-uah",
+    "description": "Same configuration as scenario 2 in UAH at 44.5483: each USD line is converted and rounded to kopecks (734700 -> 32729636, 42000 -> 1871029), the UAH total is the sum of the kopeck lines: 34600665.",
+    "pricingData": {
+      "packageItems": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate"
+            }
+          ]
+        }
+      ],
+      "options": [],
+      "currency": "UAH"
+    },
+    "expected": {
+      "lineCount": 3,
+      "currency": "UAH",
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": 62,
+          "unit": "SQM",
+          "unitPriceCents": 11850,
+          "amountCents": 734700,
+          "amountUahKopecks": 32729636
+        },
+        {
+          "id": "OBJECT:rule-balcony-tile",
+          "section": "OBJECT",
+          "status": "OK",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 0,
+          "amountUahKopecks": 0
+        },
+        {
+          "id": "MATERIALS:living:cat-floor",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 21,
+          "unit": "SQM",
+          "unitPriceCents": 1800,
+          "amountCents": 42000,
+          "roomClientId": "living",
+          "amountUahKopecks": 1871029
+        }
+      ],
+      "totals": {
+        "usdCents": 776700,
+        "uahKopecks": 34600665
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "us1-7-engineering-options",
+    "description": "Air conditioning, 3 pieces * 450 USD = 135000 cents, and heated floor in a 2 x 2 bathroom, 4 m2 * 85 USD = 34000 cents. Total 734700 + 0 + 135000 + 34000 = 903700.",
+    "pricingData": {
+      "packageItems": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": []
+        },
+        {
+          "clientId": "bath",
+          "roomTypeCode": "BATHROOM",
+          "lengthM": 2,
+          "widthM": 2,
+          "heightM": 2.5,
+          "heatedFloor": false,
+          "selections": []
+        }
+      ],
+      "options": [
+        {
+          "optionId": "opt-ac",
+          "quantity": 3
+        },
+        {
+          "optionId": "opt-heated-floor",
+          "roomClientIds": ["bath"]
+        }
+      ],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 4,
+      "lines": [
+        {
+          "id": "ENGINEERING:option:opt-ac",
+          "section": "ENGINEERING",
+          "status": "OK",
+          "quantity": 3,
+          "unit": "PIECE",
+          "unitPriceCents": 45000,
+          "amountCents": 135000
+        },
+        {
+          "id": "ENGINEERING:option:opt-heated-floor",
+          "section": "ENGINEERING",
+          "status": "OK",
+          "quantity": 4,
+          "unit": "ROOM_SQM",
+          "unitPriceCents": 8500,
+          "amountCents": 34000
+        }
+      ],
+      "totals": {
+        "usdCents": 903700
+      },
+      "incomplete": false
+    }
+  }
+]

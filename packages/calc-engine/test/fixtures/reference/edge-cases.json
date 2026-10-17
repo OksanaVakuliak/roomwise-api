@@ -1,0 +1,1090 @@
+[
+  {
+    "name": "disabled-categories",
+    "description": "All categories of the living room are disabled: no material lines. Total is the base 734700 plus the zero object line.",
+    "pricingData": {
+      "packageItems": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": null
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": null
+            },
+            {
+              "categoryId": "cat-ceiling",
+              "productId": null
+            }
+          ]
+        }
+      ],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 2,
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": 62,
+          "unit": "SQM",
+          "unitPriceCents": 11850,
+          "amountCents": 734700
+        },
+        {
+          "id": "OBJECT:rule-balcony-tile",
+          "section": "OBJECT",
+          "status": "OK",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 0
+        }
+      ],
+      "totals": {
+        "usdCents": 734700
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "area-outside-rates",
+    "description": "Total area 10 m2 is below every range: the base line is NOT_CALCULATED with BASE_RATE_NOT_FOUND, the floor line is still calculated (42000), the estimate is incomplete. Total 42000.",
+    "pricingData": {
+      "packageItems": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 10,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate"
+            }
+          ]
+        }
+      ],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 3,
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "NOT_CALCULATED",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 0,
+          "error": {
+            "code": "BASE_RATE_NOT_FOUND"
+          }
+        },
+        {
+          "id": "MATERIALS:living:cat-floor",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 21,
+          "unit": "SQM",
+          "unitPriceCents": 1800,
+          "amountCents": 42000,
+          "roomClientId": "living"
+        }
+      ],
+      "totals": {
+        "usdCents": 42000
+      },
+      "incomplete": true
+    }
+  },
+  {
+    "name": "range-lower-bound-inclusive",
+    "description": "Total area 55 m2 is the inclusive lower bound of [55, 70): rate 11850, 55 * 11850 = 651750 cents.",
+    "pricingData": {
+      "packageItems": [],
+      "rules": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 55,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 1,
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": 55,
+          "unit": "SQM",
+          "unitPriceCents": 11850,
+          "amountCents": 651750
+        }
+      ],
+      "totals": {
+        "usdCents": 651750
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "range-upper-bound-exclusive",
+    "description": "Total area 70 m2 is the exclusive upper bound of [55, 70), so it belongs to [70, 501) with rate 10900: 70 * 10900 = 763000 cents.",
+    "pricingData": {
+      "packageItems": [],
+      "rules": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 70,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 1,
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": 70,
+          "unit": "SQM",
+          "unitPriceCents": 10900,
+          "amountCents": 763000
+        }
+      ],
+      "totals": {
+        "usdCents": 763000
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "rough-finish-level",
+    "description": "The ROUGH rate in [55, 70) is 8500: 62 * 8500 = 527000 cents.",
+    "pricingData": {
+      "packageItems": [],
+      "rules": []
+    },
+    "configuration": {
+      "finishLevel": "ROUGH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 1,
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": 62,
+          "unit": "SQM",
+          "unitPriceCents": 8500,
+          "amountCents": 527000
+        }
+      ],
+      "totals": {
+        "usdCents": 527000
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "rule-not-found",
+    "description": "No category or material-type rule exists for the ceiling: the line is NOT_CALCULATED with RULE_NOT_FOUND and the estimate is incomplete. Total is the base 734700 plus the zero object line.",
+    "pricingData": {
+      "packageItems": [],
+      "rules": [
+        {
+          "id": "rule-floor",
+          "level": "CATEGORY",
+          "categoryId": "cat-floor",
+          "materialTypeId": null,
+          "name": {
+            "en": "Floor",
+            "uk": "Підлога"
+          },
+          "quantityFormula": "floorArea * (1 + waste)",
+          "costFormula": "quantity * (price + coef.laminate_underlay)",
+          "sortOrder": 0
+        },
+        {
+          "id": "rule-floor-tile",
+          "level": "MATERIAL_TYPE",
+          "categoryId": "cat-floor",
+          "materialTypeId": "mt-tile",
+          "name": {
+            "en": "Floor tile",
+            "uk": "Плитка на підлозі"
+          },
+          "quantityFormula": "floorArea * (1 + waste)",
+          "costFormula": "quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))",
+          "sortOrder": 0
+        },
+        {
+          "id": "rule-walls",
+          "level": "CATEGORY",
+          "categoryId": "cat-walls",
+          "materialTypeId": null,
+          "name": {
+            "en": "Walls",
+            "uk": "Стіни"
+          },
+          "quantityFormula": "wallArea * (1 + waste)",
+          "costFormula": "quantity * price",
+          "sortOrder": 0
+        },
+        {
+          "id": "rule-balcony-tile",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Balcony tile",
+            "uk": "Плитка на балконі"
+          },
+          "quantityFormula": null,
+          "costFormula": "balconyTiles ? balconyArea * coef.balcony_tile : 0",
+          "sortOrder": 0
+        }
+      ]
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "bath",
+          "roomTypeCode": "BATHROOM",
+          "lengthM": 2,
+          "widthM": 2,
+          "heightM": 2.5,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-ceiling",
+              "productId": "p-ceiling-paint"
+            }
+          ]
+        }
+      ],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 3,
+      "lines": [
+        {
+          "id": "MATERIALS:bath:cat-ceiling",
+          "section": "MATERIALS",
+          "status": "NOT_CALCULATED",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 0,
+          "roomClientId": "bath",
+          "error": {
+            "code": "RULE_NOT_FOUND"
+          }
+        }
+      ],
+      "totals": {
+        "usdCents": 734700
+      },
+      "incomplete": true
+    }
+  },
+  {
+    "name": "unavailable-product",
+    "description": "The laminate is unavailable: the floor line is UNAVAILABLE with amount 0 and does not count, the walls line 36086 is calculated. The estimate is not incomplete. Total 734700 + 0 + 36086 = 770786.",
+    "pricingData": {
+      "packageItems": [],
+      "products": [
+        {
+          "id": "p-laminate",
+          "categoryId": "cat-floor",
+          "materialTypeId": "mt-laminate",
+          "priceCents": 1800,
+          "unit": "SQM",
+          "wastePercentOverride": null,
+          "heatedFloorCompatible": false,
+          "available": false
+        },
+        {
+          "id": "p-tile",
+          "categoryId": "cat-floor",
+          "materialTypeId": "mt-tile",
+          "priceCents": 2250,
+          "unit": "SQM",
+          "wastePercentOverride": 10,
+          "heatedFloorCompatible": true,
+          "available": true
+        },
+        {
+          "id": "p-paint",
+          "categoryId": "cat-walls",
+          "materialTypeId": "mt-paint",
+          "priceCents": 675,
+          "unit": "SQM",
+          "wastePercentOverride": null,
+          "heatedFloorCompatible": true,
+          "available": true
+        },
+        {
+          "id": "p-ceiling-paint",
+          "categoryId": "cat-ceiling",
+          "materialTypeId": "mt-paint",
+          "priceCents": 325,
+          "unit": "SQM",
+          "wastePercentOverride": null,
+          "heatedFloorCompatible": true,
+          "available": true
+        },
+        {
+          "id": "p-laminate-premium",
+          "categoryId": "cat-floor",
+          "materialTypeId": "mt-laminate",
+          "priceCents": 9550,
+          "unit": "SQM",
+          "wastePercentOverride": null,
+          "heatedFloorCompatible": false,
+          "available": true
+        },
+        {
+          "id": "p-paint-premium",
+          "categoryId": "cat-walls",
+          "materialTypeId": "mt-paint",
+          "priceCents": 25050,
+          "unit": "SQM",
+          "wastePercentOverride": null,
+          "heatedFloorCompatible": true,
+          "available": true
+        }
+      ]
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint"
+            }
+          ]
+        }
+      ],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 4,
+      "lines": [
+        {
+          "id": "MATERIALS:living:cat-floor",
+          "section": "MATERIALS",
+          "status": "UNAVAILABLE",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 0,
+          "roomClientId": "living",
+          "error": {
+            "code": "PRODUCT_UNAVAILABLE"
+          }
+        },
+        {
+          "id": "MATERIALS:living:cat-walls",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 53.46,
+          "unit": "SQM",
+          "unitPriceCents": 675,
+          "amountCents": 36086,
+          "roomClientId": "living"
+        }
+      ],
+      "totals": {
+        "usdCents": 770786
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "formula-error",
+    "description": "The floor cost formula divides by (length - 5), which is 0 for the 5 m long room: the line is ERROR with FORMULA_RUNTIME_ERROR / DIVISION_BY_ZERO and amount 0, other lines continue. Total 734700 + 0 + 36086 = 770786, incomplete.",
+    "pricingData": {
+      "packageItems": [],
+      "rules": [
+        {
+          "id": "rule-floor",
+          "level": "CATEGORY",
+          "categoryId": "cat-floor",
+          "materialTypeId": null,
+          "name": {
+            "en": "Floor",
+            "uk": "Підлога"
+          },
+          "quantityFormula": "floorArea * (1 + waste)",
+          "costFormula": "quantity / (length - 5)",
+          "sortOrder": 0
+        },
+        {
+          "id": "rule-floor-tile",
+          "level": "MATERIAL_TYPE",
+          "categoryId": "cat-floor",
+          "materialTypeId": "mt-tile",
+          "name": {
+            "en": "Floor tile",
+            "uk": "Плитка на підлозі"
+          },
+          "quantityFormula": "floorArea * (1 + waste)",
+          "costFormula": "quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))",
+          "sortOrder": 0
+        },
+        {
+          "id": "rule-walls",
+          "level": "CATEGORY",
+          "categoryId": "cat-walls",
+          "materialTypeId": null,
+          "name": {
+            "en": "Walls",
+            "uk": "Стіни"
+          },
+          "quantityFormula": "wallArea * (1 + waste)",
+          "costFormula": "quantity * price",
+          "sortOrder": 0
+        },
+        {
+          "id": "rule-ceiling",
+          "level": "CATEGORY",
+          "categoryId": "cat-ceiling",
+          "materialTypeId": null,
+          "name": {
+            "en": "Ceiling",
+            "uk": "Стеля"
+          },
+          "quantityFormula": "floorArea * (1 + waste)",
+          "costFormula": "quantity * price",
+          "sortOrder": 0
+        },
+        {
+          "id": "rule-balcony-tile",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Balcony tile",
+            "uk": "Плитка на балконі"
+          },
+          "quantityFormula": null,
+          "costFormula": "balconyTiles ? balconyArea * coef.balcony_tile : 0",
+          "sortOrder": 0
+        }
+      ]
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint"
+            }
+          ]
+        }
+      ],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 4,
+      "lines": [
+        {
+          "id": "MATERIALS:living:cat-floor",
+          "section": "MATERIALS",
+          "status": "ERROR",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 0,
+          "roomClientId": "living",
+          "error": {
+            "code": "FORMULA_RUNTIME_ERROR",
+            "params": {
+              "reason": "DIVISION_BY_ZERO"
+            }
+          }
+        },
+        {
+          "id": "MATERIALS:living:cat-walls",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 53.46,
+          "unit": "SQM",
+          "unitPriceCents": 675,
+          "amountCents": 36086,
+          "roomClientId": "living"
+        }
+      ],
+      "totals": {
+        "usdCents": 770786
+      },
+      "incomplete": true
+    }
+  },
+  {
+    "name": "maximum-object",
+    "description": "500 m2 with 15 rooms of 6 x 5 x 3 m. Base 500 * 10900 = 5450000. Per room floor: 30 * 1.05 = 31.5 m2 * (95.5 + 2) = 3071.25 USD = 307125 cents; walls: 66 * 1.1 = 72.6 m2 * 250.5 = 18186.3 USD = 1818630 cents. For 15 rooms: 15 * 307125 = 4606875 and 15 * 1818630 = 27279450. Total 5450000 + 4606875 + 27279450 = 37336325. Lines: base, zero object line and 30 material lines.",
+    "pricingData": {
+      "packageItems": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 500,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "r1",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r2",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r3",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r4",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r5",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r6",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r7",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r8",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r9",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r10",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r11",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r12",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r13",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r14",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        },
+        {
+          "clientId": "r15",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 6,
+          "widthM": 5,
+          "heightM": 3,
+          "heatedFloor": false,
+          "selections": [
+            {
+              "categoryId": "cat-floor",
+              "productId": "p-laminate-premium"
+            },
+            {
+              "categoryId": "cat-walls",
+              "productId": "p-paint-premium"
+            }
+          ]
+        }
+      ],
+      "options": [],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 32,
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": 500,
+          "unit": "SQM",
+          "unitPriceCents": 10900,
+          "amountCents": 5450000
+        },
+        {
+          "id": "MATERIALS:r1:cat-floor",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 31.5,
+          "unit": "SQM",
+          "unitPriceCents": 9550,
+          "amountCents": 307125,
+          "roomClientId": "r1"
+        },
+        {
+          "id": "MATERIALS:r1:cat-walls",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 72.6,
+          "unit": "SQM",
+          "unitPriceCents": 25050,
+          "amountCents": 1818630,
+          "roomClientId": "r1"
+        },
+        {
+          "id": "MATERIALS:r15:cat-floor",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 31.5,
+          "unit": "SQM",
+          "unitPriceCents": 9550,
+          "amountCents": 307125,
+          "roomClientId": "r15"
+        },
+        {
+          "id": "MATERIALS:r15:cat-walls",
+          "section": "MATERIALS",
+          "status": "OK",
+          "quantity": 72.6,
+          "unit": "SQM",
+          "unitPriceCents": 25050,
+          "amountCents": 1818630,
+          "roomClientId": "r15"
+        }
+      ],
+      "totals": {
+        "usdCents": 37336325
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "option-room-type-not-allowed",
+    "description": "Heated floor is selected for the living room and the bathroom, but only BATHROOM and KITCHEN are allowed: the living room is ignored with a warning on the line and in the summary, quantity is the bathroom 4 m2. Total 734700 + 0 + 34000 = 768700.",
+    "pricingData": {
+      "packageItems": []
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": []
+        },
+        {
+          "clientId": "bath",
+          "roomTypeCode": "BATHROOM",
+          "lengthM": 2,
+          "widthM": 2,
+          "heightM": 2.5,
+          "heatedFloor": false,
+          "selections": []
+        }
+      ],
+      "options": [
+        {
+          "optionId": "opt-heated-floor",
+          "roomClientIds": ["living", "bath"]
+        }
+      ],
+      "currency": "USD"
+    },
+    "expected": {
+      "lineCount": 3,
+      "lines": [
+        {
+          "id": "ENGINEERING:option:opt-heated-floor",
+          "section": "ENGINEERING",
+          "status": "OK",
+          "quantity": 4,
+          "unit": "ROOM_SQM",
+          "unitPriceCents": 8500,
+          "amountCents": 34000,
+          "warnings": [
+            {
+              "code": "OPTION_ROOM_TYPE_NOT_ALLOWED",
+              "params": {
+                "roomClientId": "living",
+                "roomTypeCode": "LIVING_ROOM"
+              }
+            }
+          ]
+        }
+      ],
+      "warnings": [
+        {
+          "code": "OPTION_ROOM_TYPE_NOT_ALLOWED",
+          "params": {
+            "roomClientId": "living",
+            "roomTypeCode": "LIVING_ROOM"
+          },
+          "lineId": "ENGINEERING:option:opt-heated-floor"
+        }
+      ],
+      "totals": {
+        "usdCents": 768700
+      },
+      "incomplete": false
+    }
+  },
+  {
+    "name": "no-exchange-rate",
+    "description": "No rate is available: the USD estimate is calculated, kopeck fields are null.",
+    "pricingData": {
+      "packageItems": [],
+      "rules": [],
+      "exchangeRate": null
+    },
+    "configuration": {
+      "finishLevel": "PRE_FINISH",
+      "totalAreaSqm": 62,
+      "balconyAreaSqm": 0,
+      "balconyTiles": false,
+      "gas": false,
+      "kitchenType": "SEPARATE",
+      "rooms": [],
+      "options": [],
+      "currency": "UAH"
+    },
+    "expected": {
+      "lineCount": 1,
+      "lines": [
+        {
+          "id": "BASE",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": 62,
+          "unit": "SQM",
+          "unitPriceCents": 11850,
+          "amountCents": 734700,
+          "amountUahKopecks": null
+        }
+      ],
+      "totals": {
+        "usdCents": 734700,
+        "uahKopecks": null
+      },
+      "incomplete": false
+    }
+  }
+]

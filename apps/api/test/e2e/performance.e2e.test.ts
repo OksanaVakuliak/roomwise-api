@@ -26,6 +26,7 @@ const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 const PUBLIC_MUTATING_ROUTES = new Set([
   'POST /api/v1/admin/auth/login',
   'POST /api/v1/admin/auth/logout',
+  'POST /api/v1/public/estimates',
 ]);
 
 vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });

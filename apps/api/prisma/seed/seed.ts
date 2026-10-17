@@ -4,6 +4,8 @@ import { envSchema, postgresUrlSchema } from '../../src/config/env';
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
+import { pricingDataset } from '../../src/modules/pricing/dataset/data';
+import { PricingDatasetService } from '../../src/modules/pricing/dataset/pricing-dataset.service';
 import { seedDemoAdmin } from './admins';
 
 const EXIT_FAILURE = 1;
@@ -63,6 +65,16 @@ async function countCatalog(prisma: PrismaClient) {
   };
 }
 
+async function countPricing(prisma: PrismaClient) {
+  const [baseRates, coefficients, pricingRules] = await Promise.all([
+    prisma.baseRate.count(),
+    prisma.coefficient.count(),
+    prisma.pricingRule.count(),
+  ]);
+
+  return { baseRates, coefficients, pricingRules };
+}
+
 async function main(): Promise<void> {
   const databaseUrl = postgresUrlSchema.safeParse(process.env.DATABASE_URL);
 
@@ -87,6 +99,7 @@ async function main(): Promise<void> {
   const adapter = new PrismaPg({ connectionString: databaseUrl.data });
   const prisma = new PrismaClient({ adapter });
   const service = new CatalogDatasetService();
+  const pricingService = new PricingDatasetService();
 
   try {
     await prisma.$transaction((tx) => service.upsert(catalogDataset, tx), {
@@ -97,6 +110,20 @@ async function main(): Promise<void> {
     const counts = await countCatalog(prisma);
     process.stdout.write('Catalog dataset applied.\n');
     for (const [table, count] of Object.entries(counts)) {
+      process.stdout.write(`  ${table}: ${count}\n`);
+    }
+
+    await prisma.$transaction(
+      (tx) => pricingService.upsert(pricingDataset, tx),
+      {
+        timeout: TRANSACTION_TIMEOUT_MS,
+        maxWait: TRANSACTION_MAX_WAIT_MS,
+      },
+    );
+
+    const pricingCounts = await countPricing(prisma);
+    process.stdout.write('Pricing dataset applied.\n');
+    for (const [table, count] of Object.entries(pricingCounts)) {
       process.stdout.write(`  ${table}: ${count}\n`);
     }
 
