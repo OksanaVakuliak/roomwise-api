@@ -200,6 +200,8 @@ function loadMutatingRoutes(): OpenApiRoute[] {
   return routes;
 }
 
+const UNSEEDED_RULE_ID = '00000000-0000-4000-8000-000000000000';
+
 function resolveRouteId(path: string): string {
   if (path.startsWith('/api/v1/admin/room-types/')) {
     return roomTypeIds.livingRoom;
@@ -221,6 +223,9 @@ function resolveRouteId(path: string): string {
   }
   if (path.startsWith('/api/v1/admin/styles/')) {
     return styleIds.scandinavian;
+  }
+  if (path.startsWith('/api/v1/admin/pricing/rules/')) {
+    return UNSEEDED_RULE_ID;
   }
   throw new Error(`No seeded id resolver for path: ${path}`);
 }

@@ -11,7 +11,12 @@ export interface RoomVariables {
   readonly roomType: RoomTypeCode;
 }
 
-export function roomVariables(room: RoomConfiguration): RoomVariables {
+export type RoomDimensions = Pick<
+  RoomConfiguration,
+  'roomTypeCode' | 'lengthM' | 'widthM' | 'heightM' | 'heatedFloor'
+>;
+
+export function roomVariables(room: RoomDimensions): RoomVariables {
   const perimeter = 2 * (room.lengthM + room.widthM);
   return {
     length: room.lengthM,

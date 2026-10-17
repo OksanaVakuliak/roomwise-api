@@ -51,6 +51,30 @@ describe('CatalogPricingReadService', () => {
     ]);
   });
 
+  it('reads category summaries as id and localized name', async () => {
+    const { service } = createService({
+      category: [{ id: 'category-1', name: { en: 'Floor', uk: 'Підлога' } }],
+    });
+
+    await expect(service.categorySummaries()).resolves.toEqual([
+      { id: 'category-1', name: { en: 'Floor', uk: 'Підлога' } },
+    ]);
+  });
+
+  it('sorts category summaries by english name, then id', async () => {
+    const { service } = createService({
+      category: [
+        { id: 'c', name: { en: 'Walls', uk: 'Стіни' } },
+        { id: 'b', name: { en: 'Floor', uk: 'Підлога' } },
+        { id: 'a', name: { en: 'Floor', uk: 'Підлога' } },
+      ],
+    });
+
+    const result = await service.categorySummaries();
+
+    expect(result.map((category) => category.id)).toEqual(['a', 'b', 'c']);
+  });
+
   it('reads material types as id and code', async () => {
     const { service } = createService({
       materialType: [{ id: 'material-1', code: 'tile' }],
