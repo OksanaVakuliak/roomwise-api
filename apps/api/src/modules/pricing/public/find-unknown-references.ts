@@ -11,7 +11,9 @@ export function findUnknownReferences(
 ): UnknownReference[] {
   const roomTypeCodes = new Set(data.roomTypes.map((type) => type.code));
   const categoryIds = new Set(data.categories.map((category) => category.id));
-  const productIds = new Set(data.products.map((product) => product.id));
+  const productCategoryIds = new Map(
+    data.products.map((product) => [product.id, product.categoryId]),
+  );
   const optionIds = new Set(data.options.map((option) => option.id));
   const roomClientIds = new Set(
     configuration.rooms.map((room) => room.clientId),
@@ -36,11 +38,14 @@ export function findUnknownReferences(
       );
 
       if (selection.productId !== null) {
-        expectKnown(
-          productIds,
-          `${selectionPath}.productId`,
-          selection.productId,
-        );
+        if (
+          productCategoryIds.get(selection.productId) !== selection.categoryId
+        ) {
+          unknown.push({
+            field: `${selectionPath}.productId`,
+            id: selection.productId,
+          });
+        }
       }
     });
   });

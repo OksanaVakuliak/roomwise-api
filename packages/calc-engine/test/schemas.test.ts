@@ -173,6 +173,60 @@ describe('schemas', () => {
     ).toBe(false);
   });
 
+  it('rejects duplicate room ids, categories in a room and option ids', () => {
+    const room = configuration.rooms[0];
+    const issuePaths = (value: unknown) => {
+      const result = ConfigurationSchema.safeParse(value);
+      return result.success
+        ? []
+        : result.error.issues.map((issue) => issue.path);
+    };
+    expect(
+      issuePaths({ ...configuration, rooms: [room, { ...room }] }),
+    ).toEqual([['rooms', 1, 'clientId']]);
+    expect(
+      issuePaths({
+        ...configuration,
+        rooms: [
+          {
+            ...room,
+            selections: [...room.selections, ...room.selections],
+          },
+        ],
+      }),
+    ).toEqual([['rooms', 0, 'selections', 1, 'categoryId']]);
+    expect(
+      issuePaths({
+        ...configuration,
+        options: [...configuration.options, ...configuration.options],
+      }),
+    ).toEqual([['options', 1, 'optionId']]);
+  });
+
+  it('requires a quantity formula for material rules only', () => {
+    const [objectRule] = pricingData.rules;
+    const parse = (rule: unknown) =>
+      PricingDataSchema.safeParse({ ...pricingData, rules: [rule] });
+    expect(parse({ ...objectRule, quantityFormula: 'totalArea' }).success).toBe(
+      false,
+    );
+    const materialRule = {
+      ...objectRule,
+      level: 'CATEGORY',
+      categoryId: 'c1',
+    };
+    const result = parse(materialRule);
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].path).toEqual([
+      'rules',
+      0,
+      'quantityFormula',
+    ]);
+    expect(
+      parse({ ...materialRule, quantityFormula: 'floorArea' }).success,
+    ).toBe(true);
+  });
+
   it('parses a valid Estimate and rejects non-integer cents or a missing section', () => {
     expect(EstimateSchema.safeParse(estimate).success).toBe(true);
     const lines = [{ ...estimate.lines[0], amountCents: 12.5 }];

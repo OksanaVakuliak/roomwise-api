@@ -4,8 +4,14 @@ import { findUnknownReferences } from './find-unknown-references';
 
 const data = {
   roomTypes: [{ id: 'rt-1', code: 'BEDROOM' }],
-  categories: [{ id: 'cat-1', wastePercent: 0, surface: 'FLOOR' }],
-  products: [{ id: 'prod-1' }],
+  categories: [
+    { id: 'cat-1', wastePercent: 0, surface: 'FLOOR' },
+    { id: 'cat-2', wastePercent: 0, surface: 'WALL' },
+  ],
+  products: [
+    { id: 'prod-1', categoryId: 'cat-1' },
+    { id: 'prod-2', categoryId: 'cat-2' },
+  ],
   options: [{ id: 'opt-1' }],
 } as unknown as PricingData;
 
@@ -72,6 +78,29 @@ describe('findUnknownReferences', () => {
       { field: 'rooms[0].selections[0].productId', id: 'prod-x' },
       { field: 'options[0].optionId', id: 'opt-x' },
       { field: 'options[0].roomClientIds[0]', id: 'room-9' },
+    ]);
+  });
+
+  it('reports a product that belongs to another category', () => {
+    const result = findUnknownReferences(
+      configuration({
+        rooms: [
+          {
+            clientId: 'room-1',
+            roomTypeCode: 'BEDROOM',
+            lengthM: 4,
+            widthM: 3,
+            heightM: 2.7,
+            heatedFloor: false,
+            selections: [{ categoryId: 'cat-1', productId: 'prod-2' }],
+          },
+        ],
+      }),
+      data,
+    );
+
+    expect(result).toEqual([
+      { field: 'rooms[0].selections[0].productId', id: 'prod-2' },
     ]);
   });
 });

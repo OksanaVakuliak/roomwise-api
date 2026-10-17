@@ -35,16 +35,21 @@ export const BaseRateSchema = z.object({
 });
 export type BaseRate = z.infer<typeof BaseRateSchema>;
 
-export const PricingRuleSchema = z.object({
-  id: z.string(),
-  level: RuleLevelSchema,
-  categoryId: z.string().nullable(),
-  materialTypeId: z.string().nullable(),
-  name: LocalizedTextSchema,
-  quantityFormula: z.string().nullable(),
-  costFormula: z.string().max(500),
-  sortOrder: z.int(),
-});
+export const PricingRuleSchema = z
+  .object({
+    id: z.string(),
+    level: RuleLevelSchema,
+    categoryId: z.string().nullable(),
+    materialTypeId: z.string().nullable(),
+    name: LocalizedTextSchema,
+    quantityFormula: z.string().nullable(),
+    costFormula: z.string().max(500),
+    sortOrder: z.int(),
+  })
+  .refine(
+    (rule) => (rule.level === 'OBJECT') === (rule.quantityFormula === null),
+    { path: ['quantityFormula'] },
+  );
 export type PricingRule = z.infer<typeof PricingRuleSchema>;
 
 export const PricingRoomTypeSchema = z.object({

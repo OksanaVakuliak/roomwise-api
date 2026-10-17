@@ -74,16 +74,6 @@ describe('estimate formula failures', () => {
     });
   });
 
-  it('reports a quantity formula that is missing', () => {
-    const result = estimate(
-      request,
-      withRules((rule) =>
-        rule.id === 'rule-walls' ? { ...rule, quantityFormula: null } : rule,
-      ),
-    );
-    expect(lineOf(result, 'MATERIALS:living:cat-walls')?.status).toBe('ERROR');
-  });
-
   it('reports a failing object rule without stopping the others', () => {
     const result = estimate(
       request,
@@ -119,6 +109,20 @@ describe('estimate references and options', () => {
     const result = estimate(request, {
       ...data,
       products: data.products.filter((product) => product.id !== 'p-paint'),
+    });
+    expect(lineOf(result, 'MATERIALS:living:cat-walls')?.status).toBe(
+      'UNAVAILABLE',
+    );
+  });
+
+  it('marks a product of another category as unavailable', () => {
+    const result = estimate(request, {
+      ...data,
+      products: data.products.map((product) =>
+        product.id === 'p-paint'
+          ? { ...product, categoryId: 'cat-other' }
+          : product,
+      ),
     });
     expect(lineOf(result, 'MATERIALS:living:cat-walls')?.status).toBe(
       'UNAVAILABLE',

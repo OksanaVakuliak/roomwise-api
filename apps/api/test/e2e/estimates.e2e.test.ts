@@ -230,6 +230,53 @@ describe('estimates e2e', () => {
       );
     });
 
+    it('rejects a product from another category with UNKNOWN_REFERENCE', async () => {
+      const [room, ...otherRooms] = samples[0].rooms;
+      const foreign = data.products.find(
+        (product) => product.categoryId !== data.categories[0].id,
+      );
+      if (foreign === undefined) {
+        throw new Error('Seed has no product outside the first category');
+      }
+      const configuration: Configuration = {
+        ...samples[0],
+        rooms: [
+          {
+            ...room,
+            selections: [
+              { categoryId: data.categories[0].id, productId: foreign.id },
+            ],
+          },
+          ...otherRooms,
+        ],
+      };
+
+      const response = await request(testApp.http)
+        .post('/api/v1/public/estimates')
+        .send({ configuration })
+        .expect(422);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.UNKNOWN_REFERENCE);
+      expect(response.body.error.params.references).toEqual([
+        { field: 'rooms[0].selections[0].productId', id: foreign.id },
+      ]);
+    });
+
+    it('rejects duplicate room ids with VALIDATION_FAILED', async () => {
+      const [room, ...otherRooms] = samples[0].rooms;
+      const configuration: Configuration = {
+        ...samples[0],
+        rooms: [room, { ...room }, ...otherRooms],
+      };
+
+      const response = await request(testApp.http)
+        .post('/api/v1/public/estimates')
+        .send({ configuration })
+        .expect(400);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
     it.each(['USD', 'UAH'] as const)(
       'converts every line to kopecks at the active rate for %s',
       async (currency) => {

@@ -40,5 +40,8 @@ export function runNumericFormula(
   if (result.value < 0) {
     return runtimeError('NEGATIVE');
   }
+  if (!Number.isSafeInteger(Math.round(result.value * 100))) {
+    return runtimeError('NOT_FINITE');
+  }
   return { ok: true, value: result.value };
 }

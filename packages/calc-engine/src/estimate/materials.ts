@@ -11,19 +11,25 @@ import { createLine, failedLine, roundQuantity } from './line';
 import { lineId } from './line-id';
 import { runNumericFormula } from './run-formula';
 
+type MaterialRule = PricingRule & { quantityFormula: string };
+
+const isMaterialRule = (rule: PricingRule): rule is MaterialRule =>
+  rule.quantityFormula !== null;
+
 function selectRule(
   data: PricingData,
   categoryId: string,
   materialTypeId: string,
-): PricingRule | undefined {
+): MaterialRule | undefined {
+  const rules = data.rules.filter(isMaterialRule);
   return (
-    data.rules.find(
+    rules.find(
       (rule) =>
         rule.level === 'MATERIAL_TYPE' &&
         rule.categoryId === categoryId &&
         rule.materialTypeId === materialTypeId,
     ) ??
-    data.rules.find(
+    rules.find(
       (rule) => rule.level === 'CATEGORY' && rule.categoryId === categoryId,
     )
   );
@@ -44,7 +50,9 @@ function materialLine(
     productId,
   } as const;
   const category = data.categories.find((item) => item.id === categoryId);
-  const product = data.products.find((item) => item.id === productId);
+  const product = data.products.find(
+    (item) => item.id === productId && item.categoryId === categoryId,
+  );
   if (product === undefined || category === undefined || !product.available) {
     return failedLine(init, 'UNAVAILABLE', {
       code: 'PRODUCT_UNAVAILABLE',
@@ -65,7 +73,7 @@ function materialLine(
   };
   const { coefficients } = data;
   const ruled = { ...init, ruleId: rule.id };
-  const quantity = runNumericFormula(rule.quantityFormula ?? '', {
+  const quantity = runNumericFormula(rule.quantityFormula, {
     variables,
     coefficients,
   });

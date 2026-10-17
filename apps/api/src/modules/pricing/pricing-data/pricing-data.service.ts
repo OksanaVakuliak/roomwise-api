@@ -14,6 +14,7 @@ import {
 } from '@roomwise/calc-engine';
 import type { Subscription } from 'rxjs';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import type { Prisma } from '../../../generated/prisma/client';
 import { RateSource } from '../../../generated/prisma/enums';
 import { CatalogChangeNotifier } from '../../catalog/common/catalog-change.notifier';
 import { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
@@ -25,6 +26,40 @@ const ISO_DATE_LENGTH = 10;
 const RULE_LEVEL_ORDER = { OBJECT: 0, CATEGORY: 1, MATERIAL_TYPE: 2 } as const;
 
 type PricingDataBody = Omit<PricingData, 'version'>;
+type SettingsRow = Prisma.PricingSettingsGetPayload<{
+  include: { manualRate: true };
+}>;
+type ExchangeRateRow = Prisma.ExchangeRateGetPayload<object>;
+
+function toLimits(settings: SettingsRow): PricingLimits {
+  return {
+    totalAreaSqm: {
+      min: settings.totalAreaMinSqm.toNumber(),
+      max: settings.totalAreaMaxSqm.toNumber(),
+    },
+    rooms: { min: settings.roomsMin, max: settings.roomsMax },
+    roomSideM: {
+      min: settings.roomSideMinM.toNumber(),
+      max: settings.roomSideMaxM.toNumber(),
+    },
+    roomHeightM: {
+      min: settings.roomHeightMinM.toNumber(),
+      max: settings.roomHeightMaxM.toNumber(),
+    },
+  };
+}
+
+function toExchangeRate(row: ExchangeRateRow | null): ExchangeRate | null {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    rate: row.rate.toFixed(RATE_FRACTION_DIGITS),
+    date: row.effectiveDate.toISOString().slice(0, ISO_DATE_LENGTH),
+    source: row.source,
+  };
+}
 
 @Injectable()
 export class PricingDataService implements OnModuleInit, OnModuleDestroy {
@@ -91,11 +126,10 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       products,
       packageItems,
       options,
-      limits,
+      settings,
       baseRates,
       coefficients,
       ruleRows,
-      exchangeRate,
     ] = await Promise.all([
       this.catalog.roomTypes(),
       this.catalog.categories(),
@@ -103,12 +137,19 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       this.catalog.products(),
       this.catalog.packageItems(),
       this.catalog.options(),
-      this.readLimits(),
+      this.readSettings(),
       this.readBaseRates(),
       this.readCoefficients(),
       this.readRules(),
-      this.readExchangeRate(),
     ]);
+    const limits = toLimits(settings);
+    const exchangeRate = toExchangeRate(
+      settings.manualRate ??
+        (await this.prisma.exchangeRate.findFirst({
+          where: { source: RateSource.NBU },
+          orderBy: { effectiveDate: 'desc' },
+        })),
+    );
 
     const categoryIds = new Set(categories.map((category) => category.id));
     const materialTypeIds = new Set(
@@ -138,30 +179,17 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
     return PricingDataSchema.parse({ ...body, version: canonicalHash(body) });
   }
 
-  private async readLimits(): Promise<PricingLimits> {
+  private async readSettings(): Promise<SettingsRow> {
     const settings = await this.prisma.pricingSettings.findUnique({
       where: { id: SETTINGS_ID },
+      include: { manualRate: true },
     });
 
     if (!settings) {
       throw new Error('Pricing settings are missing; run the seed.');
     }
 
-    return {
-      totalAreaSqm: {
-        min: settings.totalAreaMinSqm.toNumber(),
-        max: settings.totalAreaMaxSqm.toNumber(),
-      },
-      rooms: { min: settings.roomsMin, max: settings.roomsMax },
-      roomSideM: {
-        min: settings.roomSideMinM.toNumber(),
-        max: settings.roomSideMaxM.toNumber(),
-      },
-      roomHeightM: {
-        min: settings.roomHeightMinM.toNumber(),
-        max: settings.roomHeightMaxM.toNumber(),
-      },
-    };
+    return settings;
   }
 
   private async readBaseRates(): Promise<BaseRate[]> {
@@ -207,28 +235,5 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
           left.sortOrder - right.sortOrder ||
           (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
       );
-  }
-
-  private async readExchangeRate(): Promise<ExchangeRate | null> {
-    const settings = await this.prisma.pricingSettings.findUnique({
-      where: { id: SETTINGS_ID },
-      include: { manualRate: true },
-    });
-    const active =
-      settings?.manualRate ??
-      (await this.prisma.exchangeRate.findFirst({
-        where: { source: RateSource.NBU },
-        orderBy: { effectiveDate: 'desc' },
-      }));
-
-    if (!active) {
-      return null;
-    }
-
-    return {
-      rate: active.rate.toFixed(RATE_FRACTION_DIGITS),
-      date: active.effectiveDate.toISOString().slice(0, ISO_DATE_LENGTH),
-      source: active.source,
-    };
   }
 }
