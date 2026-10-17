@@ -1,4 +1,5 @@
-import { type EvaluationScope, evaluate, parse } from '../formula';
+import { type EvaluationScope, evaluate } from '../formula/evaluate';
+import { parse } from '../formula/parse';
 import type { EstimateMessage } from '../schemas';
 
 export type FormulaOutcome =
