@@ -83,7 +83,11 @@ async function runMaintenance(
 
   expect(response.status).toBe(200);
 
-  return response.body;
+  return {
+    tasks: response.body.tasks.filter(
+      (task: { name: string }) => task.name === 'sandbox-reset',
+    ),
+  };
 }
 
 async function forceResetDue(prisma: PrismaService): Promise<void> {
