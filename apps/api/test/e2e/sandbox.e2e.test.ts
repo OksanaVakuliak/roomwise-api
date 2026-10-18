@@ -21,8 +21,12 @@ import { styleIds } from '../../src/modules/catalog/dataset/data/styles';
 import { CloudinaryService } from '../../src/modules/catalog/images/cloudinary.service';
 import { CLOUDINARY_UPLOAD_FOLDER } from '../../src/modules/catalog/images/images.constants';
 import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
+import { pricingDataset } from '../../src/modules/pricing/dataset/data';
+import { PricingDatasetService } from '../../src/modules/pricing/dataset/pricing-dataset.service';
+import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
 import {
   catalogParticipant,
+  pricingParticipant,
   SANDBOX_DATASET_PARTICIPANTS,
   type SandboxDatasetParticipant,
 } from '../../src/modules/sandbox/sandbox-dataset-participant';
@@ -70,6 +74,13 @@ function createFakeCloudinaryService(): FakeCloudinaryService {
 async function seedCatalog(prisma: PrismaService): Promise<void> {
   await prisma.$transaction(
     (tx) => new CatalogDatasetService().upsert(catalogDataset, tx),
+    SEED_TRANSACTION_OPTIONS,
+  );
+}
+
+async function seedPricing(prisma: PrismaService): Promise<void> {
+  await prisma.$transaction(
+    (tx) => new PricingDatasetService().upsert(pricingDataset, tx),
     SEED_TRANSACTION_OPTIONS,
   );
 }
@@ -335,6 +346,137 @@ describe('sandbox e2e (US6)', () => {
     });
   });
 
+  describe('pricing data reset', () => {
+    let testApp: TestApp;
+
+    beforeAll(async () => {
+      testApp = await createTestApp({
+        overrides: [
+          {
+            provide: CloudinaryService,
+            useValue: createFakeCloudinaryService(),
+          },
+        ],
+      });
+      await seedCatalog(testApp.prisma);
+      await seedPricing(testApp.prisma);
+    });
+
+    afterAll(async () => {
+      await testApp.close();
+    });
+
+    it('restores coefficients and rules, drops the manual exchange rate and keeps official NBU rates', async () => {
+      const { prisma } = testApp;
+      const seedCoefficient = pricingDataset.coefficients[0];
+      const seedRule = pricingDataset.rules[0];
+
+      await prisma.coefficient.update({
+        where: { key: seedCoefficient.key },
+        data: { value: 999 },
+      });
+      await prisma.pricingRule.update({
+        where: { id: seedRule.id },
+        data: { costFormula: '0' },
+      });
+      await prisma.pricingRule.delete({
+        where: { id: pricingDataset.rules[1].id },
+      });
+      const seedRate = pricingDataset.baseRates[0];
+      await prisma.baseRate.update({
+        where: {
+          finishLevel_areaFromSqm: {
+            finishLevel: seedRate.finishLevel,
+            areaFromSqm: seedRate.areaFromSqm,
+          },
+        },
+        data: { rateCentsPerSqm: 1 },
+      });
+      await prisma.coefficient.create({
+        data: {
+          key: 'admin_added',
+          name: { en: 'Admin added', uk: 'Додано адміном' },
+          value: 1,
+          unit: { en: 'x', uk: 'x' },
+        },
+      });
+      await prisma.pricingSettings.update({
+        where: { id: 1 },
+        data: { roomsMax: pricingDataset.limits.rooms.max + 5 },
+      });
+      const nbuRate = await prisma.exchangeRate.create({
+        data: {
+          source: 'NBU',
+          rate: 41.5,
+          effectiveDate: new Date('2026-01-01'),
+          fetchedAt: new Date(),
+        },
+      });
+      const manualRate = await prisma.exchangeRate.create({
+        data: {
+          source: 'MANUAL',
+          rate: 50,
+          effectiveDate: new Date('2026-01-02'),
+          fetchedAt: new Date(),
+        },
+      });
+      await prisma.pricingSettings.update({
+        where: { id: 1 },
+        data: { manualRateId: manualRate.id },
+      });
+
+      await forceResetDue(prisma);
+      const maintenanceResult = await runMaintenance(testApp.http);
+
+      expect(maintenanceResult).toEqual({
+        tasks: [{ name: 'sandbox-reset', status: 'SUCCESS' }],
+      });
+
+      const coefficient = await prisma.coefficient.findUniqueOrThrow({
+        where: { key: seedCoefficient.key },
+      });
+      expect(Number(coefficient.value)).toBe(seedCoefficient.value);
+      expect(
+        await prisma.coefficient.findUnique({ where: { key: 'admin_added' } }),
+      ).toBeNull();
+
+      const baseRate = await prisma.baseRate.findUniqueOrThrow({
+        where: {
+          finishLevel_areaFromSqm: {
+            finishLevel: seedRate.finishLevel,
+            areaFromSqm: seedRate.areaFromSqm,
+          },
+        },
+      });
+      expect(baseRate.rateCentsPerSqm).toBe(seedRate.rateCentsPerSqm);
+      expect(await prisma.baseRate.count()).toBe(
+        pricingDataset.baseRates.length,
+      );
+
+      const rules = await prisma.pricingRule.findMany({
+        where: {
+          id: { in: [seedRule.id, pricingDataset.rules[1].id] },
+        },
+      });
+      expect(rules).toHaveLength(2);
+      expect(rules.find((rule) => rule.id === seedRule.id)?.costFormula).toBe(
+        seedRule.costFormula,
+      );
+
+      const settings = await prisma.pricingSettings.findUniqueOrThrow({
+        where: { id: 1 },
+      });
+      expect(settings.manualRateId).toBeNull();
+      expect(settings.roomsMax).toBe(pricingDataset.limits.rooms.max);
+      expect(
+        await prisma.exchangeRate.findUnique({ where: { id: manualRate.id } }),
+      ).toBeNull();
+      expect(
+        await prisma.exchangeRate.findUnique({ where: { id: nbuRate.id } }),
+      ).not.toBeNull();
+    });
+  });
+
   describe('sandbox reset failure (scenario 6)', () => {
     it('rolls back every participant when one of them fails', async () => {
       const fakeCloudinary = createFakeCloudinaryService();
@@ -355,8 +497,11 @@ describe('sandbox e2e (US6)', () => {
               cache: CatalogCache,
               cloudinary: CloudinaryService,
               notifier: CatalogChangeNotifier,
+              pricingDatasetService: PricingDatasetService,
+              pricingData: PricingDataService,
             ) => [
               catalogParticipant(datasetService, cache, cloudinary, notifier),
+              pricingParticipant(pricingDatasetService, pricingData),
               brokenParticipant,
             ],
             inject: [
@@ -364,6 +509,8 @@ describe('sandbox e2e (US6)', () => {
               CatalogCache,
               CloudinaryService,
               CatalogChangeNotifier,
+              PricingDatasetService,
+              PricingDataService,
             ],
           },
         ],
@@ -371,6 +518,7 @@ describe('sandbox e2e (US6)', () => {
 
       try {
         await seedCatalog(testApp.prisma);
+        await seedPricing(testApp.prisma);
 
         const modifiedName = localizedText(
           'Modified before failed reset',
@@ -379,6 +527,11 @@ describe('sandbox e2e (US6)', () => {
         await testApp.prisma.product.update({
           where: { id: productIds.whiteOakParquetPlank },
           data: { name: modifiedName },
+        });
+        const seedCoefficient = pricingDataset.coefficients[0];
+        await testApp.prisma.coefficient.update({
+          where: { key: seedCoefficient.key },
+          data: { value: 999 },
         });
 
         await forceResetDue(testApp.prisma);
@@ -392,6 +545,10 @@ describe('sandbox e2e (US6)', () => {
           where: { id: productIds.whiteOakParquetPlank },
         });
         expect(product.name).toEqual(modifiedName);
+        const coefficient = await testApp.prisma.coefficient.findUniqueOrThrow({
+          where: { key: seedCoefficient.key },
+        });
+        expect(Number(coefficient.value)).toBe(999);
 
         const sandboxState =
           await testApp.prisma.sandboxState.findUniqueOrThrow({
