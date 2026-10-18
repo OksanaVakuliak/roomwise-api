@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import {
   type BaseRate,
-  type ExchangeRate,
   type PricingData,
   PricingDataSchema,
   type PricingLimits,
@@ -15,21 +14,16 @@ import {
 import type { Subscription } from 'rxjs';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { Prisma } from '../../../generated/prisma/client';
-import { RateSource } from '../../../generated/prisma/enums';
 import { CatalogChangeNotifier } from '../../catalog/common/catalog-change.notifier';
 import { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
+import { ExchangeRateService } from '../exchange-rate/exchange-rate.service';
 import { canonicalHash } from './canonical-hash';
 
 const SETTINGS_ID = 1;
-const RATE_FRACTION_DIGITS = 4;
-const ISO_DATE_LENGTH = 10;
 const RULE_LEVEL_ORDER = { OBJECT: 0, CATEGORY: 1, MATERIAL_TYPE: 2 } as const;
 
 type PricingDataBody = Omit<PricingData, 'version'>;
-type SettingsRow = Prisma.PricingSettingsGetPayload<{
-  include: { manualRate: true };
-}>;
-type ExchangeRateRow = Prisma.ExchangeRateGetPayload<object>;
+type SettingsRow = Prisma.PricingSettingsGetPayload<object>;
 
 function toLimits(settings: SettingsRow): PricingLimits {
   return {
@@ -49,24 +43,12 @@ function toLimits(settings: SettingsRow): PricingLimits {
   };
 }
 
-function toExchangeRate(row: ExchangeRateRow | null): ExchangeRate | null {
-  if (!row) {
-    return null;
-  }
-
-  return {
-    rate: row.rate.toFixed(RATE_FRACTION_DIGITS),
-    date: row.effectiveDate.toISOString().slice(0, ISO_DATE_LENGTH),
-    source: row.source,
-  };
-}
-
 @Injectable()
 export class PricingDataService implements OnModuleInit, OnModuleDestroy {
   private cached: PricingData | null = null;
   private pending: Promise<PricingData> | null = null;
   private generation = 0;
-  private subscription: Subscription | null = null;
+  private subscriptions: Subscription[] = [];
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -74,17 +56,22 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
     private readonly catalog: CatalogPricingReadService,
     @Inject(CatalogChangeNotifier)
     private readonly catalogChanges: CatalogChangeNotifier,
+    @Inject(ExchangeRateService)
+    private readonly exchangeRates: ExchangeRateService,
   ) {}
 
   onModuleInit(): void {
-    this.subscription = this.catalogChanges.changes$.subscribe(() =>
-      this.invalidate(),
-    );
+    this.subscriptions = [
+      this.catalogChanges.changes$.subscribe(() => this.invalidate()),
+      this.exchangeRates.changes$.subscribe(() => this.invalidate()),
+    ];
   }
 
   onModuleDestroy(): void {
-    this.subscription?.unsubscribe();
-    this.subscription = null;
+    for (const subscription of this.subscriptions) {
+      subscription.unsubscribe();
+    }
+    this.subscriptions = [];
   }
 
   invalidate(): void {
@@ -94,6 +81,8 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
   }
 
   async get(): Promise<PricingData> {
+    this.exchangeRates.requestRefreshIfStale();
+
     if (this.cached) {
       return this.cached;
     }
@@ -130,7 +119,7 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       baseRates,
       coefficients,
       ruleRows,
-      nbuRate,
+      exchangeRate,
     ] = await Promise.all([
       this.catalog.roomTypes(),
       this.catalog.categories(),
@@ -142,13 +131,9 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       this.readBaseRates(),
       this.coefficients(),
       this.readRules(),
-      this.prisma.exchangeRate.findFirst({
-        where: { source: RateSource.NBU },
-        orderBy: { effectiveDate: 'desc' },
-      }),
+      this.exchangeRates.activeRate(),
     ]);
     const limits = toLimits(settings);
-    const exchangeRate = toExchangeRate(settings.manualRate ?? nbuRate);
 
     const categoryIds = new Set(categories.map((category) => category.id));
     const materialTypeIds = new Set(
@@ -182,7 +167,6 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
   private async readSettings(): Promise<SettingsRow> {
     const settings = await this.prisma.pricingSettings.findUnique({
       where: { id: SETTINGS_ID },
-      include: { manualRate: true },
     });
 
     if (!settings) {
