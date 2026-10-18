@@ -23,8 +23,10 @@ import { CLOUDINARY_UPLOAD_FOLDER } from '../../src/modules/catalog/images/image
 import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
 import { pricingDataset } from '../../src/modules/pricing/dataset/data';
 import { PricingDatasetService } from '../../src/modules/pricing/dataset/pricing-dataset.service';
+import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
 import {
   catalogParticipant,
+  pricingParticipant,
   SANDBOX_DATASET_PARTICIPANTS,
   type SandboxDatasetParticipant,
 } from '../../src/modules/sandbox/sandbox-dataset-participant';
@@ -380,6 +382,28 @@ describe('sandbox e2e (US6)', () => {
       await prisma.pricingRule.delete({
         where: { id: pricingDataset.rules[1].id },
       });
+      const seedRate = pricingDataset.baseRates[0];
+      await prisma.baseRate.update({
+        where: {
+          finishLevel_areaFromSqm: {
+            finishLevel: seedRate.finishLevel,
+            areaFromSqm: seedRate.areaFromSqm,
+          },
+        },
+        data: { rateCentsPerSqm: 1 },
+      });
+      await prisma.coefficient.create({
+        data: {
+          key: 'admin_added',
+          name: { en: 'Admin added', uk: 'Додано адміном' },
+          value: 1,
+          unit: { en: 'x', uk: 'x' },
+        },
+      });
+      await prisma.pricingSettings.update({
+        where: { id: 1 },
+        data: { roomsMax: pricingDataset.limits.rooms.max + 5 },
+      });
       const nbuRate = await prisma.exchangeRate.create({
         data: {
           source: 'NBU',
@@ -412,6 +436,22 @@ describe('sandbox e2e (US6)', () => {
         where: { key: seedCoefficient.key },
       });
       expect(Number(coefficient.value)).toBe(seedCoefficient.value);
+      expect(
+        await prisma.coefficient.findUnique({ where: { key: 'admin_added' } }),
+      ).toBeNull();
+
+      const baseRate = await prisma.baseRate.findUniqueOrThrow({
+        where: {
+          finishLevel_areaFromSqm: {
+            finishLevel: seedRate.finishLevel,
+            areaFromSqm: seedRate.areaFromSqm,
+          },
+        },
+      });
+      expect(baseRate.rateCentsPerSqm).toBe(seedRate.rateCentsPerSqm);
+      expect(await prisma.baseRate.count()).toBe(
+        pricingDataset.baseRates.length,
+      );
 
       const rules = await prisma.pricingRule.findMany({
         where: {
@@ -427,6 +467,7 @@ describe('sandbox e2e (US6)', () => {
         where: { id: 1 },
       });
       expect(settings.manualRateId).toBeNull();
+      expect(settings.roomsMax).toBe(pricingDataset.limits.rooms.max);
       expect(
         await prisma.exchangeRate.findUnique({ where: { id: manualRate.id } }),
       ).toBeNull();
@@ -456,8 +497,11 @@ describe('sandbox e2e (US6)', () => {
               cache: CatalogCache,
               cloudinary: CloudinaryService,
               notifier: CatalogChangeNotifier,
+              pricingDatasetService: PricingDatasetService,
+              pricingData: PricingDataService,
             ) => [
               catalogParticipant(datasetService, cache, cloudinary, notifier),
+              pricingParticipant(pricingDatasetService, pricingData),
               brokenParticipant,
             ],
             inject: [
@@ -465,6 +509,8 @@ describe('sandbox e2e (US6)', () => {
               CatalogCache,
               CloudinaryService,
               CatalogChangeNotifier,
+              PricingDatasetService,
+              PricingDataService,
             ],
           },
         ],
@@ -472,6 +518,7 @@ describe('sandbox e2e (US6)', () => {
 
       try {
         await seedCatalog(testApp.prisma);
+        await seedPricing(testApp.prisma);
 
         const modifiedName = localizedText(
           'Modified before failed reset',
@@ -480,6 +527,11 @@ describe('sandbox e2e (US6)', () => {
         await testApp.prisma.product.update({
           where: { id: productIds.whiteOakParquetPlank },
           data: { name: modifiedName },
+        });
+        const seedCoefficient = pricingDataset.coefficients[0];
+        await testApp.prisma.coefficient.update({
+          where: { key: seedCoefficient.key },
+          data: { value: 999 },
         });
 
         await forceResetDue(testApp.prisma);
@@ -493,6 +545,10 @@ describe('sandbox e2e (US6)', () => {
           where: { id: productIds.whiteOakParquetPlank },
         });
         expect(product.name).toEqual(modifiedName);
+        const coefficient = await testApp.prisma.coefficient.findUniqueOrThrow({
+          where: { key: seedCoefficient.key },
+        });
+        expect(Number(coefficient.value)).toBe(999);
 
         const sandboxState =
           await testApp.prisma.sandboxState.findUniqueOrThrow({
