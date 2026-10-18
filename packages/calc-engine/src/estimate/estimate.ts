@@ -10,7 +10,8 @@ import { baseLine } from './base';
 import { engineeringLines } from './engineering';
 import { materialLines } from './materials';
 import { objectRuleLines } from './object-rules';
-import { collectWarnings, computeTotals, isIncomplete } from './totals';
+import { computeTotals, isIncomplete } from './totals';
+import { estimateWarnings } from './warnings';
 
 function withKopecks(line: EstimateLine, rate: string | null): EstimateLine {
   return {
@@ -38,7 +39,7 @@ export function estimate(
     exchangeRate: data.exchangeRate,
     lines,
     totals: computeTotals(lines, rate !== null),
-    warnings: collectWarnings(lines),
+    warnings: estimateWarnings(lines, configuration, rate),
     incomplete: isIncomplete(lines),
   };
 }

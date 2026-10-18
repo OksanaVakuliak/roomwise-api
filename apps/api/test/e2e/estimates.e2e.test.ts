@@ -309,5 +309,101 @@ describe('estimates e2e', () => {
         );
       },
     );
+
+    describe('warnings', () => {
+      const floorCategory = () => {
+        const category = data.categories.find(
+          (item) => item.surface === 'FLOOR',
+        );
+        if (category === undefined) {
+          throw new Error('Seed has no floor category');
+        }
+        return category;
+      };
+
+      const floorProduct = (heatedFloorCompatible: boolean) => {
+        const product = data.products.find(
+          (item) =>
+            item.categoryId === floorCategory().id &&
+            item.available &&
+            item.heatedFloorCompatible === heatedFloorCompatible,
+        );
+        if (product === undefined) {
+          throw new Error(
+            `Seed has no floor product with heatedFloorCompatible=${heatedFloorCompatible}`,
+          );
+        }
+        return product;
+      };
+
+      const heatedFloorConfiguration = (productId: string): Configuration => ({
+        ...samples[0],
+        totalAreaSqm: data.limits.totalAreaSqm.max,
+        options: [],
+        rooms: [
+          {
+            ...samples[0].rooms[0],
+            heatedFloor: true,
+            selections: [{ categoryId: floorCategory().id, productId }],
+          },
+        ],
+      });
+
+      const post = async (configuration: Configuration) => {
+        const response = await request(testApp.http)
+          .post('/api/v1/public/estimates')
+          .send({ configuration })
+          .expect(200);
+        return response.body.estimate;
+      };
+
+      it('warns about an incompatible floor product on a heated floor', async () => {
+        const product = floorProduct(false);
+
+        const result = await post(heatedFloorConfiguration(product.id));
+
+        const line = result.lines.find(
+          (item: { productId: string }) => item.productId === product.id,
+        );
+        const warning = {
+          code: 'HEATED_FLOOR_INCOMPATIBLE',
+          params: { productId: product.id },
+        };
+        expect(line.warnings).toEqual([warning]);
+        expect(result.warnings).toEqual([{ ...warning, lineId: line.id }]);
+        expect(result.totals.usdCents).toBeGreaterThan(0);
+      });
+
+      it('does not warn about a compatible floor product', async () => {
+        const result = await post(
+          heatedFloorConfiguration(floorProduct(true).id),
+        );
+
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('warns when the rooms outgrow the total area', async () => {
+        const configuration: Configuration = {
+          ...samples[0],
+          totalAreaSqm: data.limits.totalAreaSqm.min,
+          options: [],
+          rooms: samples[0].rooms.map((room) => ({
+            ...room,
+            lengthM: data.limits.roomSideM.max,
+            widthM: data.limits.roomSideM.max,
+          })),
+        };
+
+        const result = await post(configuration);
+
+        expect(result.warnings).toContainEqual({
+          code: 'ROOMS_AREA_EXCEEDS_TOTAL',
+          params: {
+            roomsAreaSqm: expect.any(Number),
+            totalAreaSqm: data.limits.totalAreaSqm.min,
+          },
+        });
+      });
+    });
   });
 });

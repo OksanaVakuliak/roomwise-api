@@ -357,6 +357,11 @@ describe('exchange rate e2e', () => {
       expect(estimate.exchangeRate).toBeNull();
       expect(estimate.totals.usdCents).toBeGreaterThan(0);
       expect(estimate.totals.uahKopecks).toBeNull();
+      expect(estimate.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: 'EXCHANGE_RATE_UNAVAILABLE' }),
+        ]),
+      );
       expect(
         estimate.lines.every(
           (line: { amountUahKopecks: number | null }) =>
