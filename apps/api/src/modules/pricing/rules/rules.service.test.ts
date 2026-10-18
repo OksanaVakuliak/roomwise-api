@@ -69,10 +69,19 @@ function setup(
     delete: vi.fn().mockResolvedValue(ruleRow()),
     ...options.rule,
   };
+  const queryRaw = vi
+    .fn()
+    .mockImplementation((_sql: TemplateStringsArray, keys: string[]) =>
+      Promise.resolve(keys.map((key) => ({ key, value: 1 }))),
+    );
   const prisma = {
     pricingRule: rule,
-    $transaction: vi.fn().mockResolvedValue([]),
-  } as unknown as PrismaService;
+    $queryRaw: queryRaw,
+    $transaction: vi.fn(),
+  };
+  prisma.$transaction.mockImplementation((arg: unknown) =>
+    typeof arg === 'function' ? arg(prisma) : Promise.resolve([]),
+  );
   const catalog = {
     existingCategoryIds: vi
       .fn()
@@ -90,12 +99,12 @@ function setup(
     coefficients: vi.fn().mockResolvedValue({ tile_glue: 1 }),
   };
   const service = new RulesService(
-    prisma,
+    prisma as unknown as PrismaService,
     catalog as unknown as CatalogPricingReadService,
     pricingData as unknown as PricingDataService,
   );
 
-  return { service, prisma, rule, catalog, pricingData };
+  return { service, prisma, rule, catalog, pricingData, queryRaw };
 }
 
 const categoryInput = {
@@ -228,6 +237,33 @@ describe('RulesService.create', () => {
         }),
       }),
     );
+  });
+
+  it('rejects the rule when a coefficient disappears before the write', async () => {
+    const { service, rule, queryRaw } = setup();
+    queryRaw.mockResolvedValue([]);
+
+    await expect(
+      service.create(
+        {
+          ...categoryInput,
+          costFormula: 'quantity * price * coef.tile_glue',
+        },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.FORMULA_INVALID });
+    expect(rule.create).not.toHaveBeenCalled();
+  });
+
+  it('skips the coefficient lock when the formulas use none', async () => {
+    const { service, queryRaw } = setup();
+
+    await service.create(
+      { ...categoryInput, costFormula: 'quantity * price' },
+      ADMIN_ID,
+    );
+
+    expect(queryRaw).not.toHaveBeenCalled();
   });
 
   it('appends an object rule after the highest sort order', async () => {

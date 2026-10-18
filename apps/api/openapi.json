@@ -3558,6 +3558,440 @@
           "Formulas"
         ]
       }
+    },
+    "/api/v1/admin/pricing/base-rates": {
+      "get": {
+        "operationId": "BaseRatesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseRateListResponseDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "BaseRates"
+        ]
+      },
+      "post": {
+        "operationId": "BaseRatesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaseRateInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseRateAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RANGE_OVERLAP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "BaseRates"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/base-rates/{id}": {
+      "patch": {
+        "operationId": "BaseRatesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBaseRateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseRateAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RANGE_OVERLAP, STALE_REVISION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "BaseRates"
+        ]
+      },
+      "delete": {
+        "operationId": "BaseRatesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "BaseRates"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/coefficients": {
+      "get": {
+        "operationId": "CoefficientsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoefficientListResponseDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Coefficients"
+        ]
+      },
+      "post": {
+        "operationId": "CoefficientsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoefficientInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoefficientAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "KEY_TAKEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Coefficients"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/coefficients/{id}": {
+      "patch": {
+        "operationId": "CoefficientsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCoefficientDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoefficientAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "KEY_TAKEN, COEFFICIENT_IN_USE, STALE_REVISION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Coefficients"
+        ]
+      },
+      "delete": {
+        "operationId": "CoefficientsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "COEFFICIENT_IN_USE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Coefficients"
+        ]
+      }
     }
   },
   "info": {
@@ -10492,6 +10926,664 @@
           "valid",
           "coefficientKeys",
           "errors"
+        ],
+        "additionalProperties": false
+      },
+      "BaseRateListResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "finishLevel": {
+                  "type": "string",
+                  "enum": [
+                    "ROUGH",
+                    "PRE_FINISH"
+                  ]
+                },
+                "areaFromSqm": {
+                  "type": "number"
+                },
+                "areaToSqm": {
+                  "type": "number"
+                },
+                "rateCentsPerSqm": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "revision": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "updatedBy": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "login": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "login"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "finishLevel",
+                "areaFromSqm",
+                "areaToSqm",
+                "rateCentsPerSqm",
+                "revision",
+                "updatedAt",
+                "updatedBy"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "finishLevel": {
+                  "type": "string",
+                  "enum": [
+                    "ROUGH",
+                    "PRE_FINISH"
+                  ]
+                },
+                "fromSqm": {
+                  "type": "number"
+                },
+                "toSqm": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "finishLevel",
+                "fromSqm",
+                "toSqm"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items",
+          "gaps"
+        ],
+        "additionalProperties": false
+      },
+      "BaseRateInputDto": {
+        "type": "object",
+        "properties": {
+          "finishLevel": {
+            "type": "string",
+            "enum": [
+              "ROUGH",
+              "PRE_FINISH"
+            ]
+          },
+          "areaFromSqm": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999.99,
+            "multipleOf": 0.01
+          },
+          "areaToSqm": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999.99,
+            "multipleOf": 0.01
+          },
+          "rateCentsPerSqm": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "finishLevel",
+          "areaFromSqm",
+          "areaToSqm",
+          "rateCentsPerSqm"
+        ],
+        "additionalProperties": false
+      },
+      "BaseRateAdminDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "finishLevel": {
+            "type": "string",
+            "enum": [
+              "ROUGH",
+              "PRE_FINISH"
+            ]
+          },
+          "areaFromSqm": {
+            "type": "number"
+          },
+          "areaToSqm": {
+            "type": "number"
+          },
+          "rateCentsPerSqm": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "login": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "login"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "finishLevel",
+          "areaFromSqm",
+          "areaToSqm",
+          "rateCentsPerSqm",
+          "revision",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateBaseRateDto": {
+        "type": "object",
+        "properties": {
+          "finishLevel": {
+            "type": "string",
+            "enum": [
+              "ROUGH",
+              "PRE_FINISH"
+            ]
+          },
+          "areaFromSqm": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999.99,
+            "multipleOf": 0.01
+          },
+          "areaToSqm": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999.99,
+            "multipleOf": 0.01
+          },
+          "rateCentsPerSqm": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 2147483647
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "CoefficientListResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                },
+                "value": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                },
+                "usedBy": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ruleId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "ruleName": {
+                        "type": "object",
+                        "properties": {
+                          "en": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "uk": {
+                            "type": "string",
+                            "maxLength": 120
+                          }
+                        },
+                        "required": [
+                          "en",
+                          "uk"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "ruleId",
+                      "ruleName"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "revision": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "updatedBy": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "login": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "login"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "key",
+                "name",
+                "value",
+                "unit",
+                "usedBy",
+                "revision",
+                "updatedAt",
+                "updatedBy"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "CoefficientInputDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,40}$"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999999.9999,
+            "multipleOf": 0.0001
+          },
+          "unit": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "value",
+          "unit"
+        ],
+        "additionalProperties": false
+      },
+      "CoefficientAdminDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ],
+            "additionalProperties": false
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ],
+            "additionalProperties": false
+          },
+          "usedBy": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ruleId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "ruleName": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "ruleId",
+                "ruleName"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "login": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "login"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "value",
+          "unit",
+          "usedBy",
+          "revision",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateCoefficientDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,40}$"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999999.9999,
+            "multipleOf": 0.0001
+          },
+          "unit": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
         ],
         "additionalProperties": false
       }

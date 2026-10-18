@@ -108,19 +108,29 @@ export class RulesService {
     let created: RuleWithRelations;
 
     try {
-      created = await this.prisma.pricingRule.create({
-        data: {
-          level: input.level,
-          categoryId,
-          materialTypeId,
-          name: input.name,
-          quantityFormula,
-          costFormula: input.costFormula,
+      created = await this.prisma.$transaction(async (tx) => {
+        await this.lockCoefficients(
+          tx,
           coefficientKeys,
-          sortOrder,
-          updatedById: adminId,
-        },
-        include: RULE_ADMIN_INCLUDE,
+          input.level,
+          quantityFormula,
+          input.costFormula,
+        );
+
+        return tx.pricingRule.create({
+          data: {
+            level: input.level,
+            categoryId,
+            materialTypeId,
+            name: input.name,
+            quantityFormula,
+            costFormula: input.costFormula,
+            coefficientKeys,
+            sortOrder,
+            updatedById: adminId,
+          },
+          include: RULE_ADMIN_INCLUDE,
+        });
       });
     } catch (error) {
       if (isPrismaError(error, 'P2002')) {
@@ -181,27 +191,37 @@ export class RulesService {
       await this.pricingData.coefficients(),
     );
 
-    await updateWithRevision({
-      id,
-      expectedRevision: input.revision,
-      updatedById: adminId,
-      update: async ({ id: ruleId, expectedRevision, mutation }) => {
-        const result = await this.prisma.pricingRule.updateMany({
-          where: { id: ruleId, revision: expectedRevision },
-          data: {
-            name,
-            quantityFormula,
-            costFormula,
-            coefficientKeys,
-            revision: mutation.revision,
-            updatedAt: mutation.updatedAt,
-            updatedById: mutation.updatedById,
-          },
-        });
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockCoefficients(
+        tx,
+        coefficientKeys,
+        existing.level,
+        quantityFormula,
+        costFormula,
+      );
 
-        return result.count;
-      },
-      readCurrentRevision: (ruleId) => this.readRevision(ruleId),
+      await updateWithRevision({
+        id,
+        expectedRevision: input.revision,
+        updatedById: adminId,
+        update: async ({ id: ruleId, expectedRevision, mutation }) => {
+          const result = await tx.pricingRule.updateMany({
+            where: { id: ruleId, revision: expectedRevision },
+            data: {
+              name,
+              quantityFormula,
+              costFormula,
+              coefficientKeys,
+              revision: mutation.revision,
+              updatedAt: mutation.updatedAt,
+              updatedById: mutation.updatedById,
+            },
+          });
+
+          return result.count;
+        },
+        readCurrentRevision: (ruleId) => this.readRevision(ruleId, tx),
+      });
     });
 
     this.pricingData.invalidate();
@@ -356,6 +376,31 @@ export class RulesService {
     return result.coefficientKeys;
   }
 
+  private async lockCoefficients(
+    tx: Prisma.TransactionClient,
+    keys: string[],
+    level: RuleLevel,
+    quantityFormula: string | null,
+    costFormula: string,
+  ): Promise<void> {
+    if (keys.length === 0) {
+      return;
+    }
+
+    const rows = await tx.$queryRaw<Array<{ key: string }>>`
+      SELECT "key" FROM "coefficients" WHERE "key" = ANY(${keys}) FOR SHARE
+    `;
+
+    if (rows.length < keys.length) {
+      this.assertFormulasValid(
+        level,
+        quantityFormula,
+        costFormula,
+        Object.fromEntries(rows.map((row) => [row.key, 0])),
+      );
+    }
+  }
+
   private async assertReferencesExist(
     categoryId: string | null,
     materialTypeId: string | null,
@@ -447,8 +492,11 @@ export class RulesService {
     return rule;
   }
 
-  private async readRevision(id: string): Promise<string | null> {
-    const rule = await this.prisma.pricingRule.findUnique({
+  private async readRevision(
+    id: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<string | null> {
+    const rule = await client.pricingRule.findUnique({
       where: { id },
       select: { revision: true },
     });
