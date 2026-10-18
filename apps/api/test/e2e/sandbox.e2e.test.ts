@@ -21,6 +21,8 @@ import { styleIds } from '../../src/modules/catalog/dataset/data/styles';
 import { CloudinaryService } from '../../src/modules/catalog/images/cloudinary.service';
 import { CLOUDINARY_UPLOAD_FOLDER } from '../../src/modules/catalog/images/images.constants';
 import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
+import { pricingDataset } from '../../src/modules/pricing/dataset/data';
+import { PricingDatasetService } from '../../src/modules/pricing/dataset/pricing-dataset.service';
 import {
   catalogParticipant,
   SANDBOX_DATASET_PARTICIPANTS,
@@ -70,6 +72,13 @@ function createFakeCloudinaryService(): FakeCloudinaryService {
 async function seedCatalog(prisma: PrismaService): Promise<void> {
   await prisma.$transaction(
     (tx) => new CatalogDatasetService().upsert(catalogDataset, tx),
+    SEED_TRANSACTION_OPTIONS,
+  );
+}
+
+async function seedPricing(prisma: PrismaService): Promise<void> {
+  await prisma.$transaction(
+    (tx) => new PricingDatasetService().upsert(pricingDataset, tx),
     SEED_TRANSACTION_OPTIONS,
   );
 }
@@ -332,6 +341,98 @@ describe('sandbox e2e (US6)', () => {
       expect(staleRevisionResponse.body.error.code).toBe(
         ERROR_CODES.STALE_REVISION,
       );
+    });
+  });
+
+  describe('pricing data reset', () => {
+    let testApp: TestApp;
+
+    beforeAll(async () => {
+      testApp = await createTestApp({
+        overrides: [
+          {
+            provide: CloudinaryService,
+            useValue: createFakeCloudinaryService(),
+          },
+        ],
+      });
+      await seedCatalog(testApp.prisma);
+      await seedPricing(testApp.prisma);
+    });
+
+    afterAll(async () => {
+      await testApp.close();
+    });
+
+    it('restores coefficients and rules, drops the manual exchange rate and keeps official NBU rates', async () => {
+      const { prisma } = testApp;
+      const seedCoefficient = pricingDataset.coefficients[0];
+      const seedRule = pricingDataset.rules[0];
+
+      await prisma.coefficient.update({
+        where: { key: seedCoefficient.key },
+        data: { value: 999 },
+      });
+      await prisma.pricingRule.update({
+        where: { id: seedRule.id },
+        data: { costFormula: '0' },
+      });
+      await prisma.pricingRule.delete({
+        where: { id: pricingDataset.rules[1].id },
+      });
+      const nbuRate = await prisma.exchangeRate.create({
+        data: {
+          source: 'NBU',
+          rate: 41.5,
+          effectiveDate: new Date('2026-01-01'),
+          fetchedAt: new Date(),
+        },
+      });
+      const manualRate = await prisma.exchangeRate.create({
+        data: {
+          source: 'MANUAL',
+          rate: 50,
+          effectiveDate: new Date('2026-01-02'),
+          fetchedAt: new Date(),
+        },
+      });
+      await prisma.pricingSettings.update({
+        where: { id: 1 },
+        data: { manualRateId: manualRate.id },
+      });
+
+      await forceResetDue(prisma);
+      const maintenanceResult = await runMaintenance(testApp.http);
+
+      expect(maintenanceResult).toEqual({
+        tasks: [{ name: 'sandbox-reset', status: 'SUCCESS' }],
+      });
+
+      const coefficient = await prisma.coefficient.findUniqueOrThrow({
+        where: { key: seedCoefficient.key },
+      });
+      expect(Number(coefficient.value)).toBe(seedCoefficient.value);
+
+      const rules = await prisma.pricingRule.findMany({
+        where: {
+          id: { in: [seedRule.id, pricingDataset.rules[1].id] },
+        },
+      });
+      expect(rules).toHaveLength(2);
+      expect(rules.find((rule) => rule.id === seedRule.id)?.costFormula).toBe(
+        seedRule.costFormula,
+      );
+
+      const settings = await prisma.pricingSettings.findUniqueOrThrow({
+        where: { id: 1 },
+      });
+      expect(settings.manualRateId).toBeNull();
+      expect(
+        await prisma.exchangeRate.findUnique({ where: { id: manualRate.id } }),
+      ).toBeNull();
+      expect(
+        await prisma.exchangeRate.findUnique({ where: { id: nbuRate.id } }),
+      ).not.toBeNull();
     });
   });
 

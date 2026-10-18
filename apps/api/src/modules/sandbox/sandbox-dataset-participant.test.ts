@@ -5,8 +5,12 @@ import type { CatalogDatasetService } from '../catalog/dataset/catalog-dataset.s
 import { catalogDataset } from '../catalog/dataset/data';
 import type { CloudinaryService } from '../catalog/images/cloudinary.service';
 import type { CatalogCache } from '../catalog/public/catalog-cache';
+import { pricingDataset } from '../pricing/dataset/data';
+import type { PricingDatasetService } from '../pricing/dataset/pricing-dataset.service';
+import type { PricingDataService } from '../pricing/pricing-data/pricing-data.service';
 import {
   catalogParticipant,
+  pricingParticipant,
   SANDBOX_DATASET_PARTICIPANTS,
   sandboxDatasetParticipantsProvider,
 } from './sandbox-dataset-participant';
@@ -19,6 +23,10 @@ function createDependencies() {
     cache: { invalidate: vi.fn() },
     cloudinary: { deleteByPrefix: vi.fn().mockResolvedValue(undefined) },
     notifier: { notify: vi.fn() },
+    pricingDatasetService: {
+      replace: vi.fn().mockResolvedValue(undefined),
+    },
+    pricingData: { invalidate: vi.fn() },
   };
 }
 
@@ -80,8 +88,39 @@ describe('catalogParticipant', () => {
   });
 });
 
+describe('pricingParticipant', () => {
+  function createPricingParticipant(
+    dependencies: ReturnType<typeof createDependencies>,
+  ) {
+    return pricingParticipant(
+      dependencies.pricingDatasetService as unknown as PricingDatasetService,
+      dependencies.pricingData as unknown as PricingDataService,
+    );
+  }
+
+  it('replaces the pricing data with the demo dataset in the given transaction', async () => {
+    const dependencies = createDependencies();
+    const tx = {} as Prisma.TransactionClient;
+
+    await createPricingParticipant(dependencies).replace(tx);
+
+    expect(dependencies.pricingDatasetService.replace).toHaveBeenCalledWith(
+      pricingDataset,
+      tx,
+    );
+  });
+
+  it('invalidates the pricing data after commit', async () => {
+    const dependencies = createDependencies();
+
+    await createPricingParticipant(dependencies).afterCommit?.();
+
+    expect(dependencies.pricingData.invalidate).toHaveBeenCalledOnce();
+  });
+});
+
 describe('sandboxDatasetParticipantsProvider', () => {
-  it('registers the catalog as the only participant for now', async () => {
+  it('registers the catalog and pricing participants in that order', async () => {
     const dependencies = createDependencies();
 
     const participants = await sandboxDatasetParticipantsProvider.useFactory(
@@ -89,6 +128,8 @@ describe('sandboxDatasetParticipantsProvider', () => {
       dependencies.cache,
       dependencies.cloudinary,
       dependencies.notifier,
+      dependencies.pricingDatasetService,
+      dependencies.pricingData,
     );
 
     expect(sandboxDatasetParticipantsProvider.provide).toBe(
@@ -96,6 +137,7 @@ describe('sandboxDatasetParticipantsProvider', () => {
     );
     expect(participants.map((participant) => participant.name)).toEqual([
       'catalog',
+      'pricing',
     ]);
   });
 });
