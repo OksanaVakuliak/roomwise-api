@@ -5,12 +5,12 @@ import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
 import {
   FinishLevel,
-  RateSource,
   RuleLevel,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
 import type { CatalogChangeNotifier } from '../../catalog/common/catalog-change.notifier';
 import type { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
+import type { ExchangeRateService } from '../exchange-rate/exchange-rate.service';
 import { PricingDataService } from './pricing-data.service';
 
 const CATEGORY_ID = 'a02f1429-4d77-49eb-a43d-52dcb2426d9f';
@@ -39,8 +39,7 @@ function ruleRow(overrides: Record<string, unknown> = {}) {
 interface Fixture {
   rules?: unknown[];
   settings?: unknown;
-  manualRate?: unknown;
-  nbuRate?: unknown;
+  activeRate?: unknown;
 }
 
 function createService(fixture: Fixture = {}) {
@@ -48,7 +47,6 @@ function createService(fixture: Fixture = {}) {
     fixture.settings === undefined
       ? {
           id: 1,
-          manualRate: fixture.manualRate ?? null,
           totalAreaMinSqm: decimal('15.00'),
           totalAreaMaxSqm: decimal('500.00'),
           roomsMin: 1,
@@ -81,9 +79,6 @@ function createService(fixture: Fixture = {}) {
     pricingRule: {
       findMany: vi.fn().mockResolvedValue(fixture.rules ?? [ruleRow()]),
     },
-    exchangeRate: {
-      findFirst: vi.fn().mockResolvedValue(fixture.nbuRate ?? null),
-    },
   };
 
   const catalog = {
@@ -103,13 +98,20 @@ function createService(fixture: Fixture = {}) {
 
   const changes = new Subject<void>();
   const notifier = { changes$: changes.asObservable() };
+  const rateChanges = new Subject<void>();
+  const exchangeRates = {
+    changes$: rateChanges.asObservable(),
+    activeRate: vi.fn().mockResolvedValue(fixture.activeRate ?? null),
+    requestRefreshIfStale: vi.fn(),
+  };
   const service = new PricingDataService(
     prisma as unknown as PrismaService,
     catalog as unknown as CatalogPricingReadService,
     notifier as unknown as CatalogChangeNotifier,
+    exchangeRates as unknown as ExchangeRateService,
   );
 
-  return { service, prisma, catalog, changes };
+  return { service, prisma, catalog, changes, exchangeRates, rateChanges };
 }
 
 describe('PricingDataService', () => {
@@ -234,55 +236,43 @@ describe('PricingDataService', () => {
   });
 
   describe('exchange rate', () => {
-    it('is null when there is no manual and no official rate', async () => {
+    it('is null when there is no active rate', async () => {
       const data = await createService().service.get();
 
       expect(data.exchangeRate).toBeNull();
     });
 
-    it('uses the latest official rate when there is no manual one', async () => {
-      const { service, prisma } = createService({
-        nbuRate: {
-          source: RateSource.NBU,
-          rate: decimal('41.5'),
-          effectiveDate: new Date('2026-10-16T00:00:00.000Z'),
-        },
-      });
-
-      const data = await service.get();
-
-      expect(data.exchangeRate).toEqual({
-        rate: '41.5000',
-        date: '2026-10-16',
-        source: 'NBU',
-      });
-      expect(prisma.exchangeRate.findFirst).toHaveBeenCalledWith({
-        where: { source: RateSource.NBU },
-        orderBy: { effectiveDate: 'desc' },
-      });
-    });
-
-    it('prefers the manual rate over the official one', async () => {
-      const { service } = createService({
-        manualRate: {
-          source: RateSource.MANUAL,
-          rate: decimal('42'),
-          effectiveDate: new Date('2026-10-17T00:00:00.000Z'),
-        },
-        nbuRate: {
-          source: RateSource.NBU,
-          rate: decimal('41.5'),
-          effectiveDate: new Date('2026-10-16T00:00:00.000Z'),
-        },
-      });
-
-      const data = await service.get();
-
-      expect(data.exchangeRate).toEqual({
+    it('takes the active rate from the exchange rate service', async () => {
+      const activeRate = {
         rate: '42.0000',
         date: '2026-10-17',
         source: 'MANUAL',
-      });
+      };
+      const { service } = createService({ activeRate });
+
+      const data = await service.get();
+
+      expect(data.exchangeRate).toEqual(activeRate);
+    });
+
+    it('asks for a background refresh on every read without awaiting it', async () => {
+      const { service, exchangeRates } = createService();
+
+      await service.get();
+      await service.get();
+
+      expect(exchangeRates.requestRefreshIfStale).toHaveBeenCalledTimes(2);
+    });
+
+    it('rebuilds after the effective rate changes', async () => {
+      const { service, exchangeRates, rateChanges } = createService();
+      service.onModuleInit();
+
+      await service.get();
+      rateChanges.next();
+      await service.get();
+
+      expect(exchangeRates.activeRate).toHaveBeenCalledTimes(2);
     });
   });
 
