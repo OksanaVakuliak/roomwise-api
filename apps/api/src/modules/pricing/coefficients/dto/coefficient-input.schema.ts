@@ -4,12 +4,14 @@ import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text
 
 export const COEFFICIENT_KEY_PATTERN = /^[a-z][a-z0-9_]{1,40}$/;
 export const COEFFICIENT_VALUE_MAX = 99_999_999.9999;
+export const COEFFICIENT_VALUE_STEP = 0.0001;
 
 export const coefficientKeySchema = z.string().regex(COEFFICIENT_KEY_PATTERN);
 export const coefficientValueSchema = z
   .number()
   .min(0)
-  .max(COEFFICIENT_VALUE_MAX);
+  .max(COEFFICIENT_VALUE_MAX)
+  .multipleOf(COEFFICIENT_VALUE_STEP);
 
 export const coefficientInputSchema = z
   .object({

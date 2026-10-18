@@ -220,7 +220,7 @@ export class RulesService {
 
           return result.count;
         },
-        readCurrentRevision: (ruleId) => this.readRevision(ruleId),
+        readCurrentRevision: (ruleId) => this.readRevision(ruleId, tx),
       });
     });
 
@@ -387,10 +387,8 @@ export class RulesService {
       return;
     }
 
-    const rows = await tx.$queryRaw<
-      Array<{ key: string; value: Prisma.Decimal }>
-    >`
-      SELECT "key", "value" FROM "coefficients" WHERE "key" = ANY(${keys}) FOR SHARE
+    const rows = await tx.$queryRaw<Array<{ key: string }>>`
+      SELECT "key" FROM "coefficients" WHERE "key" = ANY(${keys}) FOR SHARE
     `;
 
     if (rows.length < keys.length) {
@@ -398,7 +396,7 @@ export class RulesService {
         level,
         quantityFormula,
         costFormula,
-        Object.fromEntries(rows.map((row) => [row.key, Number(row.value)])),
+        Object.fromEntries(rows.map((row) => [row.key, 0])),
       );
     }
   }
@@ -494,8 +492,11 @@ export class RulesService {
     return rule;
   }
 
-  private async readRevision(id: string): Promise<string | null> {
-    const rule = await this.prisma.pricingRule.findUnique({
+  private async readRevision(
+    id: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<string | null> {
+    const rule = await client.pricingRule.findUnique({
       where: { id },
       select: { revision: true },
     });

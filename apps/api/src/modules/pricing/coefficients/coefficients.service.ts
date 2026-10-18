@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { updateWithRevision } from '../../../common/concurrency/revision';
+import {
+  staleRevisionError,
+  updateWithRevision,
+} from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
@@ -100,10 +103,14 @@ export class CoefficientsService {
   ): Promise<CoefficientAdmin> {
     try {
       await this.prisma.$transaction(async (tx) => {
-        const existingKey = await this.lockKey(tx, id);
+        const existing = await this.lockRow(tx, id);
 
-        if (input.key !== undefined && input.key !== existingKey) {
-          await this.assertNotInUse(tx, existingKey);
+        if (existing.revision !== input.revision) {
+          throw staleRevisionError(existing.revision);
+        }
+
+        if (input.key !== undefined && input.key !== existing.key) {
+          await this.assertNotInUse(tx, existing.key);
         }
 
         await updateWithRevision({
@@ -147,7 +154,7 @@ export class CoefficientsService {
 
   async remove(id: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      const key = await this.lockKey(tx, id);
+      const { key } = await this.lockRow(tx, id);
 
       await this.assertNotInUse(tx, key);
       await tx.coefficient.delete({ where: { id } });
@@ -156,16 +163,16 @@ export class CoefficientsService {
     this.pricingData.invalidate();
   }
 
-  private async lockKey(tx: Prisma.TransactionClient, id: string) {
-    const rows = await tx.$queryRaw<Array<{ key: string }>>`
-      SELECT "key" FROM "coefficients" WHERE "id" = ${id}::uuid FOR UPDATE
+  private async lockRow(tx: Prisma.TransactionClient, id: string) {
+    const rows = await tx.$queryRaw<Array<{ key: string; revision: string }>>`
+      SELECT "key", "revision" FROM "coefficients" WHERE "id" = ${id}::uuid FOR UPDATE
     `;
 
     if (rows.length === 0) {
       throw new AppError(ERROR_CODES.NOT_FOUND);
     }
 
-    return rows[0].key;
+    return rows[0];
   }
 
   private async assertNotInUse(

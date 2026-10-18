@@ -62,7 +62,7 @@ function computeGaps(
     let cursor = min;
 
     for (const range of ranges) {
-      if (cursor >= max) {
+      if (cursor > max) {
         break;
       }
 
@@ -77,7 +77,7 @@ function computeGaps(
       cursor = Math.max(cursor, range.to);
     }
 
-    if (cursor < max) {
+    if (cursor <= max) {
       gaps.push({
         finishLevel,
         fromSqm: roundArea(cursor),

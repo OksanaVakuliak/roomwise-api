@@ -11365,7 +11365,8 @@
           "value": {
             "type": "number",
             "minimum": 0,
-            "maximum": 99999999.9999
+            "maximum": 99999999.9999,
+            "multipleOf": 0.0001
           },
           "unit": {
             "type": "object",
@@ -11555,7 +11556,8 @@
           "value": {
             "type": "number",
             "minimum": 0,
-            "maximum": 99999999.9999
+            "maximum": 99999999.9999,
+            "multipleOf": 0.0001
           },
           "unit": {
             "type": "object",

@@ -4,6 +4,7 @@ import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
 import type { PricingDataService } from '../pricing-data/pricing-data.service';
 import { CoefficientsService } from './coefficients.service';
+import { coefficientValueSchema } from './dto/coefficient-input.schema';
 
 const ADMIN_ID = 'admin-1';
 const COEFFICIENT_ID = 'coefficient-1';
@@ -48,7 +49,7 @@ function setup(
   options: {
     coefficient?: Record<string, unknown>;
     rule?: Record<string, unknown>;
-    lockedRows?: Array<{ key: string }>;
+    lockedRows?: Array<{ key: string; revision: string }>;
   } = {},
 ) {
   const coefficient = {
@@ -65,7 +66,9 @@ function setup(
   };
   const queryRaw = vi
     .fn()
-    .mockResolvedValue(options.lockedRows ?? [{ key: 'tile_glue' }]);
+    .mockResolvedValue(
+      options.lockedRows ?? [{ key: 'tile_glue', revision: CURRENT_REVISION }],
+    );
   const prisma = {
     coefficient,
     pricingRule: rule,
@@ -183,6 +186,29 @@ describe('CoefficientsService.update', () => {
         where: { coefficientKeys: { has: 'tile_glue' } },
       }),
     );
+  });
+
+  it('reports a stale revision before checking usage', async () => {
+    const { service, coefficient, rule } = setup();
+    rule.findMany.mockResolvedValue([ruleRow()]);
+
+    await expect(
+      service.update(
+        COEFFICIENT_ID,
+        { key: 'glue', revision: 'old' },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.STALE_REVISION,
+      params: { currentRevision: CURRENT_REVISION },
+    });
+    expect(rule.findMany).not.toHaveBeenCalled();
+    expect(coefficient.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a value finer than the stored precision', () => {
+    expect(coefficientValueSchema.safeParse(1.2345).success).toBe(true);
+    expect(coefficientValueSchema.safeParse(1.23456).success).toBe(false);
   });
 
   it('rejects renaming a key used by rules', async () => {

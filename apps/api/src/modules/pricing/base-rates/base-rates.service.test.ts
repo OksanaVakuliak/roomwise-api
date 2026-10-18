@@ -108,7 +108,7 @@ describe('BaseRatesService.list', () => {
   });
 
   it('reports a full gap for a finish level without ranges', async () => {
-    const { service } = setup([rangeRow('a', 15, 500)]);
+    const { service } = setup([rangeRow('a', 15, 500.01)]);
 
     const result = await service.list();
 
@@ -121,7 +121,7 @@ describe('BaseRatesService.list', () => {
     const { service } = setup([
       rangeRow('a', 20, 50),
       rangeRow('b', 60, 100),
-      rangeRow('c', 0, 500, FinishLevel.PRE_FINISH),
+      rangeRow('c', 0, 500.01, FinishLevel.PRE_FINISH),
     ]);
 
     const result = await service.list();
@@ -133,11 +133,24 @@ describe('BaseRatesService.list', () => {
     ]);
   });
 
+  it('reports the maximum area as a gap when the last range ends at it', async () => {
+    const { service } = setup([
+      rangeRow('a', 15, 500),
+      rangeRow('b', 15, 500.01, FinishLevel.PRE_FINISH),
+    ]);
+
+    const result = await service.list();
+
+    expect(result.gaps).toEqual([
+      { finishLevel: FinishLevel.ROUGH, fromSqm: 500, toSqm: 500 },
+    ]);
+  });
+
   it('treats adjacent half-open ranges as contiguous', async () => {
     const { service } = setup([
       rangeRow('a', 15, 100),
       rangeRow('b', 100, 600),
-      rangeRow('c', 15, 500, FinishLevel.PRE_FINISH),
+      rangeRow('c', 15, 500.01, FinishLevel.PRE_FINISH),
     ]);
 
     const result = await service.list();
