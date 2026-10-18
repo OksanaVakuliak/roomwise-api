@@ -1,6 +1,7 @@
 import type {
   Configuration,
   EstimateLine,
+  EstimateWarning,
   PricingData,
   PricingRule,
   RoomConfiguration,
@@ -58,9 +59,15 @@ function materialLine(
       params: { productId },
     });
   }
+  const warnings: EstimateWarning[] =
+    room.heatedFloor &&
+    category.surface === 'FLOOR' &&
+    !product.heatedFloorCompatible
+      ? [{ code: 'HEATED_FLOOR_INCOMPATIBLE', params: { productId } }]
+      : [];
   const rule = selectRule(data, categoryId, product.materialTypeId);
   if (rule === undefined) {
-    return failedLine(init, 'NOT_CALCULATED', {
+    return failedLine({ ...init, warnings }, 'NOT_CALCULATED', {
       code: 'RULE_NOT_FOUND',
       params: { categoryId, materialTypeId: product.materialTypeId },
     });
@@ -71,7 +78,7 @@ function materialLine(
     ...objectVariables(configuration),
   };
   const { coefficients } = data;
-  const ruled = { ...init, ruleId: rule.id };
+  const ruled = { ...init, warnings, ruleId: rule.id };
   const quantity = runNumericFormula(rule.quantityFormula, {
     variables,
     coefficients,

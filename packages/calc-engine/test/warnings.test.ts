@@ -137,6 +137,17 @@ describe('rooms area warning', () => {
     const result = estimate({ ...request, rooms, totalAreaSqm: 0.3 }, data);
     expect(codes(result)).not.toContain('ROOMS_AREA_EXCEEDS_TOTAL');
   });
+
+  it('keeps the precision of the rooms area', () => {
+    const rooms = request.rooms
+      .slice(0, 1)
+      .map((room) => ({ ...room, lengthM: 3.35, widthM: 3.35 }));
+    const result = estimate({ ...request, rooms, totalAreaSqm: 11.22 }, data);
+    expect(result.warnings).toContainEqual({
+      code: 'ROOMS_AREA_EXCEEDS_TOTAL',
+      params: { roomsAreaSqm: 11.2225, totalAreaSqm: 11.22 },
+    });
+  });
 });
 
 describe('exchange rate warning', () => {

@@ -339,6 +339,7 @@ describe('estimates e2e', () => {
       const heatedFloorConfiguration = (productId: string): Configuration => ({
         ...samples[0],
         totalAreaSqm: data.limits.totalAreaSqm.max,
+        options: [],
         rooms: [
           {
             ...samples[0].rooms[0],
@@ -385,6 +386,7 @@ describe('estimates e2e', () => {
         const configuration: Configuration = {
           ...samples[0],
           totalAreaSqm: data.limits.totalAreaSqm.min,
+          options: [],
           rooms: samples[0].rooms.map((room) => ({
             ...room,
             lengthM: data.limits.roomSideM.max,
