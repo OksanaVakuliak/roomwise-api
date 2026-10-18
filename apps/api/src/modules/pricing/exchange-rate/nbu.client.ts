@@ -2,10 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import type { AppEnv } from '../../../config/env';
+import { RATE_FRACTION_DIGITS } from './dto/exchange-rate.schema';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const USD_CODE = 'USD';
-const RATE_FRACTION_DIGITS = 4;
 const NBU_DATE_PATTERN = /^(\d{2})\.(\d{2})\.(\d{4})$/;
 
 export const NBU_ERROR_KINDS = {

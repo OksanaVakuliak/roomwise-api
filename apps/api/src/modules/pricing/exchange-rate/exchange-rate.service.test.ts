@@ -337,6 +337,28 @@ describe('ExchangeRateService.refresh', () => {
     expect(changes).not.toHaveBeenCalled();
   });
 
+  it('records the error and backs off when storing the fetched rate fails', async () => {
+    const { service, prisma, nbu, changes } = setup({
+      official: rateRow({
+        fetchedAt: new Date(NOW.getTime() - 27 * 3_600_000),
+      }),
+    });
+    prisma.$transaction.mockRejectedValueOnce(new Error('db down'));
+
+    await expect(service.refresh(NOW)).rejects.toThrow('db down');
+
+    expect(prisma.pricingSettings.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { lastNbuAttemptAt: NOW, lastNbuError: 'db down' },
+    });
+    expect(changes).not.toHaveBeenCalled();
+
+    service.requestRefreshIfStale();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(nbu.fetchUsdRate).toHaveBeenCalledTimes(1);
+  });
+
   it('still surfaces the NBU error when recording it fails', async () => {
     const { service, prisma, nbu } = setup();
     nbu.fetchUsdRate.mockRejectedValue(new Error('NBU down'));

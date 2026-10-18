@@ -34,6 +34,27 @@ function toQuote(row: RateRow) {
   };
 }
 
+function toActive(manual: RateRow | null, official: RateRow | null) {
+  const active = manual ?? official;
+
+  return active ? { ...toQuote(active), source: active.source } : null;
+}
+
+function staleSince(
+  settings: SettingsRow,
+  official: RateRow | null,
+): string | null {
+  if (!settings.lastNbuError) {
+    return null;
+  }
+
+  if (settings.lastNbuSuccessDate) {
+    return isoDate(settings.lastNbuSuccessDate);
+  }
+
+  return official ? isoDate(official.effectiveDate) : null;
+}
+
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error';
 }
@@ -56,17 +77,15 @@ export class ExchangeRateService {
 
   async activeRate(): Promise<ExchangeRate | null> {
     const { manual, official } = await this.readRates();
-    const active = manual ?? official;
 
-    return active ? { ...toQuote(active), source: active.source } : null;
+    return toActive(manual, official);
   }
 
   async status(): Promise<ExchangeRateStatus> {
     const { settings, manual, official } = await this.readRates();
-    const active = manual ?? official;
 
     return {
-      active: active ? { ...toQuote(active), source: active.source } : null,
+      active: toActive(manual, official),
       official: official ? toQuote(official) : null,
       manual: manual ? toQuote(manual) : null,
       lastSuccessfulFetchDate: settings.lastNbuSuccessDate
@@ -74,13 +93,7 @@ export class ExchangeRateService {
         : null,
       lastAttemptAt: settings.lastNbuAttemptAt?.toISOString() ?? null,
       lastError: settings.lastNbuError,
-      staleSince: settings.lastNbuError
-        ? settings.lastNbuSuccessDate
-          ? isoDate(settings.lastNbuSuccessDate)
-          : official
-            ? isoDate(official.effectiveDate)
-            : null
-        : null,
+      staleSince: staleSince(settings, official),
     };
   }
 
@@ -212,17 +225,28 @@ export class ExchangeRateService {
   }
 
   private async fetchAndStore(now: Date): Promise<void> {
-    let quote: Awaited<ReturnType<NbuClient['fetchUsdRate']>>;
+    let changed: boolean;
 
     try {
-      quote = await this.nbu.fetchUsdRate();
+      changed = await this.store(await this.nbu.fetchUsdRate(), now);
     } catch (error) {
       this.checkedUntil = now.getTime() + RETRY_AFTER_MS;
       await this.recordFailure(error, now);
       throw error;
     }
 
-    const changed = await this.prisma.$transaction(async (tx) => {
+    this.checkedUntil = now.getTime() + STALE_AFTER_MS;
+
+    if (changed) {
+      this.subject.next();
+    }
+  }
+
+  private store(
+    quote: Awaited<ReturnType<NbuClient['fetchUsdRate']>>,
+    now: Date,
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
       const existing = await tx.exchangeRate.findFirst({
         where: { source: RateSource.NBU, effectiveDate: quote.effectiveDate },
       });
@@ -256,12 +280,6 @@ export class ExchangeRateService {
         !existing || existing.rate.toFixed(RATE_FRACTION_DIGITS) !== quote.rate
       );
     });
-
-    this.checkedUntil = now.getTime() + STALE_AFTER_MS;
-
-    if (changed) {
-      this.subject.next();
-    }
   }
 
   private async recordFailure(error: unknown, now: Date): Promise<void> {

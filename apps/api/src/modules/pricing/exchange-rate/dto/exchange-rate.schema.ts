@@ -28,7 +28,9 @@ export const manualRateInputSchema = z.object({
         `^\\d{1,${RATE_INTEGER_DIGITS}}(\\.\\d{1,${RATE_FRACTION_DIGITS}})?$`,
       ),
     )
-    .refine((value) => Number(value) > 0),
+    .refine((value) => Number(value) > 0, {
+      error: 'rate must be greater than zero',
+    }),
 });
 
 export type ExchangeRateStatus = z.infer<typeof exchangeRateStatusSchema>;
