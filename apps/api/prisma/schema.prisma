@@ -48,6 +48,22 @@ enum RoomTypeCode {
   BATHROOM
 }
 
+enum FinishLevel {
+  ROUGH
+  PRE_FINISH
+}
+
+enum RuleLevel {
+  OBJECT
+  CATEGORY
+  MATERIAL_TYPE
+}
+
+enum RateSource {
+  NBU
+  MANUAL
+}
+
 model Admin {
   id               String    @id @default(uuid()) @db.Uuid
   login            String    @unique
@@ -66,6 +82,10 @@ model Admin {
   engineeringPackageItemUpdates EngineeringPackageItem[] @relation("EngineeringPackageItemUpdatedBy")
   optionUpdates                 Option[]                 @relation("OptionUpdatedBy")
   createdImages                 Image[]                  @relation("ImageCreatedBy")
+  baseRateUpdates               BaseRate[]               @relation("BaseRateUpdatedBy")
+  coefficientUpdates            Coefficient[]            @relation("CoefficientUpdatedBy")
+  pricingRuleUpdates            PricingRule[]            @relation("PricingRuleUpdatedBy")
+  createdExchangeRates          ExchangeRate[]           @relation("ExchangeRateCreatedBy")
 
   @@unique([isDemo], where: { isDemo: true })
   @@map("admins")
@@ -320,4 +340,87 @@ model SandboxState {
   lockedAt        DateTime? @map("locked_at") @db.Timestamptz(3)
 
   @@map("sandbox_state")
+}
+
+model BaseRate {
+  id              String      @id @default(uuid()) @db.Uuid
+  finishLevel     FinishLevel @map("finish_level")
+  areaFromSqm     Decimal     @map("area_from_sqm") @db.Decimal(7, 2)
+  areaToSqm       Decimal     @map("area_to_sqm") @db.Decimal(7, 2)
+  rateCentsPerSqm Int         @map("rate_cents_per_sqm")
+  revision        String      @default(uuid()) @db.Uuid
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById     String?     @map("updated_by_id") @db.Uuid
+  updatedBy       Admin?      @relation("BaseRateUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([finishLevel, areaFromSqm])
+  @@map("base_rates")
+}
+
+model Coefficient {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  name        Json     @db.JsonB
+  value       Decimal  @db.Decimal(12, 4)
+  unit        Json     @db.JsonB
+  revision    String   @default(uuid()) @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedBy   Admin?   @relation("CoefficientUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("coefficients")
+}
+
+model PricingRule {
+  id              String    @id @default(uuid()) @db.Uuid
+  level           RuleLevel
+  categoryId      String?   @map("category_id") @db.Uuid
+  materialTypeId  String?   @map("material_type_id") @db.Uuid
+  name            Json      @db.JsonB
+  quantityFormula String?   @map("quantity_formula")
+  costFormula     String    @map("cost_formula")
+  coefficientKeys String[]  @map("coefficient_keys")
+  sortOrder       Int       @map("sort_order")
+  revision        String    @default(uuid()) @db.Uuid
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById     String?   @map("updated_by_id") @db.Uuid
+  updatedBy       Admin?    @relation("PricingRuleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([categoryId], where: { level: "CATEGORY" })
+  @@unique([categoryId, materialTypeId], where: { level: "MATERIAL_TYPE" })
+  @@map("pricing_rules")
+}
+
+model ExchangeRate {
+  id            String     @id @default(uuid()) @db.Uuid
+  source        RateSource
+  rate          Decimal    @db.Decimal(12, 4)
+  effectiveDate DateTime   @map("effective_date") @db.Date
+  fetchedAt     DateTime   @map("fetched_at") @db.Timestamptz(3)
+  createdById   String?    @map("created_by_id") @db.Uuid
+  createdBy     Admin?     @relation("ExchangeRateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  settings PricingSettings[]
+
+  @@unique([source, effectiveDate], where: { source: "NBU" })
+  @@map("exchange_rates")
+}
+
+model PricingSettings {
+  id                 Int           @id
+  manualRateId       String?       @map("manual_rate_id") @db.Uuid
+  manualRate         ExchangeRate? @relation(fields: [manualRateId], references: [id], onDelete: SetNull)
+  lastNbuSuccessDate DateTime?     @map("last_nbu_success_date") @db.Date
+  lastNbuAttemptAt   DateTime?     @map("last_nbu_attempt_at") @db.Timestamptz(3)
+  lastNbuError       String?      @map("last_nbu_error")
+  totalAreaMinSqm    Decimal       @map("total_area_min_sqm") @db.Decimal(7, 2)
+  totalAreaMaxSqm    Decimal       @map("total_area_max_sqm") @db.Decimal(7, 2)
+  roomsMin           Int           @map("rooms_min")
+  roomsMax           Int           @map("rooms_max")
+  roomSideMinM       Decimal       @map("room_side_min_m") @db.Decimal(5, 2)
+  roomSideMaxM       Decimal       @map("room_side_max_m") @db.Decimal(5, 2)
+  roomHeightMinM     Decimal       @map("room_height_min_m") @db.Decimal(4, 2)
+  roomHeightMaxM     Decimal       @map("room_height_max_m") @db.Decimal(4, 2)
+
+  @@map("pricing_settings")
 }

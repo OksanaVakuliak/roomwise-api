@@ -1,0 +1,509 @@
+{
+  "description": "US1 reference: apartment 62 m2, living room 5 x 4 x 2.7 m with laminate, bathroom 2 x 2 x 2.5 m with tile and heated floor. Every number was calculated by hand from the specification rules, not produced by the engine.",
+  "explanation": {
+    "money": "USD amounts are integer cents. Each line is rounded half up to a cent, section totals and the grand total are sums of rounded lines. UAH kopecks per line are round_half_up(cents * 44.5483), the UAH totals are sums of the kopeck lines.",
+    "lines": {
+      "BASE": "Total area 62 m2 falls in the PRE_FINISH range [55, 70) with rate 11850 cents per m2: 62 * 11850 = 734700 cents.",
+      "OBJECT:rule-balcony-tile": "balconyTiles is true: 4 m2 * 75 = 300 USD = 30000 cents.",
+      "MATERIALS:living:cat-floor": "No tile rule for laminate, the category rule applies. floorArea 5 * 4 = 20, waste 5%: 20 * 1.05 = 21 m2. Cost 21 * (18 + 2) = 420 USD = 42000 cents.",
+      "MATERIALS:living:cat-walls": "wallArea = 2 * (5 + 4) * 2.7 = 48.6, waste 10%: 53.46 m2. Cost 53.46 * 6.75 = 360.855 USD = 36085.5 cents, rounded half up to 36086.",
+      "MATERIALS:bath:cat-floor": "The tile rule applies. floorArea 2 * 2 = 4, tile waste override 10%: 4.4 m2. Heated floor, so glue is 21. Cost 4.4 * (22.5 + 21) = 191.4 USD = 19140 cents.",
+      "MATERIALS:bath:cat-ceiling": "floorArea 4, waste 5%: 4.2 m2. Cost 4.2 * 3.25 = 13.65 USD = 1365 cents. The living room ceiling is disabled, so it has no line.",
+      "ENGINEERING:package:pk-wiring": "Included in the base cost, shown without extra charge.",
+      "ENGINEERING:package:pk-plumbing": "Included in the base cost, shown without extra charge.",
+      "ENGINEERING:package:pk-ventilation": "Not included in the base cost, PROJECT unit: 1 * 250 USD = 25000 cents.",
+      "ENGINEERING:option:opt-ac": "PIECE unit: 3 * 450 USD = 1350 USD = 135000 cents.",
+      "ENGINEERING:option:opt-heated-floor": "ROOM_SQM unit in the bathroom: floor area 4 m2 * 85 USD = 340 USD = 34000 cents.",
+      "ADDITIONAL:option:opt-design": "PROJECT unit: 1200 USD = 120000 cents.",
+      "ADDITIONAL:option:opt-smart-switches": "ROOM unit, two rooms: 2 * 200 USD = 400 USD = 40000 cents."
+    },
+    "sections": "BASE 734700; OBJECT 30000; MATERIALS 42000 + 36086 + 19140 + 1365 = 98591; ENGINEERING 0 + 0 + 25000 + 135000 + 34000 = 194000; ADDITIONAL 120000 + 40000 = 160000.",
+    "total": "734700 + 30000 + 98591 + 194000 + 160000 = 1217291 cents = 12172.91 USD."
+  },
+  "pricingData": {
+    "version": "0123456789abcdef",
+    "exchangeRate": {
+      "rate": "44.5483",
+      "date": "2026-09-14",
+      "source": "NBU"
+    },
+    "limits": {
+      "totalAreaSqm": {
+        "min": 15,
+        "max": 500
+      },
+      "rooms": {
+        "min": 1,
+        "max": 15
+      },
+      "roomSideM": {
+        "min": 1,
+        "max": 30
+      },
+      "roomHeightM": {
+        "min": 2.2,
+        "max": 5
+      }
+    },
+    "baseRates": [
+      {
+        "finishLevel": "ROUGH",
+        "areaFromSqm": 15,
+        "areaToSqm": 55,
+        "rateCentsPerSqm": 9000
+      },
+      {
+        "finishLevel": "ROUGH",
+        "areaFromSqm": 55,
+        "areaToSqm": 70,
+        "rateCentsPerSqm": 8500
+      },
+      {
+        "finishLevel": "ROUGH",
+        "areaFromSqm": 70,
+        "areaToSqm": 501,
+        "rateCentsPerSqm": 8000
+      },
+      {
+        "finishLevel": "PRE_FINISH",
+        "areaFromSqm": 15,
+        "areaToSqm": 55,
+        "rateCentsPerSqm": 14000
+      },
+      {
+        "finishLevel": "PRE_FINISH",
+        "areaFromSqm": 55,
+        "areaToSqm": 70,
+        "rateCentsPerSqm": 11850
+      },
+      {
+        "finishLevel": "PRE_FINISH",
+        "areaFromSqm": 70,
+        "areaToSqm": 501,
+        "rateCentsPerSqm": 10900
+      }
+    ],
+    "coefficients": {
+      "laminate_underlay": 2,
+      "tile_glue": 10,
+      "tile_glue_heated": 21,
+      "balcony_tile": 75
+    },
+    "rules": [
+      {
+        "id": "rule-floor",
+        "level": "CATEGORY",
+        "categoryId": "cat-floor",
+        "materialTypeId": null,
+        "name": {
+          "en": "Floor",
+          "uk": "Підлога"
+        },
+        "quantityFormula": "floorArea * (1 + waste)",
+        "costFormula": "quantity * (price + coef.laminate_underlay)",
+        "sortOrder": 0
+      },
+      {
+        "id": "rule-floor-tile",
+        "level": "MATERIAL_TYPE",
+        "categoryId": "cat-floor",
+        "materialTypeId": "mt-tile",
+        "name": {
+          "en": "Floor tile",
+          "uk": "Плитка на підлозі"
+        },
+        "quantityFormula": "floorArea * (1 + waste)",
+        "costFormula": "quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))",
+        "sortOrder": 0
+      },
+      {
+        "id": "rule-walls",
+        "level": "CATEGORY",
+        "categoryId": "cat-walls",
+        "materialTypeId": null,
+        "name": {
+          "en": "Walls",
+          "uk": "Стіни"
+        },
+        "quantityFormula": "wallArea * (1 + waste)",
+        "costFormula": "quantity * price",
+        "sortOrder": 0
+      },
+      {
+        "id": "rule-ceiling",
+        "level": "CATEGORY",
+        "categoryId": "cat-ceiling",
+        "materialTypeId": null,
+        "name": {
+          "en": "Ceiling",
+          "uk": "Стеля"
+        },
+        "quantityFormula": "floorArea * (1 + waste)",
+        "costFormula": "quantity * price",
+        "sortOrder": 0
+      },
+      {
+        "id": "rule-balcony-tile",
+        "level": "OBJECT",
+        "categoryId": null,
+        "materialTypeId": null,
+        "name": {
+          "en": "Balcony tile",
+          "uk": "Плитка на балконі"
+        },
+        "quantityFormula": null,
+        "costFormula": "balconyTiles ? balconyArea * coef.balcony_tile : 0",
+        "sortOrder": 0
+      }
+    ],
+    "roomTypes": [
+      {
+        "id": "rt-living",
+        "code": "LIVING_ROOM"
+      },
+      {
+        "id": "rt-bedroom",
+        "code": "BEDROOM"
+      },
+      {
+        "id": "rt-kitchen",
+        "code": "KITCHEN"
+      },
+      {
+        "id": "rt-kitchen-living",
+        "code": "KITCHEN_LIVING"
+      },
+      {
+        "id": "rt-bathroom",
+        "code": "BATHROOM"
+      }
+    ],
+    "categories": [
+      {
+        "id": "cat-floor",
+        "wastePercent": 5,
+        "surface": "FLOOR"
+      },
+      {
+        "id": "cat-walls",
+        "wastePercent": 10,
+        "surface": "WALLS"
+      },
+      {
+        "id": "cat-ceiling",
+        "wastePercent": 5,
+        "surface": "CEILING"
+      }
+    ],
+    "materialTypes": [
+      {
+        "id": "mt-laminate",
+        "code": "laminate"
+      },
+      {
+        "id": "mt-tile",
+        "code": "tile"
+      },
+      {
+        "id": "mt-paint",
+        "code": "paint"
+      }
+    ],
+    "products": [
+      {
+        "id": "p-laminate",
+        "categoryId": "cat-floor",
+        "materialTypeId": "mt-laminate",
+        "priceCents": 1800,
+        "unit": "SQM",
+        "wastePercentOverride": null,
+        "heatedFloorCompatible": false,
+        "available": true
+      },
+      {
+        "id": "p-tile",
+        "categoryId": "cat-floor",
+        "materialTypeId": "mt-tile",
+        "priceCents": 2250,
+        "unit": "SQM",
+        "wastePercentOverride": 10,
+        "heatedFloorCompatible": true,
+        "available": true
+      },
+      {
+        "id": "p-paint",
+        "categoryId": "cat-walls",
+        "materialTypeId": "mt-paint",
+        "priceCents": 675,
+        "unit": "SQM",
+        "wastePercentOverride": null,
+        "heatedFloorCompatible": true,
+        "available": true
+      },
+      {
+        "id": "p-ceiling-paint",
+        "categoryId": "cat-ceiling",
+        "materialTypeId": "mt-paint",
+        "priceCents": 325,
+        "unit": "SQM",
+        "wastePercentOverride": null,
+        "heatedFloorCompatible": true,
+        "available": true
+      },
+      {
+        "id": "p-laminate-premium",
+        "categoryId": "cat-floor",
+        "materialTypeId": "mt-laminate",
+        "priceCents": 9550,
+        "unit": "SQM",
+        "wastePercentOverride": null,
+        "heatedFloorCompatible": false,
+        "available": true
+      },
+      {
+        "id": "p-paint-premium",
+        "categoryId": "cat-walls",
+        "materialTypeId": "mt-paint",
+        "priceCents": 25050,
+        "unit": "SQM",
+        "wastePercentOverride": null,
+        "heatedFloorCompatible": true,
+        "available": true
+      }
+    ],
+    "packageItems": [
+      {
+        "id": "pk-wiring",
+        "includedInBase": true,
+        "priceCents": null,
+        "unit": null
+      },
+      {
+        "id": "pk-plumbing",
+        "includedInBase": true,
+        "priceCents": null,
+        "unit": null
+      },
+      {
+        "id": "pk-ventilation",
+        "includedInBase": false,
+        "priceCents": 25000,
+        "unit": "PROJECT"
+      }
+    ],
+    "options": [
+      {
+        "id": "opt-ac",
+        "kind": "ENGINEERING",
+        "priceCents": 45000,
+        "unit": "PIECE",
+        "roomTypeCodes": ["LIVING_ROOM", "BEDROOM", "KITCHEN"],
+        "minQuantity": 1,
+        "maxQuantity": 10,
+        "available": true
+      },
+      {
+        "id": "opt-heated-floor",
+        "kind": "ENGINEERING",
+        "priceCents": 8500,
+        "unit": "ROOM_SQM",
+        "roomTypeCodes": ["BATHROOM", "KITCHEN"],
+        "minQuantity": null,
+        "maxQuantity": null,
+        "available": true
+      },
+      {
+        "id": "opt-design",
+        "kind": "ADDITIONAL",
+        "priceCents": 120000,
+        "unit": "PROJECT",
+        "roomTypeCodes": [],
+        "minQuantity": null,
+        "maxQuantity": null,
+        "available": true
+      },
+      {
+        "id": "opt-smart-switches",
+        "kind": "ADDITIONAL",
+        "priceCents": 20000,
+        "unit": "ROOM",
+        "roomTypeCodes": [
+          "LIVING_ROOM",
+          "BEDROOM",
+          "KITCHEN",
+          "KITCHEN_LIVING",
+          "BATHROOM"
+        ],
+        "minQuantity": null,
+        "maxQuantity": null,
+        "available": true
+      }
+    ]
+  },
+  "expected": {
+    "lines": [
+      {
+        "id": "BASE",
+        "section": "BASE",
+        "status": "OK",
+        "quantity": 62,
+        "unit": "SQM",
+        "unitPriceCents": 11850,
+        "amountCents": 734700,
+        "amountUahKopecks": 32729636
+      },
+      {
+        "id": "OBJECT:rule-balcony-tile",
+        "section": "OBJECT",
+        "status": "OK",
+        "quantity": null,
+        "unit": null,
+        "unitPriceCents": null,
+        "amountCents": 30000,
+        "amountUahKopecks": 1336449
+      },
+      {
+        "id": "MATERIALS:living:cat-floor",
+        "section": "MATERIALS",
+        "status": "OK",
+        "quantity": 21,
+        "unit": "SQM",
+        "unitPriceCents": 1800,
+        "amountCents": 42000,
+        "amountUahKopecks": 1871029,
+        "roomClientId": "living"
+      },
+      {
+        "id": "MATERIALS:living:cat-walls",
+        "section": "MATERIALS",
+        "status": "OK",
+        "quantity": 53.46,
+        "unit": "SQM",
+        "unitPriceCents": 675,
+        "amountCents": 36086,
+        "amountUahKopecks": 1607570,
+        "roomClientId": "living"
+      },
+      {
+        "id": "MATERIALS:bath:cat-floor",
+        "section": "MATERIALS",
+        "status": "OK",
+        "quantity": 4.4,
+        "unit": "SQM",
+        "unitPriceCents": 2250,
+        "amountCents": 19140,
+        "amountUahKopecks": 852654,
+        "roomClientId": "bath"
+      },
+      {
+        "id": "MATERIALS:bath:cat-ceiling",
+        "section": "MATERIALS",
+        "status": "OK",
+        "quantity": 4.2,
+        "unit": "SQM",
+        "unitPriceCents": 325,
+        "amountCents": 1365,
+        "amountUahKopecks": 60808,
+        "roomClientId": "bath"
+      },
+      {
+        "id": "ENGINEERING:package:pk-wiring",
+        "section": "ENGINEERING",
+        "status": "INCLUDED",
+        "quantity": null,
+        "unit": null,
+        "unitPriceCents": null,
+        "amountCents": 0,
+        "amountUahKopecks": 0
+      },
+      {
+        "id": "ENGINEERING:package:pk-plumbing",
+        "section": "ENGINEERING",
+        "status": "INCLUDED",
+        "quantity": null,
+        "unit": null,
+        "unitPriceCents": null,
+        "amountCents": 0,
+        "amountUahKopecks": 0
+      },
+      {
+        "id": "ENGINEERING:package:pk-ventilation",
+        "section": "ENGINEERING",
+        "status": "OK",
+        "quantity": 1,
+        "unit": "PROJECT",
+        "unitPriceCents": 25000,
+        "amountCents": 25000,
+        "amountUahKopecks": 1113708
+      },
+      {
+        "id": "ENGINEERING:option:opt-ac",
+        "section": "ENGINEERING",
+        "status": "OK",
+        "quantity": 3,
+        "unit": "PIECE",
+        "unitPriceCents": 45000,
+        "amountCents": 135000,
+        "amountUahKopecks": 6014021
+      },
+      {
+        "id": "ENGINEERING:option:opt-heated-floor",
+        "section": "ENGINEERING",
+        "status": "OK",
+        "quantity": 4,
+        "unit": "ROOM_SQM",
+        "unitPriceCents": 8500,
+        "amountCents": 34000,
+        "amountUahKopecks": 1514642
+      },
+      {
+        "id": "ADDITIONAL:option:opt-design",
+        "section": "ADDITIONAL",
+        "status": "OK",
+        "quantity": 1,
+        "unit": "PROJECT",
+        "unitPriceCents": 120000,
+        "amountCents": 120000,
+        "amountUahKopecks": 5345796
+      },
+      {
+        "id": "ADDITIONAL:option:opt-smart-switches",
+        "section": "ADDITIONAL",
+        "status": "OK",
+        "quantity": 2,
+        "unit": "ROOM",
+        "unitPriceCents": 20000,
+        "amountCents": 40000,
+        "amountUahKopecks": 1781932
+      }
+    ],
+    "totals": {
+      "usdCents": 1217291,
+      "uahKopecks": 54228245,
+      "sections": {
+        "BASE": {
+          "usdCents": 734700,
+          "uahKopecks": 32729636
+        },
+        "OBJECT": {
+          "usdCents": 30000,
+          "uahKopecks": 1336449
+        },
+        "MATERIALS": {
+          "usdCents": 98591,
+          "uahKopecks": 4392061
+        },
+        "ENGINEERING": {
+          "usdCents": 194000,
+          "uahKopecks": 8642371
+        },
+        "ADDITIONAL": {
+          "usdCents": 160000,
+          "uahKopecks": 7127728
+        }
+      }
+    },
+    "warnings": [],
+    "incomplete": false
+  }
+}

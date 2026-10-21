@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { type Observable, tap } from 'rxjs';
 import { CatalogCache } from '../public/catalog-cache';
+import { CatalogChangeNotifier } from './catalog-change.notifier';
 
 const CATALOG_CHANGING_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 
@@ -14,6 +15,8 @@ const CATALOG_CHANGING_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 export class CatalogChangeInterceptor implements NestInterceptor {
   constructor(
     @Inject(CatalogCache) private readonly catalogCache: CatalogCache,
+    @Inject(CatalogChangeNotifier)
+    private readonly catalogChangeNotifier: CatalogChangeNotifier,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -23,6 +26,11 @@ export class CatalogChangeInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    return next.handle().pipe(tap(() => this.catalogCache.invalidate()));
+    return next.handle().pipe(
+      tap(() => {
+        this.catalogCache.invalidate();
+        this.catalogChangeNotifier.notify();
+      }),
+    );
   }
 }

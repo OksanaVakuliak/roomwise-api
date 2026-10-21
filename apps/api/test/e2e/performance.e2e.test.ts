@@ -26,6 +26,7 @@ const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 const PUBLIC_MUTATING_ROUTES = new Set([
   'POST /api/v1/admin/auth/login',
   'POST /api/v1/admin/auth/logout',
+  'POST /api/v1/public/estimates',
 ]);
 
 vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });
@@ -199,6 +200,8 @@ function loadMutatingRoutes(): OpenApiRoute[] {
   return routes;
 }
 
+const UNSEEDED_PRICING_ID = '00000000-0000-4000-8000-000000000000';
+
 function resolveRouteId(path: string): string {
   if (path.startsWith('/api/v1/admin/room-types/')) {
     return roomTypeIds.livingRoom;
@@ -220,6 +223,13 @@ function resolveRouteId(path: string): string {
   }
   if (path.startsWith('/api/v1/admin/styles/')) {
     return styleIds.scandinavian;
+  }
+  if (
+    ['rules', 'base-rates', 'coefficients'].some((resource) =>
+      path.startsWith(`/api/v1/admin/pricing/${resource}/`),
+    )
+  ) {
+    return UNSEEDED_PRICING_ID;
   }
   throw new Error(`No seeded id resolver for path: ${path}`);
 }

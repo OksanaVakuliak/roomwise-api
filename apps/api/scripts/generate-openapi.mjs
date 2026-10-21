@@ -1,11 +1,14 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
-import { createOpenApiDocument } from '../src/common/openapi/openapi';
-import { createApplication } from '../src/main';
+
+const require = createRequire(import.meta.url);
+const { createApplication } = require('../dist/main.js');
+const { createOpenApiDocument } = require('../dist/common/openapi/openapi.js');
 
 const OPENAPI_PATH = resolve(process.cwd(), 'openapi.json');
 
-async function generateOpenApi(): Promise<void> {
+async function generateOpenApi() {
   const app = await createApplication();
 
   try {

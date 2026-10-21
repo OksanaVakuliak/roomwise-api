@@ -321,6 +321,16 @@
         "operationId": "PublicCatalogController_listCategoryProducts",
         "parameters": [
           {
+            "name": "categoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
             "name": "lang",
             "required": false,
             "in": "query",
@@ -329,15 +339,6 @@
                 "en",
                 "uk"
               ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "categoryId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "format": "uuid",
               "type": "string"
             }
           }
@@ -374,6 +375,16 @@
         "operationId": "PublicCatalogController_getProduct",
         "parameters": [
           {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
             "name": "lang",
             "required": false,
             "in": "query",
@@ -382,15 +393,6 @@
                 "en",
                 "uk"
               ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "productId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "format": "uuid",
               "type": "string"
             }
           }
@@ -432,6 +434,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -648,10 +651,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchRoomTypeDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -714,10 +728,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceRoomTypeCategoriesDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -832,6 +857,16 @@
       "post": {
         "operationId": "CategoriesController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -884,10 +919,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchCategoryDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -958,6 +1004,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -1017,10 +1064,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryStatusDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1121,6 +1179,16 @@
       "post": {
         "operationId": "MaterialTypesController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMaterialTypeDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -1173,10 +1241,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMaterialTypeDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1244,19 +1323,35 @@
         "operationId": "ProductsController_list",
         "parameters": [
           {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
             "name": "page",
             "required": false,
             "in": "query",
             "schema": {
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1,
               "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
             }
           },
           {
@@ -1269,14 +1364,6 @@
                 "PUBLISHED",
                 "ARCHIVED"
               ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "categoryId",
-            "required": false,
-            "in": "query",
-            "schema": {
               "type": "string"
             }
           }
@@ -1315,6 +1402,16 @@
       "post": {
         "operationId": "ProductsController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -1377,6 +1474,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -1431,10 +1529,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchProductDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1505,6 +1614,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -1564,10 +1674,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductStatusDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1730,6 +1851,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -1784,6 +1906,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -1868,6 +1991,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -1966,6 +2090,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -2052,6 +2177,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -2166,6 +2292,16 @@
       "post": {
         "operationId": "EngineeringPackageItemsController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEngineeringPackageItemDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -2218,10 +2354,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchEngineeringPackageItemDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -2302,6 +2449,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -2351,10 +2499,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEngineeringPackageItemStatusDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -2421,6 +2580,16 @@
       "put": {
         "operationId": "EngineeringPackageItemsController_reorder",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngineeringPackageItemOrderDto"
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": "Reordered."
@@ -2517,6 +2686,16 @@
       "post": {
         "operationId": "OptionsController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOptionDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -2579,6 +2758,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -2633,10 +2813,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchOptionDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -2717,6 +2908,7 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
@@ -2760,6 +2952,16 @@
       "put": {
         "operationId": "OptionsController_reorder",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptionOrderDto"
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": "Reordered."
@@ -2815,10 +3017,21 @@
             "in": "path",
             "schema": {
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOptionStatusDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -2878,6 +3091,1085 @@
         ],
         "tags": [
           "Options"
+        ]
+      }
+    },
+    "/api/v1/public/pricing-data": {
+      "get": {
+        "operationId": "PublicPricingController_getPricingData",
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "ETag value from a previous response, quotes included.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "description": "Pricing version in quotes.",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3f9a1c0b7d2e4a68\""
+                }
+              },
+              "Cache-Control": {
+                "description": "Shared caching policy for pricing data.",
+                "schema": {
+                  "type": "string",
+                  "example": "public, max-age=30"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingDataResponseDto_Output"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "If-None-Match matches the current ETag.",
+            "headers": {
+              "ETag": {
+                "description": "Pricing version in quotes.",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3f9a1c0b7d2e4a68\""
+                }
+              },
+              "Cache-Control": {
+                "description": "Shared caching policy for pricing data.",
+                "schema": {
+                  "type": "string",
+                  "example": "public, max-age=30"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicPricing"
+        ]
+      }
+    },
+    "/api/v1/public/estimates": {
+      "post": {
+        "operationId": "PublicPricingController_createEstimate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateResponseDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicPricing"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/rules": {
+      "get": {
+        "operationId": "RulesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleListResponseDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Rules"
+        ]
+      },
+      "post": {
+        "operationId": "RulesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RULE_EXISTS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FORMULA_INVALID, UNKNOWN_REFERENCE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/rules/preview": {
+      "post": {
+        "operationId": "RulesController_preview",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRuleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulePreviewDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FORMULA_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/rules/order": {
+      "put": {
+        "operationId": "RulesController_reorder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Reordered."
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/rules/{id}": {
+      "patch": {
+        "operationId": "RulesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRuleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "STALE_REVISION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FORMULA_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Rules"
+        ]
+      },
+      "delete": {
+        "operationId": "RulesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Rules"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/formulas/validate": {
+      "post": {
+        "operationId": "FormulasController_validate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateFormulasDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateFormulasResponseDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Formulas"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/base-rates": {
+      "get": {
+        "operationId": "BaseRatesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseRateListResponseDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "BaseRates"
+        ]
+      },
+      "post": {
+        "operationId": "BaseRatesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaseRateInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseRateAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RANGE_OVERLAP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "BaseRates"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/base-rates/{id}": {
+      "patch": {
+        "operationId": "BaseRatesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBaseRateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseRateAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RANGE_OVERLAP, STALE_REVISION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "BaseRates"
+        ]
+      },
+      "delete": {
+        "operationId": "BaseRatesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "BaseRates"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/coefficients": {
+      "get": {
+        "operationId": "CoefficientsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoefficientListResponseDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Coefficients"
+        ]
+      },
+      "post": {
+        "operationId": "CoefficientsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoefficientInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoefficientAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "KEY_TAKEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Coefficients"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/coefficients/{id}": {
+      "patch": {
+        "operationId": "CoefficientsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCoefficientDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoefficientAdminDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "KEY_TAKEN, COEFFICIENT_IN_USE, STALE_REVISION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Coefficients"
+        ]
+      },
+      "delete": {
+        "operationId": "CoefficientsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "COEFFICIENT_IN_USE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Coefficients"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/exchange-rate": {
+      "get": {
+        "operationId": "ExchangeRateController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeRateStatusDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "ExchangeRate"
+        ]
+      }
+    },
+    "/api/v1/admin/pricing/exchange-rate/manual": {
+      "put": {
+        "operationId": "ExchangeRateController_setManual",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualRateInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeRateStatusDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "ExchangeRate"
+        ]
+      },
+      "delete": {
+        "operationId": "ExchangeRateController_clearManual",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeRateStatusDto_Output"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "ExchangeRate"
         ]
       }
     }
@@ -4021,6 +5313,37 @@
         ],
         "additionalProperties": false
       },
+      "PatchRoomTypeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "name",
+          "revision"
+        ]
+      },
       "RoomTypeAdminDto_Output": {
         "type": "object",
         "properties": {
@@ -4159,6 +5482,28 @@
         ],
         "additionalProperties": false
       },
+      "ReplaceRoomTypeCategoriesDto": {
+        "type": "object",
+        "properties": {
+          "categoryIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "categoryIds",
+          "revision"
+        ]
+      },
       "CategoryAdminListResponseDto_Output": {
         "type": "object",
         "properties": {
@@ -4287,6 +5632,47 @@
         ],
         "additionalProperties": false
       },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "wastePercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "FLOOR",
+              "WALLS",
+              "CEILING"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "wastePercent",
+          "surface"
+        ]
+      },
       "CategoryAdminDto_Output": {
         "type": "object",
         "properties": {
@@ -4403,6 +5789,72 @@
         ],
         "additionalProperties": false
       },
+      "PatchCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "wastePercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "FLOOR",
+              "WALLS",
+              "CEILING"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
+        ]
+      },
+      "UpdateCategoryStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "status",
+          "revision"
+        ]
+      },
       "MaterialTypeAdminListResponseDto_Output": {
         "type": "object",
         "properties": {
@@ -4499,6 +5951,36 @@
         ],
         "additionalProperties": false
       },
+      "CreateMaterialTypeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,40}$"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
       "MaterialTypeAdminDto_Output": {
         "type": "object",
         "properties": {
@@ -4580,6 +6062,45 @@
           "revision",
           "updatedAt",
           "updatedBy"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateMaterialTypeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
         ],
         "additionalProperties": false
       },
@@ -5089,6 +6610,530 @@
           "updatedBy"
         ],
         "additionalProperties": false
+      },
+      "CreateProductDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "materialTypeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "brand": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "manufacturer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "color": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "size": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "priceCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "confirmZeroPrice": {
+            "default": false,
+            "type": "boolean"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "SQM",
+              "LINEAR_M",
+              "PIECE"
+            ]
+          },
+          "wastePercentOverride": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "heatedFloorCompatible": {
+            "type": "boolean"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "imageId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "isPrimary": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "imageId",
+                "isPrimary"
+              ]
+            }
+          },
+          "attributes": {
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ]
+                },
+                "value": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ]
+            }
+          },
+          "textureImageId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tileWidthMm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tileLengthMm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fallbackColor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^#[0-9A-F]{6}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "categoryId",
+          "materialTypeId",
+          "name",
+          "description",
+          "brand",
+          "manufacturer",
+          "color",
+          "size",
+          "priceCents",
+          "unit",
+          "heatedFloorCompatible",
+          "images",
+          "attributes"
+        ]
+      },
+      "PatchProductDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "materialTypeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "brand": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "manufacturer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "color": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "size": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "priceCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "confirmZeroPrice": {
+            "default": false,
+            "type": "boolean"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "SQM",
+              "LINEAR_M",
+              "PIECE"
+            ]
+          },
+          "wastePercentOverride": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "heatedFloorCompatible": {
+            "type": "boolean"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "imageId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "isPrimary": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "imageId",
+                "isPrimary"
+              ]
+            }
+          },
+          "attributes": {
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ]
+                },
+                "value": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ]
+            }
+          },
+          "textureImageId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tileWidthMm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tileLengthMm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fallbackColor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^#[0-9A-F]{6}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateProductStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "status",
+          "revision"
+        ]
       },
       "ProductStatusResponseDto_Output": {
         "type": "object",
@@ -6264,6 +8309,68 @@
         ],
         "additionalProperties": false
       },
+      "CreateEngineeringPackageItemDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "includedInBase": {
+            "type": "boolean"
+          },
+          "priceCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "PIECE",
+              "ROOM_SQM",
+              "ROOM",
+              "PROJECT"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "includedInBase"
+        ],
+        "additionalProperties": false
+      },
       "EngineeringPackageItemAdminDto_Output": {
         "type": "object",
         "properties": {
@@ -6402,6 +8509,123 @@
           "updatedBy"
         ],
         "additionalProperties": false
+      },
+      "PatchEngineeringPackageItemDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "includedInBase": {
+            "type": "boolean"
+          },
+          "priceCents": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "PIECE",
+                  "ROOM_SQM",
+                  "ROOM",
+                  "PROJECT"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateEngineeringPackageItemStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "status",
+          "revision"
+        ]
+      },
+      "EngineeringPackageItemOrderDto": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": [
+          "ids"
+        ]
       },
       "OptionAdminListResponseDto_Output": {
         "type": "object",
@@ -6824,6 +9048,2876 @@
           "updatedBy"
         ],
         "additionalProperties": false
+      },
+      "CreateOptionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ENGINEERING",
+              "ADDITIONAL"
+            ]
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "imageId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "priceCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "confirmZeroPrice": {
+            "default": false,
+            "type": "boolean"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "PIECE",
+              "ROOM_SQM",
+              "ROOM",
+              "PROJECT"
+            ]
+          },
+          "minQuantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "maxQuantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "roomTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "description",
+          "priceCents",
+          "unit",
+          "roomTypeIds"
+        ],
+        "additionalProperties": false
+      },
+      "PatchOptionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ENGINEERING",
+              "ADDITIONAL"
+            ]
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "imageId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priceCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "confirmZeroPrice": {
+            "type": "boolean"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "PIECE",
+              "ROOM_SQM",
+              "ROOM",
+              "PROJECT"
+            ]
+          },
+          "minQuantity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxQuantity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "roomTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "OptionOrderDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ENGINEERING",
+              "ADDITIONAL"
+            ]
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "ids"
+        ]
+      },
+      "UpdateOptionStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "status",
+          "revision"
+        ]
+      },
+      "PricingDataResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          },
+          "exchangeRate": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "rate": {
+                    "type": "string",
+                    "pattern": "^\\d+\\.\\d{4}$"
+                  },
+                  "date": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "NBU",
+                      "MANUAL"
+                    ]
+                  }
+                },
+                "required": [
+                  "rate",
+                  "date",
+                  "source"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "totalAreaSqm": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "rooms": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "roomSideM": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "roomHeightM": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "totalAreaSqm",
+              "rooms",
+              "roomSideM",
+              "roomHeightM"
+            ],
+            "additionalProperties": false
+          },
+          "baseRates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "finishLevel": {
+                  "type": "string",
+                  "enum": [
+                    "ROUGH",
+                    "PRE_FINISH"
+                  ]
+                },
+                "areaFromSqm": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "areaToSqm": {
+                  "type": "number"
+                },
+                "rateCentsPerSqm": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "finishLevel",
+                "areaFromSqm",
+                "areaToSqm",
+                "rateCentsPerSqm"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "coefficients": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "OBJECT",
+                    "CATEGORY",
+                    "MATERIAL_TYPE"
+                  ]
+                },
+                "categoryId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "materialTypeId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "uk": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                },
+                "quantityFormula": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "costFormula": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "sortOrder": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "level",
+                "categoryId",
+                "materialTypeId",
+                "name",
+                "quantityFormula",
+                "costFormula",
+                "sortOrder"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "roomTypes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "code"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "wastePercent": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "surface": {
+                  "type": "string",
+                  "enum": [
+                    "NONE",
+                    "FLOOR",
+                    "WALLS",
+                    "CEILING"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "wastePercent",
+                "surface"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "materialTypes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "code"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "categoryId": {
+                  "type": "string"
+                },
+                "materialTypeId": {
+                  "type": "string"
+                },
+                "priceCents": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "SQM",
+                    "LINEAR_M",
+                    "PIECE"
+                  ]
+                },
+                "wastePercentOverride": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "heatedFloorCompatible": {
+                  "type": "boolean"
+                },
+                "available": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "categoryId",
+                "materialTypeId",
+                "priceCents",
+                "unit",
+                "wastePercentOverride",
+                "heatedFloorCompatible",
+                "available"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "packageItems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "includedInBase": {
+                  "type": "boolean"
+                },
+                "priceCents": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "unit": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "PIECE",
+                        "ROOM_SQM",
+                        "ROOM",
+                        "PROJECT"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "includedInBase",
+                "priceCents",
+                "unit"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "ENGINEERING",
+                    "ADDITIONAL"
+                  ]
+                },
+                "priceCents": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "PIECE",
+                    "ROOM_SQM",
+                    "ROOM",
+                    "PROJECT"
+                  ]
+                },
+                "roomTypeCodes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "minQuantity": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "maxQuantity": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "available": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "priceCents",
+                "unit",
+                "roomTypeCodes",
+                "minQuantity",
+                "maxQuantity",
+                "available"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "version",
+          "exchangeRate",
+          "limits",
+          "baseRates",
+          "coefficients",
+          "rules",
+          "roomTypes",
+          "categories",
+          "materialTypes",
+          "products",
+          "packageItems",
+          "options"
+        ],
+        "additionalProperties": false
+      },
+      "EstimateRequestDto": {
+        "type": "object",
+        "properties": {
+          "configuration": {
+            "type": "object",
+            "properties": {
+              "finishLevel": {
+                "type": "string",
+                "enum": [
+                  "ROUGH",
+                  "PRE_FINISH"
+                ]
+              },
+              "totalAreaSqm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "balconyAreaSqm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "balconyTiles": {
+                "type": "boolean"
+              },
+              "gas": {
+                "type": "boolean"
+              },
+              "kitchenType": {
+                "type": "string",
+                "enum": [
+                  "SEPARATE",
+                  "KITCHEN_LIVING"
+                ]
+              },
+              "rooms": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "roomTypeCode": {
+                      "type": "string",
+                      "enum": [
+                        "LIVING_ROOM",
+                        "BEDROOM",
+                        "KITCHEN",
+                        "KITCHEN_LIVING",
+                        "BATHROOM"
+                      ]
+                    },
+                    "lengthM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "widthM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "heightM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "heatedFloor": {
+                      "type": "boolean"
+                    },
+                    "selections": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "categoryId": {
+                            "type": "string"
+                          },
+                          "productId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "categoryId",
+                          "productId"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "clientId",
+                    "roomTypeCode",
+                    "lengthM",
+                    "widthM",
+                    "heightM",
+                    "heatedFloor",
+                    "selections"
+                  ]
+                }
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "optionId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "roomClientIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "optionId"
+                  ]
+                }
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "USD",
+                  "UAH"
+                ]
+              }
+            },
+            "required": [
+              "finishLevel",
+              "totalAreaSqm",
+              "balconyAreaSqm",
+              "balconyTiles",
+              "gas",
+              "kitchenType",
+              "rooms",
+              "options",
+              "currency"
+            ]
+          },
+          "clientPricingVersion": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          }
+        },
+        "required": [
+          "configuration"
+        ]
+      },
+      "EstimateResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "estimate": {
+            "type": "object",
+            "properties": {
+              "pricingVersion": {
+                "type": "string"
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "USD",
+                  "UAH"
+                ]
+              },
+              "exchangeRate": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "rate": {
+                        "type": "string",
+                        "pattern": "^\\d+\\.\\d{4}$"
+                      },
+                      "date": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "NBU",
+                          "MANUAL"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "rate",
+                      "date",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "section": {
+                      "type": "string",
+                      "enum": [
+                        "BASE",
+                        "OBJECT",
+                        "MATERIALS",
+                        "ENGINEERING",
+                        "ADDITIONAL"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OK",
+                        "INCLUDED",
+                        "NOT_CALCULATED",
+                        "UNAVAILABLE",
+                        "ERROR"
+                      ]
+                    },
+                    "roomClientId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "categoryId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "productId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "optionId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "packageItemId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "ruleId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "quantity": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "unit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "unitPriceCents": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "amountCents": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "amountUahKopecks": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "code"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "error": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "params": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {}
+                            }
+                          },
+                          "required": [
+                            "code"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "section",
+                    "status",
+                    "roomClientId",
+                    "categoryId",
+                    "productId",
+                    "optionId",
+                    "packageItemId",
+                    "ruleId",
+                    "quantity",
+                    "unit",
+                    "unitPriceCents",
+                    "amountCents",
+                    "amountUahKopecks",
+                    "warnings",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "totals": {
+                "type": "object",
+                "properties": {
+                  "usdCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "uahKopecks": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sections": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "enum": [
+                        "BASE",
+                        "OBJECT",
+                        "MATERIALS",
+                        "ENGINEERING",
+                        "ADDITIONAL"
+                      ]
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "usdCents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "uahKopecks": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "usdCents",
+                        "uahKopecks"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "required": [
+                      "BASE",
+                      "OBJECT",
+                      "MATERIALS",
+                      "ENGINEERING",
+                      "ADDITIONAL"
+                    ]
+                  }
+                },
+                "required": [
+                  "usdCents",
+                  "uahKopecks",
+                  "sections"
+                ],
+                "additionalProperties": false
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "lineId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "incomplete": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "pricingVersion",
+              "currency",
+              "exchangeRate",
+              "lines",
+              "totals",
+              "warnings",
+              "incomplete"
+            ],
+            "additionalProperties": false
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "pricingVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "estimate",
+          "stale",
+          "pricingVersion"
+        ],
+        "additionalProperties": false
+      },
+      "RuleListResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "OBJECT",
+                    "CATEGORY",
+                    "MATERIAL_TYPE"
+                  ]
+                },
+                "categoryId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "materialTypeId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "name": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                },
+                "quantityFormula": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "costFormula": {
+                  "type": "string"
+                },
+                "coefficientKeys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "sortOrder": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "orphaned": {
+                  "type": "boolean"
+                },
+                "revision": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "updatedBy": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "login": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "login"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "level",
+                "categoryId",
+                "materialTypeId",
+                "name",
+                "quantityFormula",
+                "costFormula",
+                "coefficientKeys",
+                "sortOrder",
+                "orphaned",
+                "revision",
+                "updatedAt",
+                "updatedBy"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "categoriesWithoutRule": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "name": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items",
+          "categoriesWithoutRule"
+        ],
+        "additionalProperties": false
+      },
+      "RuleInputDto": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "OBJECT",
+              "CATEGORY",
+              "MATERIAL_TYPE"
+            ]
+          },
+          "categoryId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "materialTypeId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "quantityFormula": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costFormula": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "level",
+          "name",
+          "costFormula"
+        ]
+      },
+      "RuleAdminDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "OBJECT",
+              "CATEGORY",
+              "MATERIAL_TYPE"
+            ]
+          },
+          "categoryId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "materialTypeId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ],
+            "additionalProperties": false
+          },
+          "quantityFormula": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "costFormula": {
+            "type": "string"
+          },
+          "coefficientKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "orphaned": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "login": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "login"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "level",
+          "categoryId",
+          "materialTypeId",
+          "name",
+          "quantityFormula",
+          "costFormula",
+          "coefficientKeys",
+          "sortOrder",
+          "orphaned",
+          "revision",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "additionalProperties": false
+      },
+      "PreviewRuleDto": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "OBJECT",
+              "CATEGORY",
+              "MATERIAL_TYPE"
+            ]
+          },
+          "quantityFormula": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costFormula": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "sample": {
+            "type": "object",
+            "properties": {
+              "room": {
+                "type": "object",
+                "properties": {
+                  "roomTypeCode": {
+                    "type": "string",
+                    "enum": [
+                      "LIVING_ROOM",
+                      "BEDROOM",
+                      "KITCHEN",
+                      "KITCHEN_LIVING",
+                      "BATHROOM"
+                    ]
+                  },
+                  "lengthM": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "widthM": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "heightM": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "heatedFloor": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "roomTypeCode",
+                  "lengthM",
+                  "widthM",
+                  "heightM",
+                  "heatedFloor"
+                ]
+              },
+              "product": {
+                "type": "object",
+                "properties": {
+                  "priceCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "unit": {
+                    "type": "string",
+                    "enum": [
+                      "SQM",
+                      "LINEAR_M",
+                      "PIECE"
+                    ]
+                  },
+                  "wastePercent": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "priceCents",
+                  "unit",
+                  "wastePercent"
+                ]
+              },
+              "object": {
+                "type": "object",
+                "properties": {
+                  "totalAreaSqm": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "balconyAreaSqm": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "balconyTiles": {
+                    "type": "boolean"
+                  },
+                  "gas": {
+                    "type": "boolean"
+                  },
+                  "kitchenType": {
+                    "type": "string",
+                    "enum": [
+                      "SEPARATE",
+                      "KITCHEN_LIVING"
+                    ]
+                  },
+                  "finishLevel": {
+                    "type": "string",
+                    "enum": [
+                      "ROUGH",
+                      "PRE_FINISH"
+                    ]
+                  },
+                  "roomsCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "bathroomsCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "totalAreaSqm",
+                  "balconyAreaSqm",
+                  "balconyTiles",
+                  "gas",
+                  "kitchenType",
+                  "finishLevel",
+                  "roomsCount",
+                  "bathroomsCount"
+                ]
+              }
+            },
+            "required": [
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "level",
+          "costFormula",
+          "sample"
+        ]
+      },
+      "RulePreviewDto_Output": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "amountCents": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "variables": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "number",
+                "boolean",
+                "string"
+              ]
+            }
+          },
+          "coefficients": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "code"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "quantity",
+          "amountCents",
+          "variables",
+          "coefficients",
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "RuleOrderDto": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "UpdateRuleDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "quantityFormula": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costFormula": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "ValidateFormulasDto": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "OBJECT",
+              "CATEGORY",
+              "MATERIAL_TYPE"
+            ]
+          },
+          "quantityFormula": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costFormula": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "level",
+          "costFormula"
+        ]
+      },
+      "ValidateFormulasResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "coefficientKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "formula": {
+                  "type": "string",
+                  "enum": [
+                    "quantity",
+                    "cost"
+                  ]
+                },
+                "code": {
+                  "type": "string"
+                },
+                "position": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "length": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "params": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": [
+                      "string",
+                      "number"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "formula",
+                "code",
+                "position",
+                "length"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "valid",
+          "coefficientKeys",
+          "errors"
+        ],
+        "additionalProperties": false
+      },
+      "BaseRateListResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "finishLevel": {
+                  "type": "string",
+                  "enum": [
+                    "ROUGH",
+                    "PRE_FINISH"
+                  ]
+                },
+                "areaFromSqm": {
+                  "type": "number"
+                },
+                "areaToSqm": {
+                  "type": "number"
+                },
+                "rateCentsPerSqm": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "revision": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "updatedBy": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "login": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "login"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "finishLevel",
+                "areaFromSqm",
+                "areaToSqm",
+                "rateCentsPerSqm",
+                "revision",
+                "updatedAt",
+                "updatedBy"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "finishLevel": {
+                  "type": "string",
+                  "enum": [
+                    "ROUGH",
+                    "PRE_FINISH"
+                  ]
+                },
+                "fromSqm": {
+                  "type": "number"
+                },
+                "toSqm": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "finishLevel",
+                "fromSqm",
+                "toSqm"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items",
+          "gaps"
+        ],
+        "additionalProperties": false
+      },
+      "BaseRateInputDto": {
+        "type": "object",
+        "properties": {
+          "finishLevel": {
+            "type": "string",
+            "enum": [
+              "ROUGH",
+              "PRE_FINISH"
+            ]
+          },
+          "areaFromSqm": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999.99,
+            "multipleOf": 0.01
+          },
+          "areaToSqm": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999.99,
+            "multipleOf": 0.01
+          },
+          "rateCentsPerSqm": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "finishLevel",
+          "areaFromSqm",
+          "areaToSqm",
+          "rateCentsPerSqm"
+        ],
+        "additionalProperties": false
+      },
+      "BaseRateAdminDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "finishLevel": {
+            "type": "string",
+            "enum": [
+              "ROUGH",
+              "PRE_FINISH"
+            ]
+          },
+          "areaFromSqm": {
+            "type": "number"
+          },
+          "areaToSqm": {
+            "type": "number"
+          },
+          "rateCentsPerSqm": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "login": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "login"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "finishLevel",
+          "areaFromSqm",
+          "areaToSqm",
+          "rateCentsPerSqm",
+          "revision",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateBaseRateDto": {
+        "type": "object",
+        "properties": {
+          "finishLevel": {
+            "type": "string",
+            "enum": [
+              "ROUGH",
+              "PRE_FINISH"
+            ]
+          },
+          "areaFromSqm": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999.99,
+            "multipleOf": 0.01
+          },
+          "areaToSqm": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999.99,
+            "multipleOf": 0.01
+          },
+          "rateCentsPerSqm": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 2147483647
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "CoefficientListResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                },
+                "value": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                },
+                "usedBy": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ruleId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "ruleName": {
+                        "type": "object",
+                        "properties": {
+                          "en": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "uk": {
+                            "type": "string",
+                            "maxLength": 120
+                          }
+                        },
+                        "required": [
+                          "en",
+                          "uk"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "ruleId",
+                      "ruleName"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "revision": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "updatedBy": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "login": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "login"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "key",
+                "name",
+                "value",
+                "unit",
+                "usedBy",
+                "revision",
+                "updatedAt",
+                "updatedBy"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "CoefficientInputDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,40}$"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999999.9999,
+            "multipleOf": 0.0001
+          },
+          "unit": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "value",
+          "unit"
+        ],
+        "additionalProperties": false
+      },
+      "CoefficientAdminDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ],
+            "additionalProperties": false
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ],
+            "additionalProperties": false
+          },
+          "usedBy": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ruleId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "ruleName": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "ruleId",
+                "ruleName"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "login": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "login"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "value",
+          "unit",
+          "usedBy",
+          "revision",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateCoefficientDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,40}$"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 99999999.9999,
+            "multipleOf": 0.0001
+          },
+          "unit": {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "uk": {
+                "type": "string",
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "en",
+              "uk"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "ExchangeRateStatusDto_Output": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "rate": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "NBU",
+                      "MANUAL"
+                    ]
+                  }
+                },
+                "required": [
+                  "rate",
+                  "date",
+                  "source"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "official": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "rate": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  }
+                },
+                "required": [
+                  "rate",
+                  "date"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manual": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "rate": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  }
+                },
+                "required": [
+                  "rate",
+                  "date"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastSuccessfulFetchDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastAttemptAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastError": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "staleSince": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "active",
+          "official",
+          "manual",
+          "lastSuccessfulFetchDate",
+          "lastAttemptAt",
+          "lastError",
+          "staleSince"
+        ],
+        "additionalProperties": false
+      },
+      "ManualRateInputDto": {
+        "type": "object",
+        "properties": {
+          "rate": {
+            "type": "string",
+            "pattern": "^\\d{1,8}(\\.\\d{1,4})?$"
+          }
+        },
+        "required": [
+          "rate"
+        ]
       }
     }
   }

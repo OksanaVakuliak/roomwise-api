@@ -73,7 +73,13 @@ jobs:
         run: pnpm typecheck
 
       - name: Test
-        run: pnpm test
+        run: pnpm --filter api test
+
+      - name: Test calc-engine coverage
+        run: pnpm --filter @roomwise/calc-engine test:coverage
+
+      - name: Test calc-engine performance
+        run: pnpm --filter @roomwise/calc-engine test:performance
 
       - name: Test e2e
         run: pnpm --filter api test:e2e

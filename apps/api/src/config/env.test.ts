@@ -90,6 +90,24 @@ describe('validateEnv', () => {
     expect(env.PORT).toBe(8080);
   });
 
+  it('defaults NBU_API_URL when absent or empty', () => {
+    const expected =
+      'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange';
+
+    expect(validateEnv(validEnv).NBU_API_URL).toBe(expected);
+    expect(validateEnv({ ...validEnv, NBU_API_URL: '' }).NBU_API_URL).toBe(
+      expected,
+    );
+  });
+
+  it('rejects an invalid NBU_API_URL', () => {
+    for (const value of ['not-a-url', 'file:///etc/passwd']) {
+      expect(() =>
+        validateEnv({ ...validEnv, NBU_API_URL: value }),
+      ).toThrowError(EnvValidationError);
+    }
+  });
+
   it('defaults TRUST_PROXY_HOPS to 1 when absent', () => {
     const env = validateEnv(validEnv);
 

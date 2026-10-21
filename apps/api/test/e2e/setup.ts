@@ -2,6 +2,21 @@ import { Client } from 'pg';
 import { beforeAll } from 'vitest';
 
 const SANDBOX_RESET_NEVER = '9999-12-31T00:00:00.000Z';
+const NBU_E2E_URL = 'http://nbu.e2e.invalid/exchange';
+
+process.env.NBU_API_URL = NBU_E2E_URL;
+
+const realFetch = globalThis.fetch;
+
+globalThis.fetch = (input, init) => {
+  const url = input instanceof Request ? input.url : String(input);
+
+  if (url.startsWith(NBU_E2E_URL)) {
+    return Promise.reject(new TypeError('NBU is unreachable in e2e'));
+  }
+
+  return realFetch(input, init);
+};
 
 async function resetDatabase(): Promise<void> {
   const client = new Client({ connectionString: process.env.DATABASE_URL });

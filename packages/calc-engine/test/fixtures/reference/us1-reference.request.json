@@ -1,0 +1,72 @@
+{
+  "finishLevel": "PRE_FINISH",
+  "totalAreaSqm": 62,
+  "balconyAreaSqm": 4,
+  "balconyTiles": true,
+  "gas": false,
+  "kitchenType": "SEPARATE",
+  "rooms": [
+    {
+      "clientId": "living",
+      "roomTypeCode": "LIVING_ROOM",
+      "lengthM": 5,
+      "widthM": 4,
+      "heightM": 2.7,
+      "heatedFloor": false,
+      "selections": [
+        {
+          "categoryId": "cat-floor",
+          "productId": "p-laminate"
+        },
+        {
+          "categoryId": "cat-walls",
+          "productId": "p-paint"
+        },
+        {
+          "categoryId": "cat-ceiling",
+          "productId": null
+        }
+      ]
+    },
+    {
+      "clientId": "bath",
+      "roomTypeCode": "BATHROOM",
+      "lengthM": 2,
+      "widthM": 2,
+      "heightM": 2.5,
+      "heatedFloor": true,
+      "selections": [
+        {
+          "categoryId": "cat-floor",
+          "productId": "p-tile"
+        },
+        {
+          "categoryId": "cat-walls",
+          "productId": null
+        },
+        {
+          "categoryId": "cat-ceiling",
+          "productId": "p-ceiling-paint"
+        }
+      ]
+    }
+  ],
+  "options": [
+    {
+      "optionId": "opt-ac",
+      "quantity": 3
+    },
+    {
+      "optionId": "opt-heated-floor",
+      "roomClientIds": ["bath"]
+    },
+    {
+      "optionId": "opt-design"
+    },
+    {
+      "optionId": "opt-smart-switches",
+      "roomClientIds": ["living", "bath"]
+    }
+  ],
+  "currency": "USD"
+}
