@@ -16,6 +16,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag points to main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "Tag $GITHUB_REF_NAME must point to a commit on main" >&2
+            exit 1
+          fi
 
       - name: Verify tag matches package version
         run: |
@@ -36,8 +46,17 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
+      - name: Update npm for trusted publishing
+        run: npm install --global npm@11.6.2
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm exec biome ci packages/calc-engine
+
+      - name: Typecheck
+        run: pnpm --filter @roomwise/calc-engine typecheck
 
       - name: Test
         run: pnpm --filter @roomwise/calc-engine test
@@ -47,6 +66,6 @@ jobs:
 
       - name: Publish
         working-directory: packages/calc-engine
-        run: npm publish --provenance --access public
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

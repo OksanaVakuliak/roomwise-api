@@ -1,6 +1,6 @@
 {
   "name": "@roomwise/calc-engine",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -34,7 +34,7 @@
   "scripts": {
     "build": "tsdown",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --exclude test/performance.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
