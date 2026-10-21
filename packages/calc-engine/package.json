@@ -1,6 +1,6 @@
 {
   "name": "@roomwise/calc-engine",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -22,10 +22,20 @@
     "dist"
   ],
   "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OksanaVakuliak/roomwise-api.git",
+    "directory": "packages/calc-engine"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsdown",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:performance": "vitest run --config vitest.performance.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

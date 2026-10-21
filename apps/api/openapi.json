@@ -3097,14 +3097,59 @@
     "/api/v1/public/pricing-data": {
       "get": {
         "operationId": "PublicPricingController_getPricingData",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "ETag value from a previous response, quotes included.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
+            "headers": {
+              "ETag": {
+                "description": "Pricing version in quotes.",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3f9a1c0b7d2e4a68\""
+                }
+              },
+              "Cache-Control": {
+                "description": "Shared caching policy for pricing data.",
+                "schema": {
+                  "type": "string",
+                  "example": "public, max-age=30"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PricingDataResponseDto_Output"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "If-None-Match matches the current ETag.",
+            "headers": {
+              "ETag": {
+                "description": "Pricing version in quotes.",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3f9a1c0b7d2e4a68\""
+                }
+              },
+              "Cache-Control": {
+                "description": "Shared caching policy for pricing data.",
+                "schema": {
+                  "type": "string",
+                  "example": "public, max-age=30"
                 }
               }
             }
@@ -3348,7 +3393,7 @@
         },
         "responses": {
           "204": {
-            "description": ""
+            "description": "Reordered."
           },
           "401": {
             "description": "UNAUTHENTICATED",
@@ -3472,6 +3517,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -3740,6 +3788,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -3952,6 +4003,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -4050,6 +4104,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ExchangeRateStatusDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
                 }
               }
             }

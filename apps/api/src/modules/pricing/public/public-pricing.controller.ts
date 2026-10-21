@@ -7,7 +7,7 @@ import {
   Post,
   Res,
 } from '@nestjs/common';
-import { ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { checkLimits, estimate, type PricingData } from '@roomwise/calc-engine';
 import type { Response } from 'express';
@@ -15,6 +15,7 @@ import { ZodResponse } from 'nestjs-zod';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { ErrorResponseDto } from '../../../common/http/error-response.dto';
+import { ZodResponseWithHeaders } from '../../../common/openapi/api-response-headers.decorator';
 import { Public } from '../../auth/public.decorator';
 import { PricingDataService } from '../pricing-data/pricing-data.service';
 import {
@@ -27,6 +28,17 @@ import { findUnknownReferences } from './find-unknown-references';
 
 export const PRICING_DATA_CACHE_CONTROL = 'public, max-age=30';
 
+const PRICING_DATA_HEADERS = {
+  ETag: {
+    description: 'Pricing version in quotes.',
+    schema: { type: 'string', example: '"3f9a1c0b7d2e4a68"' },
+  },
+  'Cache-Control': {
+    description: 'Shared caching policy for pricing data.',
+    schema: { type: 'string', example: PRICING_DATA_CACHE_CONTROL },
+  },
+};
+
 const ESTIMATES_PER_MINUTE = 60;
 const ESTIMATES_WINDOW_MS = 60_000;
 
@@ -36,7 +48,21 @@ export class PublicPricingController {
 
   @Public()
   @Get('pricing-data')
-  @ZodResponse({ status: HttpStatus.OK, type: PricingDataResponseDto })
+  @ApiHeader({
+    name: 'If-None-Match',
+    required: false,
+    description: 'ETag value from a previous response, quotes included.',
+  })
+  @ZodResponseWithHeaders({
+    status: HttpStatus.OK,
+    type: PricingDataResponseDto,
+    headers: PRICING_DATA_HEADERS,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_MODIFIED,
+    description: 'If-None-Match matches the current ETag.',
+    headers: PRICING_DATA_HEADERS,
+  })
   async getPricingData(
     @Res({ passthrough: true }) response: Response,
   ): Promise<PricingData> {
