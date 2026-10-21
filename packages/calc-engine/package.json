@@ -22,6 +22,15 @@
     "dist"
   ],
   "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OksanaVakuliak/roomwise-api.git",
+    "directory": "packages/calc-engine"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsdown",
     "test": "vitest run",
