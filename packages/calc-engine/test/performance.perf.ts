@@ -9,6 +9,7 @@ import {
 } from '../src';
 import reference from './fixtures/reference/us1-reference.json';
 
+const ROOM_COUNT = 15;
 const BUDGET_MS = 50;
 const WARM_UP_RUNS = 20;
 const MEASURED_RUNS = 25;
@@ -22,7 +23,7 @@ const configuration: Configuration = ConfigurationSchema.parse({
   balconyTiles: true,
   gas: true,
   kitchenType: 'SEPARATE',
-  rooms: Array.from({ length: data.limits.rooms.max }, (_, index) => ({
+  rooms: Array.from({ length: ROOM_COUNT }, (_, index) => ({
     clientId: `room-${index + 1}`,
     roomTypeCode: data.roomTypes[index % data.roomTypes.length]
       .code as Configuration['rooms'][number]['roomTypeCode'],
@@ -51,7 +52,7 @@ const configuration: Configuration = ConfigurationSchema.parse({
     return {
       optionId: option.id,
       roomClientIds: Array.from(
-        { length: data.limits.rooms.max },
+        { length: ROOM_COUNT },
         (_, index) => `room-${index + 1}`,
       ),
     };
@@ -78,7 +79,7 @@ describe('estimate performance (SC-001)', () => {
     expect(result.totals.usdCents).toBeGreaterThan(0);
   });
 
-  it('estimates 15 rooms with all categories and options in under 50 ms', () => {
+  it(`estimates ${ROOM_COUNT} rooms with all categories and options in under ${BUDGET_MS} ms`, () => {
     for (let run = 0; run < WARM_UP_RUNS; run += 1) {
       estimate(configuration, data);
     }
