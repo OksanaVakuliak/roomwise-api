@@ -1,4 +1,6 @@
+import { applyDecorators } from '@nestjs/common';
 import type { HeadersObject } from '@nestjs/swagger';
+import { type ZodDto, ZodResponse } from 'nestjs-zod';
 
 export const API_RESPONSE_METADATA = 'swagger/apiResponse';
 
@@ -28,4 +30,19 @@ export function ApiResponseHeaders(
     );
     return descriptor;
   };
+}
+
+export function ZodResponseWithHeaders({
+  headers,
+  ...options
+}: {
+  status: number;
+  description?: string;
+  type: ZodDto<ZodDto['schema'], false>;
+  headers: HeadersObject;
+}) {
+  return applyDecorators(
+    ZodResponse(options),
+    ApiResponseHeaders(options.status, headers),
+  );
 }
