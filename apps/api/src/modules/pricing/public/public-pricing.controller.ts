@@ -27,6 +27,17 @@ import { findUnknownReferences } from './find-unknown-references';
 
 export const PRICING_DATA_CACHE_CONTROL = 'public, max-age=30';
 
+const PRICING_DATA_HEADERS = {
+  ETag: {
+    description: 'Pricing version in quotes.',
+    schema: { type: 'string', example: '"3f9a1c0b7d2e4a68"' },
+  },
+  'Cache-Control': {
+    description: 'Shared caching policy for pricing data.',
+    schema: { type: 'string', example: PRICING_DATA_CACHE_CONTROL },
+  },
+};
+
 const ESTIMATES_PER_MINUTE = 60;
 const ESTIMATES_WINDOW_MS = 60_000;
 
@@ -39,19 +50,18 @@ export class PublicPricingController {
   @ApiHeader({
     name: 'If-None-Match',
     required: false,
-    description: 'Current pricing version; matching value returns 304.',
+    description: 'ETag value from a previous response, quotes included.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: PricingDataResponseDto.Output,
+    headers: PRICING_DATA_HEADERS,
   })
   @ZodResponse({ status: HttpStatus.OK, type: PricingDataResponseDto })
   @ApiResponse({
     status: HttpStatus.NOT_MODIFIED,
-    description: 'If-None-Match matches the current version.',
-    headers: {
-      ETag: { description: 'Pricing version.', schema: { type: 'string' } },
-      'Cache-Control': {
-        description: PRICING_DATA_CACHE_CONTROL,
-        schema: { type: 'string' },
-      },
-    },
+    description: 'If-None-Match matches the current ETag.',
+    headers: PRICING_DATA_HEADERS,
   })
   async getPricingData(
     @Res({ passthrough: true }) response: Response,

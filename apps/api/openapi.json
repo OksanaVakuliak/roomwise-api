@@ -3101,7 +3101,7 @@
           {
             "name": "If-None-Match",
             "in": "header",
-            "description": "Current pricing version; matching value returns 304.",
+            "description": "ETag value from a previous response, quotes included.",
             "required": false,
             "schema": {
               "type": "string"
@@ -3111,6 +3111,22 @@
         "responses": {
           "200": {
             "description": "",
+            "headers": {
+              "ETag": {
+                "description": "Pricing version in quotes.",
+                "schema": {
+                  "type": "string",
+                  "example": "\"3f9a1c0b7d2e4a68\""
+                }
+              },
+              "Cache-Control": {
+                "description": "Shared caching policy for pricing data.",
+                "schema": {
+                  "type": "string",
+                  "example": "public, max-age=30"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -3120,18 +3136,20 @@
             }
           },
           "304": {
-            "description": "If-None-Match matches the current version.",
+            "description": "If-None-Match matches the current ETag.",
             "headers": {
               "ETag": {
-                "description": "Pricing version.",
+                "description": "Pricing version in quotes.",
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "\"3f9a1c0b7d2e4a68\""
                 }
               },
               "Cache-Control": {
-                "description": "public, max-age=30",
+                "description": "Shared caching policy for pricing data.",
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "public, max-age=30"
                 }
               }
             }
