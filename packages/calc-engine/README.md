@@ -279,7 +279,7 @@ convertCentsToKopecks(10_000, '41.2500'); // 412_500
 
 ## Versioning and releases
 
-The package follows semver. A release is published to npm by GitHub Actions from a tag named `calc-engine@X.Y.Z`, for example `calc-engine@0.1.0`. The tag must point to a commit on `main`, and its version must match `version` in `package.json`; both are updated together with [CHANGELOG.md](./CHANGELOG.md) in the pull request that prepares the release. The workflow lints, typechecks, tests and builds the package before publishing it with provenance.
+The package follows semver. A release is published to npm by GitHub Actions from a tag named `calc-engine@X.Y.Z`, for example `calc-engine@0.1.0`. The tag must point to a commit on `main`, and its version must match `version` in `package.json`; both are updated together with [CHANGELOG.md](./CHANGELOG.md) in the pull request that prepares the release. Only stable `X.Y.Z` versions are published. The workflow lints, typechecks, tests and builds the package before publishing it with provenance. It authenticates with the `NPM_TOKEN` secret until the repository variable `NPM_TRUSTED_PUBLISHING` is set to `true`; from then on it uses npm trusted publishing and the token can be revoked.
 
 ## License
 

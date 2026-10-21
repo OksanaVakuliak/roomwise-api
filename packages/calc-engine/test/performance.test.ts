@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   type Configuration,
+  ConfigurationSchema,
+  checkLimits,
   EstimateSchema,
   estimate,
   PricingDataSchema,
@@ -13,9 +15,9 @@ const MEASURED_RUNS = 25;
 
 const data = PricingDataSchema.parse(reference.pricingData);
 
-const configuration: Configuration = {
+const configuration: Configuration = ConfigurationSchema.parse({
   finishLevel: 'PRE_FINISH',
-  totalAreaSqm: 200,
+  totalAreaSqm: 400,
   balconyAreaSqm: 6,
   balconyTiles: true,
   gas: true,
@@ -55,12 +57,16 @@ const configuration: Configuration = {
     };
   }),
   currency: 'UAH',
-};
+} satisfies Configuration);
 
 const median = (values: number[]) =>
   [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
 describe('estimate performance (SC-001)', () => {
+  it('uses a configuration the API accepts', () => {
+    expect(checkLimits(configuration, data.limits, data.options)).toEqual([]);
+  });
+
   it('evaluates a full estimate rather than exiting early', () => {
     const result = estimate(configuration, data);
     EstimateSchema.parse(result);

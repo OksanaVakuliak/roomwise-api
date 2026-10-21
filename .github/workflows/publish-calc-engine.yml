@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Verify tag points to main
         run: |
@@ -31,6 +32,10 @@ jobs:
         run: |
           tag_version="${GITHUB_REF_NAME#calc-engine@}"
           package_version="$(node -p "require('./packages/calc-engine/package.json').version")"
+          if ! echo "$tag_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Tag version $tag_version must be a stable X.Y.Z release" >&2
+            exit 1
+          fi
           if [ "$tag_version" != "$package_version" ]; then
             echo "Tag version $tag_version does not match packages/calc-engine/package.json version $package_version" >&2
             exit 1
@@ -59,13 +64,24 @@ jobs:
         run: pnpm --filter @roomwise/calc-engine typecheck
 
       - name: Test
-        run: pnpm --filter @roomwise/calc-engine test
+        run: pnpm --filter @roomwise/calc-engine test:coverage
 
       - name: Build
         run: pnpm --filter @roomwise/calc-engine build
 
-      - name: Publish
+      - name: Publish with trusted publishing
+        if: vars.NPM_TRUSTED_PUBLISHING == 'true'
         working-directory: packages/calc-engine
         run: npm publish --provenance
+
+      - name: Publish with token
+        if: vars.NPM_TRUSTED_PUBLISHING != 'true'
+        working-directory: packages/calc-engine
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "Set the NPM_TOKEN secret, or enable trusted publishing with the NPM_TRUSTED_PUBLISHING variable" >&2
+            exit 1
+          fi
+          npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -35,6 +35,7 @@
     "build": "tsdown",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage --exclude test/performance.test.ts",
+    "test:performance": "vitest run test/performance.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
