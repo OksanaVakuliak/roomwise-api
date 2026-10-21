@@ -9,7 +9,12 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiNoContentResponse,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import {
@@ -83,6 +88,7 @@ export class BaseRatesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Deleted.' })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,

@@ -7,7 +7,7 @@ import {
   Post,
   Res,
 } from '@nestjs/common';
-import { ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { checkLimits, estimate, type PricingData } from '@roomwise/calc-engine';
 import type { Response } from 'express';
@@ -36,7 +36,23 @@ export class PublicPricingController {
 
   @Public()
   @Get('pricing-data')
+  @ApiHeader({
+    name: 'If-None-Match',
+    required: false,
+    description: 'Current pricing version; matching value returns 304.',
+  })
   @ZodResponse({ status: HttpStatus.OK, type: PricingDataResponseDto })
+  @ApiResponse({
+    status: HttpStatus.NOT_MODIFIED,
+    description: 'If-None-Match matches the current version.',
+    headers: {
+      ETag: { description: 'Pricing version.', schema: { type: 'string' } },
+      'Cache-Control': {
+        description: PRICING_DATA_CACHE_CONTROL,
+        schema: { type: 'string' },
+      },
+    },
+  })
   async getPricingData(
     @Res({ passthrough: true }) response: Response,
   ): Promise<PricingData> {

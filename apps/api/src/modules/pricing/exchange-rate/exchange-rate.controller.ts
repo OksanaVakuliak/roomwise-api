@@ -41,6 +41,11 @@ export class ExchangeRateController {
   @Put('manual')
   @HttpCode(HttpStatus.OK)
   @ZodResponse({ status: 200, type: ExchangeRateStatusDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
   async setManual(
     @Body() body: ManualRateInputDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,

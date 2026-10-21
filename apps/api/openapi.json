@@ -3097,7 +3097,17 @@
     "/api/v1/public/pricing-data": {
       "get": {
         "operationId": "PublicPricingController_getPricingData",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "Current pricing version; matching value returns 304.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -3105,6 +3115,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PricingDataResponseDto_Output"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "If-None-Match matches the current version.",
+            "headers": {
+              "ETag": {
+                "description": "Pricing version.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "public, max-age=30",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -3348,7 +3375,7 @@
         },
         "responses": {
           "204": {
-            "description": ""
+            "description": "Reordered."
           },
           "401": {
             "description": "UNAUTHENTICATED",
@@ -3472,6 +3499,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -3740,6 +3770,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -3952,6 +3985,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Deleted."
+          },
           "401": {
             "description": "UNAUTHENTICATED",
             "content": {
@@ -4050,6 +4086,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ExchangeRateStatusDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
                 }
               }
             }

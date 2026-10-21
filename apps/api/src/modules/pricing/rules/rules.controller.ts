@@ -10,7 +10,12 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiNoContentResponse,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 import type { RulePreview } from '@roomwise/calc-engine';
 import { ZodResponse } from 'nestjs-zod';
 import { ErrorResponseDto } from '../../../common/http/error-response.dto';
@@ -77,6 +82,7 @@ export class RulesController {
 
   @Put('order')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Reordered.' })
   async reorder(
     @Body() body: RuleOrderDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,
@@ -112,6 +118,7 @@ export class RulesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'Deleted.' })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
