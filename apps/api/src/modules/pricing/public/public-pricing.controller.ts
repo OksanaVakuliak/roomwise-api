@@ -15,6 +15,7 @@ import { ZodResponse } from 'nestjs-zod';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { ErrorResponseDto } from '../../../common/http/error-response.dto';
+import { ApiResponseHeaders } from '../../../common/openapi/api-response-headers.decorator';
 import { Public } from '../../auth/public.decorator';
 import { PricingDataService } from '../pricing-data/pricing-data.service';
 import {
@@ -52,11 +53,7 @@ export class PublicPricingController {
     required: false,
     description: 'ETag value from a previous response, quotes included.',
   })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: PricingDataResponseDto.Output,
-    headers: PRICING_DATA_HEADERS,
-  })
+  @ApiResponseHeaders(HttpStatus.OK, PRICING_DATA_HEADERS)
   @ZodResponse({ status: HttpStatus.OK, type: PricingDataResponseDto })
   @ApiResponse({
     status: HttpStatus.NOT_MODIFIED,
