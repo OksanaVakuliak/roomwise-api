@@ -10,6 +10,7 @@ import { HttpExceptionFilter } from './common/http/http-exception.filter';
 import { MaintenanceModule } from './common/maintenance/maintenance.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { DemoWriteThrottlerGuard } from './common/throttling/demo-write-throttler.guard';
+import { PublicWriteThrottlerGuard } from './common/throttling/public-write-throttler.guard';
 import { validateEnv } from './config/env';
 import { pinoHttpOptions } from './config/logger';
 import { AdminAuthGuard } from './modules/auth/admin-auth.guard';
@@ -17,6 +18,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
 import { PricingModule } from './modules/pricing/pricing.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 import { SandboxModule } from './modules/sandbox/sandbox.module';
 
 const RATE_LIMIT_TTL_MS = 60_000;
@@ -43,6 +45,7 @@ const RATE_LIMIT_MAX_REQUESTS = 100;
     AuthModule,
     CatalogModule,
     PricingModule,
+    ProjectsModule,
     SandboxModule,
   ],
   providers: [
@@ -69,6 +72,10 @@ const RATE_LIMIT_MAX_REQUESTS = 100;
     {
       provide: APP_GUARD,
       useClass: DemoWriteThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PublicWriteThrottlerGuard,
     },
   ],
 })
