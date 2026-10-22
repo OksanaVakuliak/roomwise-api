@@ -95,7 +95,10 @@ describe('CatalogSnapshotReadService', () => {
     });
     const args = findManyArgs(prisma, 'product');
     expect(args.where).toEqual({ id: { in: ['product-1'] } });
-    expect(args.select.images.orderBy).toEqual({ sortOrder: 'asc' });
+    expect(args.select.images.orderBy).toEqual([
+      { isPrimary: 'desc' },
+      { sortOrder: 'asc' },
+    ]);
     expect(args.select.images.take).toBe(1);
   });
 

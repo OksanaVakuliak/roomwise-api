@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { PublicWriteReplayCheck } from '../../common/throttling/public-write-replay-check';
+import { PublicWriteExemption } from '../../common/throttling/public-write-exemption';
 import { CatalogModule } from '../catalog/catalog.module';
 import { PricingModule } from '../pricing/pricing.module';
 import { IdempotencyInterceptor } from './idempotency/idempotency.interceptor';
 import { IdempotencyService } from './idempotency/idempotency.service';
-import { IdempotencyReplayCheck } from './idempotency/idempotency-replay.check';
+import { IdempotencyThrottleExemption } from './idempotency/idempotency-throttle-exemption';
 import { ProjectsSettingsService } from './settings/projects-settings.service';
 
 @Module({
@@ -12,10 +12,13 @@ import { ProjectsSettingsService } from './settings/projects-settings.service';
   providers: [
     IdempotencyService,
     IdempotencyInterceptor,
-    IdempotencyReplayCheck,
-    { provide: PublicWriteReplayCheck, useExisting: IdempotencyReplayCheck },
+    IdempotencyThrottleExemption,
+    {
+      provide: PublicWriteExemption,
+      useExisting: IdempotencyThrottleExemption,
+    },
     ProjectsSettingsService,
   ],
-  exports: [IdempotencyService, PublicWriteReplayCheck],
+  exports: [IdempotencyService, PublicWriteExemption],
 })
 export class ProjectsModule {}

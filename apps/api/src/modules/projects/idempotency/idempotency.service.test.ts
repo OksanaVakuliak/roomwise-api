@@ -1,3 +1,4 @@
+import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
@@ -15,6 +16,19 @@ function createService() {
   return { prisma, service };
 }
 
+function createRequest(
+  parts: { params?: object; query?: object; body?: unknown; key?: string } = {},
+) {
+  return {
+    params: parts.params ?? {},
+    query: parts.query ?? {},
+    body: 'body' in parts ? parts.body : { a: 1 },
+    header: vi.fn((name: string) =>
+      name === 'Idempotency-Key' ? parts.key : undefined,
+    ),
+  } as unknown as Request;
+}
+
 function createTx(create: ReturnType<typeof vi.fn>) {
   return { idempotencyKey: { create } } as never;
 }
@@ -27,17 +41,99 @@ const params = {
 };
 
 describe('IdempotencyService', () => {
-  it('hashes equal bodies identically regardless of key order', () => {
+  it('hashes equal requests identically regardless of key order', () => {
+    const { service } = createService();
+    const first = createRequest({ body: { a: 1, b: { c: 2, d: [3] } } });
+    const second = createRequest({ body: { b: { d: [3], c: 2 }, a: 1 } });
+
+    expect(service.hashRequest(first)).toBe(service.hashRequest(second));
+    expect(service.hashRequest(first)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('hashes a different body differently', () => {
     const { service } = createService();
 
-    expect(service.hashRequest({ a: 1, b: { c: 2, d: [3] } })).toBe(
-      service.hashRequest({ b: { d: [3], c: 2 }, a: 1 }),
+    expect(service.hashRequest(createRequest({ body: { a: 1 } }))).not.toBe(
+      service.hashRequest(createRequest({ body: { a: 2 } })),
     );
-    expect(service.hashRequest({ a: 1 })).not.toBe(
-      service.hashRequest({ a: 2 }),
+  });
+
+  it('hashes the same body differently for different route params', () => {
+    const { service } = createService();
+
+    expect(
+      service.hashRequest(createRequest({ params: { id: '1' } })),
+    ).not.toBe(service.hashRequest(createRequest({ params: { id: '2' } })));
+  });
+
+  it('hashes the same body differently for different queries', () => {
+    const { service } = createService();
+
+    expect(
+      service.hashRequest(createRequest({ query: { page: '1' } })),
+    ).not.toBe(service.hashRequest(createRequest({ query: { page: '2' } })));
+  });
+
+  it('treats a missing body as null', () => {
+    const { service } = createService();
+
+    expect(service.hashRequest(createRequest({ body: undefined }))).toBe(
+      service.hashRequest(createRequest({ body: null })),
     );
-    expect(service.hashRequest(undefined)).toBe(service.hashRequest(null));
-    expect(service.hashRequest({ a: 1 })).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it.each([undefined, 'not-a-uuid'])(
+    'looks up nothing for header %s',
+    async (key) => {
+      const { prisma, service } = createService();
+
+      await expect(
+        service.lookup(createRequest({ key }), IdempotencyScope.SAVE),
+      ).resolves.toBeNull();
+      expect(prisma.idempotencyKey.findUnique).not.toHaveBeenCalled();
+    },
+  );
+
+  it('looks up the key, the request hash and the stored row', async () => {
+    const { prisma, service } = createService();
+    const row = { ...params };
+    prisma.idempotencyKey.findUnique.mockResolvedValue(row);
+    const req = createRequest({ key: KEY });
+
+    await expect(service.lookup(req, IdempotencyScope.SAVE)).resolves.toEqual({
+      key: KEY,
+      requestHash: service.hashRequest(req),
+      row,
+    });
+    expect(prisma.idempotencyKey.findUnique).toHaveBeenCalledWith({
+      where: { scope_key: { scope: IdempotencyScope.SAVE, key: KEY } },
+    });
+  });
+
+  it('returns a null row when nothing is stored', async () => {
+    const { prisma, service } = createService();
+    prisma.idempotencyKey.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.lookup(createRequest({ key: KEY }), IdempotencyScope.SAVE),
+    ).resolves.toMatchObject({ key: KEY, row: null });
+  });
+
+  it('reads the database once per request object', async () => {
+    const { prisma, service } = createService();
+    prisma.idempotencyKey.findUnique.mockResolvedValue(null);
+    const req = createRequest({ key: KEY });
+
+    const [first, second] = await Promise.all([
+      service.lookup(req, IdempotencyScope.SAVE),
+      service.lookup(req, IdempotencyScope.SAVE),
+    ]);
+
+    expect(second).toBe(first);
+    expect(prisma.idempotencyKey.findUnique).toHaveBeenCalledTimes(1);
+
+    await service.lookup(createRequest({ key: KEY }), IdempotencyScope.SAVE);
+    expect(prisma.idempotencyKey.findUnique).toHaveBeenCalledTimes(2);
   });
 
   it('finds a row by scope and key', async () => {
@@ -103,12 +199,13 @@ describe('IdempotencyService', () => {
     const loader = vi.fn().mockResolvedValue({ status: 201, body: { id: 1 } });
     service.registerLoader(IdempotencyScope.SAVE, loader);
     const row = { ...params, fakeLeadNumber: null, createdAt: new Date() };
+    const req = createRequest();
 
-    await expect(service.replay(row)).resolves.toEqual({
+    await expect(service.replay(row, req)).resolves.toEqual({
       status: 201,
       body: { id: 1 },
     });
-    expect(loader).toHaveBeenCalledWith(row);
+    expect(loader).toHaveBeenCalledWith(row, req);
   });
 
   it('fails when no loader is registered for the scope', async () => {
@@ -120,6 +217,6 @@ describe('IdempotencyService', () => {
       createdAt: new Date(),
     };
 
-    await expect(service.replay(row)).rejects.toThrow(/LEAD/);
+    await expect(service.replay(row, createRequest())).rejects.toThrow(/LEAD/);
   });
 });

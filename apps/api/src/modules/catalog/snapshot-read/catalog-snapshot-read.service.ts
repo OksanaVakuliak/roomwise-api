@@ -95,7 +95,7 @@ export class CatalogSnapshotReadService {
         unit: true,
         images: {
           select: { image: { select: { id: true, publicId: true } } },
-          orderBy: { sortOrder: 'asc' },
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
           take: 1,
         },
       },

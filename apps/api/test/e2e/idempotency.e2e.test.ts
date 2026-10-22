@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { Body, Controller, Module, OnModuleInit, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Module,
+  OnModuleInit,
+  Param,
+  Post,
+} from '@nestjs/common';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '../../src/common/http/error-codes';
@@ -21,6 +28,7 @@ const HEADER = 'Idempotency-Key';
 const ENDPOINT = '/api/v1/test-idempotency';
 const SAVES_LIMIT = PUBLIC_WRITE_LIMITS_PER_HOUR.saves;
 const REPLAY_COUNT = 25;
+const SLOW_HANDLER_MS = 200;
 
 const handlerCalls = { count: 0 };
 
@@ -55,6 +63,44 @@ class IdempotencyTestController implements OnModuleInit {
 
     return { id: resultId };
   }
+
+  @Post('items/:id')
+  @Public()
+  @Idempotent(IdempotencyScope.SAVE)
+  @PublicWriteLimit('saves')
+  async createItem(
+    @Param('id') _id: string,
+    @Body() _body: unknown,
+    @IdempotencyContext() context: IdempotencyContextValue,
+  ) {
+    handlerCalls.count += 1;
+    const resultId = randomUUID();
+
+    await this.prisma.$transaction((tx) =>
+      this.idempotency.record(tx, { ...context, resultId }),
+    );
+
+    return { id: resultId };
+  }
+
+  @Post('slow')
+  @Public()
+  @Idempotent(IdempotencyScope.SAVE)
+  @PublicWriteLimit('saves')
+  async createSlow(
+    @Body() _body: unknown,
+    @IdempotencyContext() context: IdempotencyContextValue,
+  ) {
+    handlerCalls.count += 1;
+    const resultId = randomUUID();
+
+    await this.prisma.$transaction(async (tx) => {
+      await new Promise((resolve) => setTimeout(resolve, SLOW_HANDLER_MS));
+      await this.idempotency.record(tx, { ...context, resultId });
+    });
+
+    return { id: resultId };
+  }
 }
 
 @Module({
@@ -63,8 +109,13 @@ class IdempotencyTestController implements OnModuleInit {
 })
 class IdempotencyTestModule {}
 
-function post(testApp: TestApp, key: string | undefined, body: object) {
-  const req = request(testApp.http).post(ENDPOINT);
+function post(
+  testApp: TestApp,
+  key: string | undefined,
+  body: object,
+  path = ENDPOINT,
+) {
+  const req = request(testApp.http).post(path);
 
   return (key === undefined ? req : req.set(HEADER, key)).send(body);
 }
@@ -116,6 +167,45 @@ describe('idempotency e2e', () => {
     expect(response.status).toBe(422);
     expect(response.body.error.code).toBe(ERROR_CODES.IDEMPOTENCY_KEY_REUSED);
     expect(handlerCalls.count).toBe(1);
+  });
+
+  it('answers 422 when the key is reused on another route param', async () => {
+    const key = randomUUID();
+    const first = await post(testApp, key, { a: 1 }, `${ENDPOINT}/items/1`);
+    expect(first.status).toBe(201);
+
+    const second = await post(testApp, key, { a: 1 }, `${ENDPOINT}/items/2`);
+
+    expect(second.status).toBe(422);
+    expect(second.body.error.code).toBe(ERROR_CODES.IDEMPOTENCY_KEY_REUSED);
+    expect(handlerCalls.count).toBe(1);
+  });
+
+  it('does not spend the saves limit on rejected keyless requests', async () => {
+    for (let i = 0; i < SAVES_LIMIT + 1; i++) {
+      const response = await post(testApp, undefined, { a: i });
+      expect(response.status).toBe(428);
+    }
+
+    expect((await post(testApp, randomUUID(), { a: 'keyed' })).status).toBe(
+      201,
+    );
+  });
+
+  it('replays the winner when two first requests race on one key', async () => {
+    const key = randomUUID();
+    const slow = `${ENDPOINT}/slow`;
+
+    const [first, second] = await Promise.all([
+      post(testApp, key, { a: 1 }, slow),
+      post(testApp, key, { a: 1 }, slow),
+    ]);
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(second.body).toEqual(first.body);
+    expect(handlerCalls.count).toBe(2);
+    await expect(testApp.prisma.idempotencyKey.count()).resolves.toBe(1);
   });
 
   it('does not spend the saves limit on replays', async () => {

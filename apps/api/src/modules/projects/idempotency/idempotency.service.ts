@@ -1,12 +1,13 @@
-import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { canonicalJson } from '../../../common/hashing/canonical-hash';
+import type { Request } from 'express';
+import { canonicalSha256 } from '../../../common/hashing/canonical-hash';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { isPrismaError } from '../../../common/prisma/prisma-error';
 import type { IdempotencyKey, Prisma } from '../../../generated/prisma/client';
 import type { IdempotencyScope } from '../../../generated/prisma/enums';
+import { readIdempotencyKey } from './idempotency-request';
 
 const UNIQUE_CONSTRAINT_ERROR = 'P2002';
 
@@ -17,6 +18,7 @@ export interface IdempotentResponse {
 
 export type IdempotencyLoader = (
   row: IdempotencyKey,
+  request: Request,
 ) => Promise<IdempotentResponse>;
 
 export interface RecordIdempotencyKey {
@@ -27,16 +29,42 @@ export interface RecordIdempotencyKey {
   fakeLeadNumber?: number;
 }
 
+export interface IdempotencyLookup {
+  key: string;
+  requestHash: string;
+  row: IdempotencyKey | null;
+}
+
 @Injectable()
 export class IdempotencyService {
   private readonly loaders = new Map<IdempotencyScope, IdempotencyLoader>();
+  private readonly lookups = new WeakMap<
+    Request,
+    Promise<IdempotencyLookup | null>
+  >();
 
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  hashRequest(body: unknown): string {
-    return createHash('sha256')
-      .update(canonicalJson(body ?? null))
-      .digest('hex');
+  hashRequest(request: Request): string {
+    return canonicalSha256({
+      params: request.params ?? {},
+      query: request.query ?? {},
+      body: request.body ?? null,
+    });
+  }
+
+  lookup(
+    request: Request,
+    scope: IdempotencyScope,
+  ): Promise<IdempotencyLookup | null> {
+    let lookup = this.lookups.get(request);
+
+    if (!lookup) {
+      lookup = this.readLookup(request, scope);
+      this.lookups.set(request, lookup);
+    }
+
+    return lookup;
   }
 
   find(scope: IdempotencyScope, key: string): Promise<IdempotencyKey | null> {
@@ -68,13 +96,33 @@ export class IdempotencyService {
     this.loaders.set(scope, loader);
   }
 
-  async replay(row: IdempotencyKey): Promise<IdempotentResponse> {
+  async replay(
+    row: IdempotencyKey,
+    request: Request,
+  ): Promise<IdempotentResponse> {
     const loader = this.loaders.get(row.scope);
 
     if (!loader) {
       throw new Error(`No idempotency loader registered for ${row.scope}`);
     }
 
-    return loader(row);
+    return loader(row, request);
+  }
+
+  private async readLookup(
+    request: Request,
+    scope: IdempotencyScope,
+  ): Promise<IdempotencyLookup | null> {
+    const key = readIdempotencyKey(request);
+
+    if (!key) {
+      return null;
+    }
+
+    return {
+      key,
+      requestHash: this.hashRequest(request),
+      row: await this.find(scope, key),
+    };
   }
 }

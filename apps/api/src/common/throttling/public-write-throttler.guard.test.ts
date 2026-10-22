@@ -6,8 +6,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import type { Request } from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { PublicWriteExemption } from './public-write-exemption';
 import { PublicWriteLimit } from './public-write-limit.decorator';
-import { PublicWriteReplayCheck } from './public-write-replay-check';
 import { PUBLIC_WRITE_LIMITS_PER_HOUR } from './public-write-throttle.constants';
 import { PublicWriteThrottlerGuard } from './public-write-throttler.guard';
 
@@ -61,7 +61,7 @@ async function postMany(
   return statuses;
 }
 
-const REPLAY_HEADER = 'x-replay';
+const EXEMPT_HEADER = 'x-exempt';
 
 const { saves, leads } = PUBLIC_WRITE_LIMITS_PER_HOUR;
 
@@ -75,13 +75,13 @@ describe('PublicWriteThrottlerGuard', () => {
       providers: [
         { provide: APP_GUARD, useClass: PublicWriteThrottlerGuard },
         {
-          provide: PublicWriteReplayCheck,
+          provide: PublicWriteExemption,
           useValue: {
-            isReplay: async (context: ExecutionContext) =>
+            isExempt: async (context: ExecutionContext) =>
               context
                 .switchToHttp()
                 .getRequest<Request>()
-                .header(REPLAY_HEADER) === 'yes',
+                .header(EXEMPT_HEADER) === 'yes',
           },
         },
       ],
@@ -143,20 +143,20 @@ describe('PublicWriteThrottlerGuard', () => {
     expect((await post(app, '/test/leads', '203.0.113.2')).status).toBe(201);
   });
 
-  it('does not count replays against the budget', async () => {
+  it('does not count exempt requests against the budget', async () => {
     for (let i = 0; i < saves * 2; i++) {
       const response = await request(app.getHttpServer())
         .post('/test/saves-a')
-        .set(REPLAY_HEADER, 'yes');
+        .set(EXEMPT_HEADER, 'yes');
       expect(response.status).toBe(201);
     }
 
     await postMany(app, Array(saves).fill('/test/saves-a'));
     expect((await post(app, '/test/saves-a')).status).toBe(429);
 
-    const replay = await request(app.getHttpServer())
+    const exempt = await request(app.getHttpServer())
       .post('/test/saves-a')
-      .set(REPLAY_HEADER, 'yes');
-    expect(replay.status).toBe(201);
+      .set(EXEMPT_HEADER, 'yes');
+    expect(exempt.status).toBe(201);
   });
 });
