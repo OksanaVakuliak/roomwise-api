@@ -23,6 +23,7 @@ import { PublicCatalogController } from './public/public-catalog.controller';
 import { PublicCatalogService } from './public/public-catalog.service';
 import { RoomTypesController } from './room-types/room-types.controller';
 import { RoomTypesService } from './room-types/room-types.service';
+import { CatalogSnapshotReadService } from './snapshot-read/catalog-snapshot-read.service';
 import { StylesController } from './styles/styles.controller';
 import { StylesService } from './styles/styles.service';
 
@@ -44,6 +45,7 @@ import { StylesService } from './styles/styles.service';
     CatalogChangeInterceptor,
     CatalogChangeNotifier,
     CatalogPricingReadService,
+    CatalogSnapshotReadService,
     ImageUrlBuilder,
     CloudinaryService,
     ImagesService,
@@ -63,6 +65,7 @@ import { StylesService } from './styles/styles.service';
     CatalogDatasetService,
     CatalogChangeNotifier,
     CatalogPricingReadService,
+    CatalogSnapshotReadService,
     CloudinaryService,
   ],
 })
