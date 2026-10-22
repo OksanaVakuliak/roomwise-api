@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import type {
   BaseRate,
   Configuration,
-  Estimate,
   PricingData,
 } from '@roomwise/calc-engine';
 import { AppError } from '../../../common/http/app-error';
@@ -22,12 +21,6 @@ export interface SnapshotBuildInput {
   configuration: Configuration;
   styleId: string;
   createdAt: Date;
-}
-
-export interface SnapshotBuildResult {
-  snapshot: SnapshotV1;
-  estimate: Estimate;
-  pricingData: PricingData;
 }
 
 function distinct(values: Array<string | null>): string[] {
@@ -59,7 +52,7 @@ export class SnapshotBuilder {
     private readonly catalog: CatalogSnapshotReadService,
   ) {}
 
-  async build(input: SnapshotBuildInput): Promise<SnapshotBuildResult> {
+  async build(input: SnapshotBuildInput): Promise<SnapshotV1> {
     const { configuration, styleId, createdAt } = input;
     const { estimate, pricingData } =
       await this.pricingEstimate.estimate(configuration);
@@ -181,6 +174,6 @@ export class SnapshotBuilder {
       },
     });
 
-    return { snapshot, estimate, pricingData };
+    return snapshot;
   }
 }

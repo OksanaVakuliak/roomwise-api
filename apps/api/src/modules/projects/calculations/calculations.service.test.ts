@@ -33,15 +33,16 @@ const snapshot = {
   schemaVersion: 1,
   pricingVersion: PRICING_VERSION,
   createdAt: NOW.toISOString(),
-};
-const estimate = {
-  totals: { usdCents: SAVED_TOTAL, uahKopecks: 41_000 },
-  incomplete: false,
+  estimate: {
+    totals: { usdCents: SAVED_TOTAL, uahKopecks: 41_000 },
+    incomplete: false,
+  },
 };
 
 function storedVersion(number = 1) {
   return {
     id: VERSION_ID,
+    calculationId: 'calc-1',
     number,
     snapshot,
     pricingVersion: PRICING_VERSION,
@@ -61,6 +62,15 @@ function storedCalculation(versions = [storedVersion(1), storedVersion(2)]) {
   };
 }
 
+function summaryOf(version: ReturnType<typeof storedVersion>) {
+  return {
+    number: version.number,
+    createdAt: version.createdAt,
+    totalUsdCents: version.totalUsdCents,
+    expiresAt: version.expiresAt,
+  };
+}
+
 function createService() {
   const tx = {
     calculation: {
@@ -77,9 +87,9 @@ function createService() {
   const prisma = {
     $transaction: vi.fn((fn: (client: typeof tx) => unknown) => fn(tx)),
     calculation: { findUnique: vi.fn() },
-    calculationVersion: { findUniqueOrThrow: vi.fn() },
+    calculationVersion: { findUnique: vi.fn(), findMany: vi.fn() },
   };
-  const builder = { build: vi.fn().mockResolvedValue({ snapshot, estimate }) };
+  const builder = { build: vi.fn().mockResolvedValue(snapshot) };
   const settings = {
     get: vi.fn().mockResolvedValue({ calculationValidityDays: VALIDITY_DAYS }),
   };
@@ -198,26 +208,54 @@ describe('CalculationsService.create', () => {
 });
 
 describe('CalculationsService.findVersion', () => {
-  it('returns the latest version when no number is given', async () => {
+  function setup(numbers = [1, 2]) {
     const ctx = createService();
-    ctx.prisma.calculation.findUnique.mockResolvedValue(storedCalculation());
+    const versions = numbers.map(storedVersion);
+    ctx.prisma.calculation.findUnique.mockImplementation(
+      ({ where }: { where: { publicId: string } }) =>
+        Promise.resolve(
+          where.publicId === 'public'
+            ? {
+                ...storedCalculation([]),
+                latestVersionNumber: Math.max(...numbers),
+                versions: versions.map(summaryOf),
+              }
+            : null,
+        ),
+    );
+    ctx.prisma.calculationVersion.findUnique.mockImplementation(
+      ({ where }: { where: { calculationId_number: { number: number } } }) =>
+        Promise.resolve(
+          versions.find(
+            (item) => item.number === where.calculationId_number.number,
+          ) ?? null,
+        ),
+    );
+
+    return ctx;
+  }
+
+  it('returns the latest version when no number is given', async () => {
+    const ctx = setup();
 
     await ctx.service.findVersion('public', null, 'uk');
 
+    expect(ctx.prisma.calculationVersion.findUnique).toHaveBeenCalledWith({
+      where: { calculationId_number: { calculationId: 'calc-1', number: 2 } },
+    });
     expect(ctx.presenter.present).toHaveBeenCalledWith(
       expect.objectContaining({
         version: expect.objectContaining({ number: 2 }),
-        versions: expect.arrayContaining([
+        versions: [
           expect.objectContaining({ number: 1 }),
           expect.objectContaining({ number: 2 }),
-        ]),
+        ],
       }),
     );
   });
 
   it('returns the requested version', async () => {
-    const ctx = createService();
-    ctx.prisma.calculation.findUnique.mockResolvedValue(storedCalculation());
+    const ctx = setup();
 
     await ctx.service.findVersion('public', 1, 'uk');
 
@@ -228,15 +266,32 @@ describe('CalculationsService.findVersion', () => {
     );
   });
 
+  it('loads only the summaries of the sibling versions', async () => {
+    const ctx = setup();
+
+    await ctx.service.findVersion('public', null, 'uk');
+
+    expect(ctx.prisma.calculation.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          versions: {
+            select: {
+              number: true,
+              createdAt: true,
+              totalUsdCents: true,
+              expiresAt: true,
+            },
+          },
+        }),
+      }),
+    );
+  });
+
   it('answers CALCULATION_NOT_FOUND for an unknown id and an unknown number', async () => {
-    const ctx = createService();
-    ctx.prisma.calculation.findUnique.mockResolvedValueOnce(null);
+    const ctx = setup();
     const unknownId = await ctx.service
       .findVersion('missing', null, 'uk')
       .catch((error: unknown) => error);
-    ctx.prisma.calculation.findUnique.mockResolvedValueOnce(
-      storedCalculation(),
-    );
     const unknownNumber = await ctx.service
       .findVersion('public', 9, 'uk')
       .catch((error: unknown) => error);
@@ -249,29 +304,36 @@ describe('CalculationsService.findVersion', () => {
 });
 
 describe('CalculationsService save replay', () => {
-  it('replays the stored version with the request language and body', async () => {
+  const KEY_CREATED_AT = new Date(NOW.getTime() + DAY_MS);
+  const ROW = { resultId: VERSION_ID, createdAt: KEY_CREATED_AT };
+  const body = {
+    ...(input as object),
+    clientPricingVersion: STALE_VERSION,
+    clientTotalUsdCents: CLIENT_TOTAL,
+  };
+
+  function setup() {
     const ctx = createService();
     ctx.service.onModuleInit();
     const [scope, loader] = ctx.idempotency.registerLoader.mock.calls[0];
-    ctx.prisma.calculationVersion.findUniqueOrThrow.mockResolvedValue({
-      ...storedVersion(),
-      calculation: storedCalculation([storedVersion()]),
+    ctx.prisma.calculationVersion.findUnique.mockResolvedValue({
+      ...storedVersion(1),
+      calculation: { id: 'calc-1', publicId: 'public' },
     });
-    const body = {
-      ...(input as object),
-      clientPricingVersion: STALE_VERSION,
-      clientTotalUsdCents: CLIENT_TOTAL,
-    };
+    ctx.prisma.calculationVersion.findMany.mockResolvedValue([
+      summaryOf(storedVersion(1)),
+    ]);
 
-    const result = await loader(
-      { resultId: VERSION_ID },
-      { query: { lang: 'en' }, body },
-    );
+    return { ...ctx, scope, loader };
+  }
 
-    expect(scope).toBe(IdempotencyScope.SAVE);
-    expect(
-      ctx.prisma.calculationVersion.findUniqueOrThrow,
-    ).toHaveBeenCalledWith(
+  it('replays the stored version with the request language and body', async () => {
+    const ctx = setup();
+
+    const result = await ctx.loader(ROW, { query: { lang: 'en' }, body });
+
+    expect(ctx.scope).toBe(IdempotencyScope.SAVE);
+    expect(ctx.prisma.calculationVersion.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: VERSION_ID } }),
     );
     expect(ctx.presenter.present).toHaveBeenCalledWith(
@@ -282,5 +344,48 @@ describe('CalculationsService save replay', () => {
       savedTotalUsdCents: SAVED_TOTAL,
       diffCents: SAVED_TOTAL - CLIENT_TOTAL,
     });
+  });
+
+  it('lists only versions up to the saved one', async () => {
+    const ctx = setup();
+
+    await ctx.loader(ROW, { query: { lang: 'en' }, body });
+
+    expect(ctx.prisma.calculationVersion.findMany).toHaveBeenCalledWith({
+      where: { calculationId: 'calc-1', number: { lte: 1 } },
+      select: {
+        number: true,
+        createdAt: true,
+        totalUsdCents: true,
+        expiresAt: true,
+      },
+    });
+    expect(ctx.presenter.present).toHaveBeenCalledWith(
+      expect.objectContaining({
+        versions: [expect.objectContaining({ number: 1 })],
+      }),
+    );
+  });
+
+  it('evaluates expiry at the creation time of the idempotency key', async () => {
+    const ctx = setup();
+
+    await ctx.loader(ROW, { query: { lang: 'en' }, body });
+
+    expect(ctx.presenter.present).toHaveBeenCalledWith(
+      expect.objectContaining({ now: KEY_CREATED_AT }),
+    );
+  });
+
+  it('answers CALCULATION_NOT_FOUND when the version no longer exists', async () => {
+    const ctx = setup();
+    ctx.prisma.calculationVersion.findUnique.mockResolvedValue(null);
+
+    const error = await ctx
+      .loader(ROW, { query: { lang: 'en' }, body })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).code).toBe(ERROR_CODES.CALCULATION_NOT_FOUND);
   });
 });

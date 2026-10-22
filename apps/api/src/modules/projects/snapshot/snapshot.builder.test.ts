@@ -210,7 +210,7 @@ describe('SnapshotBuilder', () => {
   it('builds a valid snapshot with enriched names', async () => {
     const { builder, pricingEstimate, catalog } = createBuilder();
 
-    const result = await builder.build(input);
+    const snapshot = await builder.build(input);
 
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration);
     expect(catalog.read).toHaveBeenCalledWith({
@@ -221,9 +221,8 @@ describe('SnapshotBuilder', () => {
       packageItemIds: ['item-1'],
       styleId: 'style-1',
     });
-    expect(() => SnapshotV1Schema.parse(result.snapshot)).not.toThrow();
-    expect(result.estimate).toBe(estimate);
-    expect(result.snapshot).toMatchObject({
+    expect(() => SnapshotV1Schema.parse(snapshot)).not.toThrow();
+    expect(snapshot).toMatchObject({
       schemaVersion: 1,
       createdAt: '2026-10-20T12:00:00.000Z',
       pricingVersion: '0123456789abcdef',
@@ -236,7 +235,7 @@ describe('SnapshotBuilder', () => {
         currency: 'USD',
       },
     });
-    expect(result.snapshot.rooms).toEqual([
+    expect(snapshot.rooms).toEqual([
       {
         clientId: 'room-a',
         roomTypeCode: 'KITCHEN',
@@ -247,7 +246,7 @@ describe('SnapshotBuilder', () => {
         roomTypeName: text('Kitchen'),
       },
     ]);
-    expect(result.snapshot.lines[1]).toMatchObject({
+    expect(snapshot.lines[1]).toMatchObject({
       roomName: text('Kitchen'),
       categoryName: text('Floor'),
       ruleName: text('rule-1'),
@@ -262,7 +261,7 @@ describe('SnapshotBuilder', () => {
         image: { id: 'image-1', publicId: 'a/b' },
       },
     });
-    expect(result.snapshot.lines[2]).toMatchObject({
+    expect(snapshot.lines[2]).toMatchObject({
       optionName: text('Option'),
       packageItemName: text('Item'),
       roomName: null,
@@ -273,7 +272,7 @@ describe('SnapshotBuilder', () => {
   it('leaves names null for null ids and entities missing from the catalog', async () => {
     const { builder } = createBuilder();
 
-    const { snapshot } = await builder.build(input);
+    const snapshot = await builder.build(input);
 
     expect(snapshot.lines[0]).toMatchObject({
       roomName: null,
@@ -289,7 +288,7 @@ describe('SnapshotBuilder', () => {
   it('keeps only the rules used by lines and exposes coefficients and rate', async () => {
     const { builder } = createBuilder();
 
-    const { snapshot } = await builder.build(input);
+    const snapshot = await builder.build(input);
 
     expect(snapshot.pricing.rules).toEqual([
       {
@@ -318,9 +317,9 @@ describe('SnapshotBuilder', () => {
       configuration: { ...configuration, finishLevel: 'PRE_FINISH' },
     });
 
-    expect(inside.snapshot.pricing.baseRate?.rateCentsPerSqm).toBe(1000);
-    expect(boundary.snapshot.pricing.baseRate?.rateCentsPerSqm).toBe(2000);
-    expect(preFinish.snapshot.pricing.baseRate?.rateCentsPerSqm).toBe(3000);
+    expect(inside.pricing.baseRate?.rateCentsPerSqm).toBe(1000);
+    expect(boundary.pricing.baseRate?.rateCentsPerSqm).toBe(2000);
+    expect(preFinish.pricing.baseRate?.rateCentsPerSqm).toBe(3000);
   });
 
   it('sets the base rate to null when no range matches', async () => {
@@ -337,7 +336,7 @@ describe('SnapshotBuilder', () => {
       }),
     });
 
-    const { snapshot } = await builder.build(input);
+    const snapshot = await builder.build(input);
 
     expect(snapshot.pricing.baseRate).toBeNull();
   });

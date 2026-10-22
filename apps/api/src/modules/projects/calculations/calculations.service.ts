@@ -32,6 +32,20 @@ type ClientPrice = Pick<
   'clientPricingVersion' | 'clientTotalUsdCents'
 >;
 
+interface VersionSummary {
+  number: number;
+  createdAt: Date;
+  totalUsdCents: number;
+  expiresAt: Date;
+}
+
+const VERSION_SUMMARY_SELECT = {
+  number: true,
+  createdAt: true,
+  totalUsdCents: true,
+  expiresAt: true,
+} as const;
+
 interface LoadedVersion {
   number: number;
   snapshot: unknown;
@@ -42,12 +56,7 @@ interface LoadedVersion {
   createdAt: Date;
   calculation: {
     publicId: string;
-    versions: {
-      number: number;
-      createdAt: Date;
-      totalUsdCents: number;
-      expiresAt: Date;
-    }[];
+    versions: VersionSummary[];
   };
 }
 
@@ -93,12 +102,14 @@ export class CalculationsService implements OnModuleInit {
     lang: Language,
   ): Promise<SaveCalculationResponse> {
     const now = this.clock.now();
-    const { snapshot, estimate } = await this.builder.build({
-      configuration: input.configuration,
-      styleId: input.styleId,
-      createdAt: now,
-    });
-    const { calculationValidityDays } = await this.settings.get();
+    const [snapshot, { calculationValidityDays }] = await Promise.all([
+      this.builder.build({
+        configuration: input.configuration,
+        styleId: input.styleId,
+        createdAt: now,
+      }),
+      this.settings.get(),
+    ]);
     const expiresAt = new Date(
       now.getTime() + calculationValidityDays * MS_PER_DAY,
     );
@@ -114,9 +125,9 @@ export class CalculationsService implements OnModuleInit {
           snapshot: snapshot as object,
           snapshotSchemaVersion: snapshot.schemaVersion,
           pricingVersion: snapshot.pricingVersion,
-          totalUsdCents: estimate.totals.usdCents,
-          totalUahKopecks: estimate.totals.uahKopecks,
-          incomplete: estimate.incomplete,
+          totalUsdCents: snapshot.estimate.totals.usdCents,
+          totalUahKopecks: snapshot.estimate.totals.uahKopecks,
+          incomplete: snapshot.estimate.incomplete,
           expiresAt,
           createdAt: now,
         },
@@ -142,13 +153,28 @@ export class CalculationsService implements OnModuleInit {
   ): Promise<VersionView> {
     const calculation = await this.prisma.calculation.findUnique({
       where: { publicId },
-      include: { versions: true },
+      select: {
+        id: true,
+        publicId: true,
+        latestVersionNumber: true,
+        versions: { select: VERSION_SUMMARY_SELECT },
+      },
     });
-    const version = calculation?.versions.find(
-      (item) => item.number === (number ?? calculation.latestVersionNumber),
-    );
 
-    if (!calculation || !version) {
+    if (!calculation) {
+      throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
+    }
+
+    const version = await this.prisma.calculationVersion.findUnique({
+      where: {
+        calculationId_number: {
+          calculationId: calculation.id,
+          number: number ?? calculation.latestVersionNumber,
+        },
+      },
+    });
+
+    if (!version) {
       throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
     }
 
@@ -159,23 +185,41 @@ export class CalculationsService implements OnModuleInit {
     row: IdempotencyKey,
     request: Request,
   ): Promise<SaveCalculationResponse> {
-    const version = await this.prisma.calculationVersion.findUniqueOrThrow({
+    const version = await this.prisma.calculationVersion.findUnique({
       where: { id: row.resultId },
-      include: { calculation: { include: { versions: true } } },
+      include: { calculation: { select: { id: true, publicId: true } } },
+    });
+
+    if (!version) {
+      throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
+    }
+
+    const versions = await this.prisma.calculationVersion.findMany({
+      where: {
+        calculationId: version.calculationId,
+        number: { lte: version.number },
+      },
+      select: VERSION_SUMMARY_SELECT,
     });
     const { lang } = langQuerySchema.parse(request.query);
     const body = saveCalculationRequestSchema.parse(request.body);
 
-    return this.respond(version, body, lang);
+    return this.respond(
+      { ...version, calculation: { ...version.calculation, versions } },
+      body,
+      lang,
+      row.createdAt,
+    );
   }
 
   private respond(
     version: LoadedVersion,
     client: ClientPrice,
     lang: Language,
+    now?: Date,
   ): SaveCalculationResponse {
     return {
-      version: this.view(version, lang),
+      version: this.view(version, lang, now),
       priceDifference: priceDifferenceOf(
         client,
         version.pricingVersion,
@@ -184,7 +228,11 @@ export class CalculationsService implements OnModuleInit {
     };
   }
 
-  private view(version: LoadedVersion, lang: Language): VersionView {
+  private view(
+    version: LoadedVersion,
+    lang: Language,
+    now: Date = this.clock.now(),
+  ): VersionView {
     return this.presenter.present({
       publicId: version.calculation.publicId,
       version: {
@@ -197,7 +245,7 @@ export class CalculationsService implements OnModuleInit {
       },
       versions: version.calculation.versions,
       lang,
-      now: this.clock.now(),
+      now,
     });
   }
 }
