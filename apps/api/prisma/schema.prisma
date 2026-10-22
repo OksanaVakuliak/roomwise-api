@@ -64,6 +64,25 @@ enum RateSource {
   MANUAL
 }
 
+enum LeadStatus {
+  NEW
+  IN_PROGRESS
+  DONE
+  REJECTED
+  SPAM
+}
+
+enum Locale {
+  EN
+  UK
+}
+
+enum IdempotencyScope {
+  SAVE
+  RECALCULATE
+  LEAD
+}
+
 model Admin {
   id               String    @id @default(uuid()) @db.Uuid
   login            String    @unique
@@ -86,6 +105,9 @@ model Admin {
   coefficientUpdates            Coefficient[]            @relation("CoefficientUpdatedBy")
   pricingRuleUpdates            PricingRule[]            @relation("PricingRuleUpdatedBy")
   createdExchangeRates          ExchangeRate[]           @relation("ExchangeRateCreatedBy")
+  leadStatusChanges             LeadStatusChange[]       @relation("LeadStatusChangedBy")
+  leadNotes                     LeadNote[]               @relation("LeadNoteAuthor")
+  projectsSettingsUpdates       ProjectsSettings[]       @relation("ProjectsSettingsUpdatedBy")
 
   @@unique([isDemo], where: { isDemo: true })
   @@map("admins")
@@ -412,7 +434,7 @@ model PricingSettings {
   manualRate         ExchangeRate? @relation(fields: [manualRateId], references: [id], onDelete: SetNull)
   lastNbuSuccessDate DateTime?     @map("last_nbu_success_date") @db.Date
   lastNbuAttemptAt   DateTime?     @map("last_nbu_attempt_at") @db.Timestamptz(3)
-  lastNbuError       String?      @map("last_nbu_error")
+  lastNbuError       String?       @map("last_nbu_error")
   totalAreaMinSqm    Decimal       @map("total_area_min_sqm") @db.Decimal(7, 2)
   totalAreaMaxSqm    Decimal       @map("total_area_max_sqm") @db.Decimal(7, 2)
   roomsMin           Int           @map("rooms_min")
@@ -423,4 +445,116 @@ model PricingSettings {
   roomHeightMaxM     Decimal       @map("room_height_max_m") @db.Decimal(4, 2)
 
   @@map("pricing_settings")
+}
+
+model Calculation {
+  id                  String   @id @default(uuid()) @db.Uuid
+  publicId            String   @unique @map("public_id")
+  latestVersionNumber Int      @map("latest_version_number")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  versions CalculationVersion[]
+
+  @@map("calculations")
+}
+
+model CalculationVersion {
+  id                    String      @id @default(uuid()) @db.Uuid
+  calculationId         String      @map("calculation_id") @db.Uuid
+  calculation           Calculation @relation(fields: [calculationId], references: [id], onDelete: Cascade)
+  number                Int
+  snapshot              Json        @db.JsonB
+  snapshotSchemaVersion Int         @map("snapshot_schema_version")
+  pricingVersion        String      @map("pricing_version")
+  totalUsdCents         Int         @map("total_usd_cents")
+  totalUahKopecks       Int?        @map("total_uah_kopecks")
+  incomplete            Boolean
+  expiresAt             DateTime    @map("expires_at") @db.Timestamptz(3)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  leads Lead[]
+
+  @@unique([calculationId, number])
+  @@map("calculation_versions")
+}
+
+model Lead {
+  id                   String             @id @default(uuid()) @db.Uuid
+  number               Int                @unique @default(autoincrement())
+  calculationVersionId String             @map("calculation_version_id") @db.Uuid
+  calculationVersion   CalculationVersion @relation(fields: [calculationVersionId], references: [id], onDelete: Restrict)
+  name                 String
+  phone                String
+  email                String?
+  comment              String?
+  consentText          String             @map("consent_text")
+  consentAt            DateTime           @map("consent_at") @db.Timestamptz(3)
+  locale               Locale
+  expiredAtSubmission  Boolean            @map("expired_at_submission")
+  status               LeadStatus         @default(NEW)
+  revision             String             @default(uuid()) @db.Uuid
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  statusChanges LeadStatusChange[]
+  notes         LeadNote[]
+
+  @@index([calculationVersionId])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+model LeadStatusChange {
+  id          String      @id @default(uuid()) @db.Uuid
+  leadId      String      @map("lead_id") @db.Uuid
+  lead        Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  fromStatus  LeadStatus? @map("from_status")
+  toStatus    LeadStatus  @map("to_status")
+  changedById String?     @map("changed_by_id") @db.Uuid
+  changedBy   Admin?      @relation("LeadStatusChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+  changedAt   DateTime    @default(now()) @map("changed_at") @db.Timestamptz(3)
+
+  @@index([leadId, changedAt])
+  @@map("lead_status_changes")
+}
+
+model LeadNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  leadId    String   @map("lead_id") @db.Uuid
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  text      String
+  authorId  String?  @map("author_id") @db.Uuid
+  author    Admin?   @relation("LeadNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([leadId, createdAt])
+  @@map("lead_notes")
+}
+
+model ProjectsSettings {
+  id                      Int       @id
+  calculationValidityDays Int       @map("calculation_validity_days")
+  leadRetentionDays       Int       @map("lead_retention_days")
+  leadFormNotice          Json      @map("lead_form_notice") @db.JsonB
+  lastRetentionRunAt      DateTime? @map("last_retention_run_at") @db.Timestamptz(3)
+  revision                String    @default(uuid()) @db.Uuid
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById             String?   @map("updated_by_id") @db.Uuid
+  updatedBy               Admin?    @relation("ProjectsSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("projects_settings")
+}
+
+model IdempotencyKey {
+  scope          IdempotencyScope
+  key            String           @db.Uuid
+  requestHash    String           @map("request_hash")
+  resultId       String           @map("result_id") @db.Uuid
+  fakeLeadNumber Int?             @map("fake_lead_number")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([scope, key])
+  @@index([createdAt])
+  @@map("idempotency_keys")
 }

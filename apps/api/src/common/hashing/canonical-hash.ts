@@ -18,9 +18,10 @@ export function canonicalJson(value: unknown): string {
   return JSON.stringify(value) ?? 'null';
 }
 
+export function canonicalSha256(value: unknown): string {
+  return createHash('sha256').update(canonicalJson(value)).digest('hex');
+}
+
 export function canonicalHash(value: unknown): string {
-  return createHash('sha256')
-    .update(canonicalJson(value))
-    .digest('hex')
-    .slice(0, VERSION_LENGTH);
+  return canonicalSha256(value).slice(0, VERSION_LENGTH);
 }

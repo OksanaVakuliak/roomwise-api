@@ -1,10 +1,12 @@
-import { Controller, Post } from '@nestjs/common';
+import { Controller, type ExecutionContext, Post } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { ThrottlerModule } from '@nestjs/throttler';
+import type { Request } from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { PublicWriteExemption } from './public-write-exemption';
 import { PublicWriteLimit } from './public-write-limit.decorator';
 import { PUBLIC_WRITE_LIMITS_PER_HOUR } from './public-write-throttle.constants';
 import { PublicWriteThrottlerGuard } from './public-write-throttler.guard';
@@ -59,6 +61,8 @@ async function postMany(
   return statuses;
 }
 
+const EXEMPT_HEADER = 'x-exempt';
+
 const { saves, leads } = PUBLIC_WRITE_LIMITS_PER_HOUR;
 
 describe('PublicWriteThrottlerGuard', () => {
@@ -68,7 +72,19 @@ describe('PublicWriteThrottlerGuard', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1000 }])],
       controllers: [TestController],
-      providers: [{ provide: APP_GUARD, useClass: PublicWriteThrottlerGuard }],
+      providers: [
+        { provide: APP_GUARD, useClass: PublicWriteThrottlerGuard },
+        {
+          provide: PublicWriteExemption,
+          useValue: {
+            isExempt: async (context: ExecutionContext) =>
+              context
+                .switchToHttp()
+                .getRequest<Request>()
+                .header(EXEMPT_HEADER) === 'yes',
+          },
+        },
+      ],
     }).compile();
 
     app = moduleRef.createNestApplication<NestExpressApplication>();
@@ -125,5 +141,22 @@ describe('PublicWriteThrottlerGuard', () => {
     expect((await post(app, '/test/leads', '203.0.113.1')).status).toBe(429);
 
     expect((await post(app, '/test/leads', '203.0.113.2')).status).toBe(201);
+  });
+
+  it('does not count exempt requests against the budget', async () => {
+    for (let i = 0; i < saves * 2; i++) {
+      const response = await request(app.getHttpServer())
+        .post('/test/saves-a')
+        .set(EXEMPT_HEADER, 'yes');
+      expect(response.status).toBe(201);
+    }
+
+    await postMany(app, Array(saves).fill('/test/saves-a'));
+    expect((await post(app, '/test/saves-a')).status).toBe(429);
+
+    const exempt = await request(app.getHttpServer())
+      .post('/test/saves-a')
+      .set(EXEMPT_HEADER, 'yes');
+    expect(exempt.status).toBe(201);
   });
 });
