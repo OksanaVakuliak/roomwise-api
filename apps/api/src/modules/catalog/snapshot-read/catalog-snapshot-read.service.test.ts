@@ -114,7 +114,7 @@ describe('CatalogSnapshotReadService', () => {
       roomType: [{ id: 'room-1', code: RoomTypeCode.KITCHEN, name }],
       option: [{ id: 'option-1', name }],
       engineeringPackageItem: [{ id: 'item-1', name }],
-      style: [{ id: 'style-1', name }],
+      style: [{ id: 'style-1', name, status: 'PUBLISHED' }],
     });
 
     const data = await service.read({
@@ -137,7 +137,7 @@ describe('CatalogSnapshotReadService', () => {
     });
     expect(data.options.get('option-1')).toEqual({ id: 'option-1', name });
     expect(data.packageItems.get('item-1')).toEqual({ id: 'item-1', name });
-    expect(data.style).toEqual({ id: 'style-1', name });
+    expect(data.style).toEqual({ id: 'style-1', name, published: true });
     for (const model of [
       'category',
       'roomType',
@@ -146,6 +146,16 @@ describe('CatalogSnapshotReadService', () => {
     ]) {
       expect(findManyArgs(prisma, model).where).not.toHaveProperty('status');
     }
+  });
+
+  it('marks a style that is not published', async () => {
+    const { service } = createService({
+      style: [{ id: 'style-1', name, status: 'DRAFT' }],
+    });
+
+    const data = await service.read({ ...emptyIds, styleId: 'style-1' });
+
+    expect(data.style).toEqual({ id: 'style-1', name, published: false });
   });
 
   it('delegates image refs to the url builder', () => {

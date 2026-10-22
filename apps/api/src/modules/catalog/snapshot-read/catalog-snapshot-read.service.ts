@@ -2,7 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { RoomTypeCode } from '../../../generated/prisma/enums';
+import {
+  PublicationStatus,
+  type RoomTypeCode,
+} from '../../../generated/prisma/enums';
 import { type ImageSource, ImageUrlBuilder } from '../images/image-urls';
 import type { ImageRef } from '../public/dto/image-ref.schema';
 
@@ -18,6 +21,10 @@ export interface SnapshotIds {
 export interface SnapshotNamed {
   id: string;
   name: LocalizedText;
+}
+
+export interface SnapshotStyle extends SnapshotNamed {
+  published: boolean;
 }
 
 export interface SnapshotProduct extends SnapshotNamed {
@@ -38,7 +45,7 @@ export interface CatalogSnapshotData {
   roomTypes: Map<string, SnapshotRoomType>;
   options: Map<string, SnapshotNamed>;
   packageItems: Map<string, SnapshotNamed>;
-  style: SnapshotNamed | null;
+  style: SnapshotStyle | null;
 }
 
 function indexById<T extends { id: string }>(rows: T[]): Map<string, T> {
@@ -164,16 +171,21 @@ export class CatalogSnapshotReadService {
     return indexById(rows.map(toNamed));
   }
 
-  private async style(id: string | null): Promise<SnapshotNamed | null> {
+  private async style(id: string | null): Promise<SnapshotStyle | null> {
     if (id === null) {
       return null;
     }
 
     const row = await this.prisma.style.findUnique({
       where: { id },
-      select: { id: true, name: true },
+      select: { id: true, name: true, status: true },
     });
 
-    return row === null ? null : toNamed(row);
+    return row === null
+      ? null
+      : {
+          ...toNamed(row),
+          published: row.status === PublicationStatus.PUBLISHED,
+        };
   }
 }
