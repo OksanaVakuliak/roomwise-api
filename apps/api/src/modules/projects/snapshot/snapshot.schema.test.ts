@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { SNAPSHOT_SCHEMA_VERSION, SnapshotV1Schema } from './snapshot.schema';
+import {
+  SNAPSHOT_SCHEMA_VERSION,
+  type SnapshotV1,
+  SnapshotV1Schema,
+} from './snapshot.schema';
 
 const name = (en: string) => ({ en, uk: `${en}-uk` });
 
-const buildSnapshot = () => ({
+const emptySection = { usdCents: 0, uahKopecks: null };
+
+const buildSnapshot = (): SnapshotV1 => ({
   schemaVersion: SNAPSHOT_SCHEMA_VERSION,
   createdAt: '2026-10-22T10:00:00.000Z',
   pricingVersion: 'v1',
@@ -77,11 +83,13 @@ const buildSnapshot = () => ({
     totals: {
       usdCents: 12000,
       uahKopecks: null,
-      sections: Object.fromEntries(
-        ['BASE', 'OBJECT', 'MATERIALS', 'ENGINEERING', 'ADDITIONAL'].map(
-          (section) => [section, { usdCents: 0, uahKopecks: null }],
-        ),
-      ),
+      sections: {
+        BASE: emptySection,
+        OBJECT: emptySection,
+        MATERIALS: emptySection,
+        ENGINEERING: emptySection,
+        ADDITIONAL: emptySection,
+      },
     },
     warnings: [],
     incomplete: false,

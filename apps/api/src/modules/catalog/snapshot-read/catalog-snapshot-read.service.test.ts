@@ -23,7 +23,7 @@ function productRow(images: unknown[]) {
     manufacturer: 'Maker',
     color: name,
     size: name,
-    unit: ProductUnit.M2,
+    unit: ProductUnit.SQM,
     images,
   };
 }
@@ -90,7 +90,7 @@ describe('CatalogSnapshotReadService', () => {
       manufacturer: 'Maker',
       color: name,
       size: name,
-      unit: ProductUnit.M2,
+      unit: ProductUnit.SQM,
       image: { id: 'image-1', publicId: 'a/b' },
     });
     const args = findManyArgs(prisma, 'product');
