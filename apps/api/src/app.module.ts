@@ -17,6 +17,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
 import { PricingModule } from './modules/pricing/pricing.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 import { SandboxModule } from './modules/sandbox/sandbox.module';
 
 const RATE_LIMIT_TTL_MS = 60_000;
@@ -43,6 +44,7 @@ const RATE_LIMIT_MAX_REQUESTS = 100;
     AuthModule,
     CatalogModule,
     PricingModule,
+    ProjectsModule,
     SandboxModule,
   ],
   providers: [
