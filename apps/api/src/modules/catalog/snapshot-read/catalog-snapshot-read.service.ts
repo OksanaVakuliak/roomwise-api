@@ -20,6 +20,10 @@ export interface SnapshotNamed {
   name: LocalizedText;
 }
 
+export interface SnapshotStyle extends SnapshotNamed {
+  published: boolean;
+}
+
 export interface SnapshotProduct extends SnapshotNamed {
   brand: string;
   manufacturer: string;
@@ -38,7 +42,7 @@ export interface CatalogSnapshotData {
   roomTypes: Map<string, SnapshotRoomType>;
   options: Map<string, SnapshotNamed>;
   packageItems: Map<string, SnapshotNamed>;
-  style: SnapshotNamed | null;
+  style: SnapshotStyle | null;
 }
 
 function indexById<T extends { id: string }>(rows: T[]): Map<string, T> {
@@ -164,16 +168,18 @@ export class CatalogSnapshotReadService {
     return indexById(rows.map(toNamed));
   }
 
-  private async style(id: string | null): Promise<SnapshotNamed | null> {
+  private async style(id: string | null): Promise<SnapshotStyle | null> {
     if (id === null) {
       return null;
     }
 
     const row = await this.prisma.style.findUnique({
       where: { id },
-      select: { id: true, name: true },
+      select: { id: true, name: true, status: true },
     });
 
-    return row === null ? null : toNamed(row);
+    return row === null
+      ? null
+      : { ...toNamed(row), published: row.status === 'PUBLISHED' };
   }
 }

@@ -4172,6 +4172,211 @@
           "ExchangeRate"
         ]
       }
+    },
+    "/api/v1/public/calculations": {
+      "post": {
+        "operationId": "PublicCalculationsController_create",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCalculationRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveCalculationResponseDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "IDEMPOTENCY_KEY_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCalculations"
+        ]
+      }
+    },
+    "/api/v1/public/calculations/{publicId}": {
+      "get": {
+        "operationId": "PublicCalculationsController_getLatest",
+        "parameters": [
+          {
+            "name": "publicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionViewDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CALCULATION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCalculations"
+        ]
+      }
+    },
+    "/api/v1/public/calculations/{publicId}/versions/{number}": {
+      "get": {
+        "operationId": "PublicCalculationsController_getVersion",
+        "parameters": [
+          {
+            "name": "publicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionViewDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CALCULATION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCalculations"
+        ]
+      }
     }
   },
   "info": {
@@ -11918,6 +12123,1648 @@
         "required": [
           "rate"
         ]
+      },
+      "SaveCalculationRequestDto": {
+        "type": "object",
+        "properties": {
+          "configuration": {
+            "type": "object",
+            "properties": {
+              "finishLevel": {
+                "type": "string",
+                "enum": [
+                  "ROUGH",
+                  "PRE_FINISH"
+                ]
+              },
+              "totalAreaSqm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "balconyAreaSqm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "balconyTiles": {
+                "type": "boolean"
+              },
+              "gas": {
+                "type": "boolean"
+              },
+              "kitchenType": {
+                "type": "string",
+                "enum": [
+                  "SEPARATE",
+                  "KITCHEN_LIVING"
+                ]
+              },
+              "rooms": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "roomTypeCode": {
+                      "type": "string",
+                      "enum": [
+                        "LIVING_ROOM",
+                        "BEDROOM",
+                        "KITCHEN",
+                        "KITCHEN_LIVING",
+                        "BATHROOM"
+                      ]
+                    },
+                    "lengthM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "widthM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "heightM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "heatedFloor": {
+                      "type": "boolean"
+                    },
+                    "selections": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "categoryId": {
+                            "type": "string"
+                          },
+                          "productId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "categoryId",
+                          "productId"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "clientId",
+                    "roomTypeCode",
+                    "lengthM",
+                    "widthM",
+                    "heightM",
+                    "heatedFloor",
+                    "selections"
+                  ]
+                }
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "optionId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "roomClientIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "optionId"
+                  ]
+                }
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "USD",
+                  "UAH"
+                ]
+              }
+            },
+            "required": [
+              "finishLevel",
+              "totalAreaSqm",
+              "balconyAreaSqm",
+              "balconyTiles",
+              "gas",
+              "kitchenType",
+              "rooms",
+              "options",
+              "currency"
+            ]
+          },
+          "styleId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "clientPricingVersion": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          },
+          "clientTotalUsdCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "configuration",
+          "styleId",
+          "clientPricingVersion",
+          "clientTotalUsdCents"
+        ]
+      },
+      "SaveCalculationResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "object",
+            "properties": {
+              "publicId": {
+                "type": "string"
+              },
+              "number": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "expired": {
+                "type": "boolean"
+              },
+              "incomplete": {
+                "type": "boolean"
+              },
+              "pricingVersion": {
+                "type": "string"
+              },
+              "style": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "configuration": {
+                "type": "object",
+                "properties": {
+                  "finishLevel": {
+                    "type": "string",
+                    "enum": [
+                      "ROUGH",
+                      "PRE_FINISH"
+                    ]
+                  },
+                  "totalAreaSqm": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "balconyAreaSqm": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "balconyTiles": {
+                    "type": "boolean"
+                  },
+                  "gas": {
+                    "type": "boolean"
+                  },
+                  "kitchenType": {
+                    "type": "string",
+                    "enum": [
+                      "SEPARATE",
+                      "KITCHEN_LIVING"
+                    ]
+                  },
+                  "rooms": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "clientId": {
+                          "type": "string"
+                        },
+                        "roomTypeCode": {
+                          "type": "string",
+                          "enum": [
+                            "LIVING_ROOM",
+                            "BEDROOM",
+                            "KITCHEN",
+                            "KITCHEN_LIVING",
+                            "BATHROOM"
+                          ]
+                        },
+                        "lengthM": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "widthM": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "heightM": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "heatedFloor": {
+                          "type": "boolean"
+                        },
+                        "selections": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "categoryId": {
+                                "type": "string"
+                              },
+                              "productId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "categoryId",
+                              "productId"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "clientId",
+                        "roomTypeCode",
+                        "lengthM",
+                        "widthM",
+                        "heightM",
+                        "heatedFloor",
+                        "selections"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "optionId": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "roomClientIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "optionId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "USD",
+                      "UAH"
+                    ]
+                  }
+                },
+                "required": [
+                  "finishLevel",
+                  "totalAreaSqm",
+                  "balconyAreaSqm",
+                  "balconyTiles",
+                  "gas",
+                  "kitchenType",
+                  "rooms",
+                  "options",
+                  "currency"
+                ],
+                "additionalProperties": false
+              },
+              "rooms": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "roomTypeCode": {
+                      "type": "string",
+                      "enum": [
+                        "LIVING_ROOM",
+                        "BEDROOM",
+                        "KITCHEN",
+                        "KITCHEN_LIVING",
+                        "BATHROOM"
+                      ]
+                    },
+                    "lengthM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "widthM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "heightM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "heatedFloor": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "clientId",
+                    "roomTypeCode",
+                    "lengthM",
+                    "widthM",
+                    "heightM",
+                    "heatedFloor",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "section": {
+                      "type": "string",
+                      "enum": [
+                        "BASE",
+                        "OBJECT",
+                        "MATERIALS",
+                        "ENGINEERING",
+                        "ADDITIONAL"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OK",
+                        "INCLUDED",
+                        "NOT_CALCULATED",
+                        "UNAVAILABLE",
+                        "ERROR"
+                      ]
+                    },
+                    "roomClientId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "categoryId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "productId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "optionId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "packageItemId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "ruleId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "quantity": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "unit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "unitPriceCents": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "amountCents": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "amountUahKopecks": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "code"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "error": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "params": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {}
+                            }
+                          },
+                          "required": [
+                            "code"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "roomName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "categoryName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "optionName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "packageItemName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "ruleName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "product": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "brand": {
+                              "type": "string"
+                            },
+                            "manufacturer": {
+                              "type": "string"
+                            },
+                            "color": {
+                              "type": "string"
+                            },
+                            "size": {
+                              "type": "string"
+                            },
+                            "image": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "format": "uuid",
+                                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                    },
+                                    "thumb": {
+                                      "type": "string",
+                                      "format": "uri"
+                                    },
+                                    "card": {
+                                      "type": "string",
+                                      "format": "uri"
+                                    },
+                                    "zoom": {
+                                      "type": "string",
+                                      "format": "uri"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "thumb",
+                                    "card",
+                                    "zoom"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "brand",
+                            "manufacturer",
+                            "color",
+                            "size",
+                            "image"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "section",
+                    "status",
+                    "roomClientId",
+                    "categoryId",
+                    "productId",
+                    "optionId",
+                    "packageItemId",
+                    "ruleId",
+                    "quantity",
+                    "unit",
+                    "unitPriceCents",
+                    "amountCents",
+                    "amountUahKopecks",
+                    "warnings",
+                    "error",
+                    "roomName",
+                    "categoryName",
+                    "optionName",
+                    "packageItemName",
+                    "ruleName",
+                    "product"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "totals": {
+                "type": "object",
+                "properties": {
+                  "usdCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "uahKopecks": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sections": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "enum": [
+                        "BASE",
+                        "OBJECT",
+                        "MATERIALS",
+                        "ENGINEERING",
+                        "ADDITIONAL"
+                      ]
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "usdCents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "uahKopecks": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "usdCents",
+                        "uahKopecks"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "required": [
+                      "BASE",
+                      "OBJECT",
+                      "MATERIALS",
+                      "ENGINEERING",
+                      "ADDITIONAL"
+                    ]
+                  }
+                },
+                "required": [
+                  "usdCents",
+                  "uahKopecks",
+                  "sections"
+                ],
+                "additionalProperties": false
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "lineId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "exchangeRate": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "rate": {
+                        "type": "string",
+                        "pattern": "^\\d+\\.\\d{4}$"
+                      },
+                      "date": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "NBU",
+                          "MANUAL"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "rate",
+                      "date",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "versions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "totalUsdCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "expired": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "number",
+                    "createdAt",
+                    "totalUsdCents",
+                    "expired"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "publicId",
+              "number",
+              "createdAt",
+              "expiresAt",
+              "expired",
+              "incomplete",
+              "pricingVersion",
+              "style",
+              "configuration",
+              "rooms",
+              "lines",
+              "totals",
+              "warnings",
+              "exchangeRate",
+              "versions"
+            ],
+            "additionalProperties": false
+          },
+          "priceDifference": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "clientTotalUsdCents": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "savedTotalUsdCents": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "diffCents": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "clientTotalUsdCents",
+                  "savedTotalUsdCents",
+                  "diffCents"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "version",
+          "priceDifference"
+        ],
+        "additionalProperties": false
+      },
+      "VersionViewDto_Output": {
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "incomplete": {
+            "type": "boolean"
+          },
+          "pricingVersion": {
+            "type": "string"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "configuration": {
+            "type": "object",
+            "properties": {
+              "finishLevel": {
+                "type": "string",
+                "enum": [
+                  "ROUGH",
+                  "PRE_FINISH"
+                ]
+              },
+              "totalAreaSqm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "balconyAreaSqm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "balconyTiles": {
+                "type": "boolean"
+              },
+              "gas": {
+                "type": "boolean"
+              },
+              "kitchenType": {
+                "type": "string",
+                "enum": [
+                  "SEPARATE",
+                  "KITCHEN_LIVING"
+                ]
+              },
+              "rooms": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "roomTypeCode": {
+                      "type": "string",
+                      "enum": [
+                        "LIVING_ROOM",
+                        "BEDROOM",
+                        "KITCHEN",
+                        "KITCHEN_LIVING",
+                        "BATHROOM"
+                      ]
+                    },
+                    "lengthM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "widthM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "heightM": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "heatedFloor": {
+                      "type": "boolean"
+                    },
+                    "selections": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "categoryId": {
+                            "type": "string"
+                          },
+                          "productId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "categoryId",
+                          "productId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "clientId",
+                    "roomTypeCode",
+                    "lengthM",
+                    "widthM",
+                    "heightM",
+                    "heatedFloor",
+                    "selections"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "optionId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "roomClientIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "optionId"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "USD",
+                  "UAH"
+                ]
+              }
+            },
+            "required": [
+              "finishLevel",
+              "totalAreaSqm",
+              "balconyAreaSqm",
+              "balconyTiles",
+              "gas",
+              "kitchenType",
+              "rooms",
+              "options",
+              "currency"
+            ],
+            "additionalProperties": false
+          },
+          "rooms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "clientId": {
+                  "type": "string"
+                },
+                "roomTypeCode": {
+                  "type": "string",
+                  "enum": [
+                    "LIVING_ROOM",
+                    "BEDROOM",
+                    "KITCHEN",
+                    "KITCHEN_LIVING",
+                    "BATHROOM"
+                  ]
+                },
+                "lengthM": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "widthM": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "heightM": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "heatedFloor": {
+                  "type": "boolean"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "clientId",
+                "roomTypeCode",
+                "lengthM",
+                "widthM",
+                "heightM",
+                "heatedFloor",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "BASE",
+                    "OBJECT",
+                    "MATERIALS",
+                    "ENGINEERING",
+                    "ADDITIONAL"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "OK",
+                    "INCLUDED",
+                    "NOT_CALCULATED",
+                    "UNAVAILABLE",
+                    "ERROR"
+                  ]
+                },
+                "roomClientId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "categoryId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "productId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "optionId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "packageItemId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "ruleId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "quantity": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "unitPriceCents": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "amountCents": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "amountUahKopecks": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "warnings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "string"
+                      },
+                      "params": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "code"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "error": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "params": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "code"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "roomName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "categoryName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "optionName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "packageItemName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "ruleName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "product": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "brand": {
+                          "type": "string"
+                        },
+                        "manufacturer": {
+                          "type": "string"
+                        },
+                        "color": {
+                          "type": "string"
+                        },
+                        "size": {
+                          "type": "string"
+                        },
+                        "image": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                },
+                                "thumb": {
+                                  "type": "string",
+                                  "format": "uri"
+                                },
+                                "card": {
+                                  "type": "string",
+                                  "format": "uri"
+                                },
+                                "zoom": {
+                                  "type": "string",
+                                  "format": "uri"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "thumb",
+                                "card",
+                                "zoom"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "brand",
+                        "manufacturer",
+                        "color",
+                        "size",
+                        "image"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "section",
+                "status",
+                "roomClientId",
+                "categoryId",
+                "productId",
+                "optionId",
+                "packageItemId",
+                "ruleId",
+                "quantity",
+                "unit",
+                "unitPriceCents",
+                "amountCents",
+                "amountUahKopecks",
+                "warnings",
+                "error",
+                "roomName",
+                "categoryName",
+                "optionName",
+                "packageItemName",
+                "ruleName",
+                "product"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "usdCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "uahKopecks": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sections": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "enum": [
+                    "BASE",
+                    "OBJECT",
+                    "MATERIALS",
+                    "ENGINEERING",
+                    "ADDITIONAL"
+                  ]
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "usdCents": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "uahKopecks": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "usdCents",
+                    "uahKopecks"
+                  ],
+                  "additionalProperties": false
+                },
+                "required": [
+                  "BASE",
+                  "OBJECT",
+                  "MATERIALS",
+                  "ENGINEERING",
+                  "ADDITIONAL"
+                ]
+              }
+            },
+            "required": [
+              "usdCents",
+              "uahKopecks",
+              "sections"
+            ],
+            "additionalProperties": false
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                },
+                "lineId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "exchangeRate": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "rate": {
+                    "type": "string",
+                    "pattern": "^\\d+\\.\\d{4}$"
+                  },
+                  "date": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "NBU",
+                      "MANUAL"
+                    ]
+                  }
+                },
+                "required": [
+                  "rate",
+                  "date",
+                  "source"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "totalUsdCents": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "expired": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "number",
+                "createdAt",
+                "totalUsdCents",
+                "expired"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "publicId",
+          "number",
+          "createdAt",
+          "expiresAt",
+          "expired",
+          "incomplete",
+          "pricingVersion",
+          "style",
+          "configuration",
+          "rooms",
+          "lines",
+          "totals",
+          "warnings",
+          "exchangeRate",
+          "versions"
+        ],
+        "additionalProperties": false
       }
     }
   }
