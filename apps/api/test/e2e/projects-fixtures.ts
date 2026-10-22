@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Configuration } from '@roomwise/calc-engine';
+import { seedProjectsSettings } from '../../prisma/seed/projects-settings';
 import type { PrismaService } from '../../src/common/prisma/prisma.service';
 import {
   type IdempotencyScope,
@@ -46,6 +47,7 @@ export async function seedProjectsData(testApp: TestApp): Promise<void> {
       fetchedAt: new Date('2026-09-14T00:30:00Z'),
     },
   });
+  await seedProjectsSettings(testApp.prisma);
   testApp.app.get(PricingDataService).invalidate();
 }
 
