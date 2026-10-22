@@ -6,6 +6,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PublicWriteLimit } from './public-write-limit.decorator';
+import { PUBLIC_WRITE_LIMITS_PER_HOUR } from './public-write-throttle.constants';
 import { PublicWriteThrottlerGuard } from './public-write-throttler.guard';
 
 @Controller('test')
@@ -58,6 +59,8 @@ async function postMany(
   return statuses;
 }
 
+const { saves, leads } = PUBLIC_WRITE_LIMITS_PER_HOUR;
+
 describe('PublicWriteThrottlerGuard', () => {
   let app: NestExpressApplication;
 
@@ -84,7 +87,7 @@ describe('PublicWriteThrottlerGuard', () => {
   });
 
   it('shares one saves budget across routes', async () => {
-    const paths = Array.from({ length: 20 }, (_, i) =>
+    const paths = Array.from({ length: saves }, (_, i) =>
       i % 2 === 0 ? '/test/saves-a' : '/test/saves-b',
     );
 
@@ -98,8 +101,8 @@ describe('PublicWriteThrottlerGuard', () => {
     expect((await post(app, '/test/saves-b')).status).toBe(429);
   });
 
-  it('limits leads to five per hour', async () => {
-    const statuses = await postMany(app, Array(5).fill('/test/leads'));
+  it('limits leads per hour', async () => {
+    const statuses = await postMany(app, Array(leads).fill('/test/leads'));
     expect(statuses.every((status) => status === 201)).toBe(true);
 
     const blocked = await post(app, '/test/leads');
@@ -108,17 +111,17 @@ describe('PublicWriteThrottlerGuard', () => {
   });
 
   it('keeps saves and leads budgets independent', async () => {
-    await postMany(app, Array(5).fill('/test/leads'));
+    await postMany(app, Array(leads).fill('/test/leads'));
     expect((await post(app, '/test/leads')).status).toBe(429);
     expect((await post(app, '/test/saves-a')).status).toBe(201);
 
-    await postMany(app, Array(19).fill('/test/saves-a'));
+    await postMany(app, Array(saves - 1).fill('/test/saves-a'));
     expect((await post(app, '/test/saves-a')).status).toBe(429);
     expect((await post(app, '/test/leads')).status).toBe(429);
   });
 
   it('counts clients separately by forwarded address', async () => {
-    await postMany(app, Array(5).fill('/test/leads'), '203.0.113.1');
+    await postMany(app, Array(leads).fill('/test/leads'), '203.0.113.1');
     expect((await post(app, '/test/leads', '203.0.113.1')).status).toBe(429);
 
     expect((await post(app, '/test/leads', '203.0.113.2')).status).toBe(201);

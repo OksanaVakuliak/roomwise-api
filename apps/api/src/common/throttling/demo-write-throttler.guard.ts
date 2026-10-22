@@ -1,16 +1,13 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
-import {
-  hours,
-  ThrottlerGuard,
-  type ThrottlerLimitDetail,
-} from '@nestjs/throttler';
-import type { Request, Response } from 'express';
+import { hours } from '@nestjs/throttler';
+import type { Request } from 'express';
 import type { AuthenticatedAdmin } from '../../modules/auth/current-admin.decorator';
 import {
   DEMO_UPLOADS_PER_HOUR,
   DEMO_WRITES_PER_HOUR,
 } from './demo-throttle.constants';
+import { NamedThrottlerGuard } from './named-throttler.guard';
 
 type AdminRequest = Request & { admin?: AuthenticatedAdmin };
 
@@ -25,9 +22,9 @@ function isImagesUploadRoute(context: ExecutionContext): boolean {
 }
 
 @Injectable()
-export class DemoWriteThrottlerGuard extends ThrottlerGuard {
+export class DemoWriteThrottlerGuard extends NamedThrottlerGuard {
   async onModuleInit(): Promise<void> {
-    this.throttlers = [
+    this.useThrottlers([
       {
         name: DEMO_WRITES_THROTTLER,
         ttl: hours(1),
@@ -39,12 +36,7 @@ export class DemoWriteThrottlerGuard extends ThrottlerGuard {
         limit: DEMO_UPLOADS_PER_HOUR,
         skipIf: (context) => !isImagesUploadRoute(context),
       },
-    ];
-    this.commonOptions = {
-      getTracker: (req) => this.getTracker(req),
-      generateKey: (context, tracker, name) =>
-        this.generateKey(context, tracker, name),
-    };
+    ]);
   }
 
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
@@ -59,26 +51,5 @@ export class DemoWriteThrottlerGuard extends ThrottlerGuard {
 
   protected async getTracker(req: Record<string, unknown>): Promise<string> {
     return (req as unknown as AdminRequest).admin!.id;
-  }
-
-  protected generateKey(
-    _context: ExecutionContext,
-    tracker: string,
-    name: string,
-  ): string {
-    return `${name}:${tracker}`;
-  }
-
-  protected async throwThrottlingException(
-    context: ExecutionContext,
-    throttlerLimitDetail: ThrottlerLimitDetail,
-  ): Promise<void> {
-    const { res } = this.getRequestResponse(context);
-    (res as Response).header(
-      'Retry-After',
-      String(throttlerLimitDetail.timeToBlockExpire),
-    );
-
-    return super.throwThrottlingException(context, throttlerLimitDetail);
   }
 }
