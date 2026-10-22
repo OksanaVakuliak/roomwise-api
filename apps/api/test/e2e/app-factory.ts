@@ -1,3 +1,4 @@
+import type { ModuleMetadata } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
@@ -16,6 +17,7 @@ export type ProviderOverride =
 
 export interface CreateTestAppOptions {
   overrides?: ProviderOverride[];
+  imports?: ModuleMetadata['imports'];
 }
 
 export interface TestApp {
@@ -28,7 +30,9 @@ export interface TestApp {
 export async function createTestApp(
   options: CreateTestAppOptions = {},
 ): Promise<TestApp> {
-  const moduleBuilder = Test.createTestingModule({ imports: [AppModule] });
+  const moduleBuilder = Test.createTestingModule({
+    imports: [AppModule, ...(options.imports ?? [])],
+  });
 
   for (const override of options.overrides ?? []) {
     const overriddenProvider = moduleBuilder.overrideProvider(override.provide);

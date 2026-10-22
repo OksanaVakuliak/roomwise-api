@@ -1,8 +1,9 @@
 import type { ExecutionContext } from '@nestjs/common';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { hours } from '@nestjs/throttler';
 import { NamedThrottlerGuard } from './named-throttler.guard';
 import { PUBLIC_WRITE_LIMIT_KEY } from './public-write-limit.decorator';
+import { PublicWriteReplayCheck } from './public-write-replay-check';
 import {
   PUBLIC_WRITE_LIMITS_PER_HOUR,
   type PublicWriteLimitName,
@@ -10,6 +11,10 @@ import {
 
 @Injectable()
 export class PublicWriteThrottlerGuard extends NamedThrottlerGuard {
+  @Optional()
+  @Inject(PublicWriteReplayCheck)
+  private readonly replayCheck?: PublicWriteReplayCheck;
+
   async onModuleInit(): Promise<void> {
     this.useThrottlers(
       (
@@ -27,7 +32,11 @@ export class PublicWriteThrottlerGuard extends NamedThrottlerGuard {
   }
 
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
-    return this.getLimitName(context) === undefined;
+    if (this.getLimitName(context) === undefined) {
+      return true;
+    }
+
+    return (await this.replayCheck?.isReplay(context)) ?? false;
   }
 
   private getLimitName(
