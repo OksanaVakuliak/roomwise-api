@@ -8,10 +8,13 @@ import { IdempotencyService } from './idempotency.service';
 
 const KEY = '0b7c4a52-1c1f-4c0e-9d52-6e1d3f6f6a01';
 const RESULT_ID = '5a1f0a52-2d0e-4b3a-8c52-7e1d3f6f6a02';
+const NOW = new Date('2026-10-22T12:00:00.000Z');
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function createService() {
   const prisma = { idempotencyKey: { findUnique: vi.fn() } };
-  const service = new IdempotencyService(prisma as never);
+  const clock = { now: () => NOW };
+  const service = new IdempotencyService(prisma as never, clock as never);
 
   return { prisma, service };
 }
@@ -29,8 +32,11 @@ function createRequest(
   } as unknown as Request;
 }
 
-function createTx(create: ReturnType<typeof vi.fn>) {
-  return { idempotencyKey: { create } } as never;
+function createTx(
+  create: ReturnType<typeof vi.fn>,
+  deleteMany = vi.fn().mockResolvedValue({ count: 0 }),
+) {
+  return { idempotencyKey: { create, deleteMany } } as never;
 }
 
 const params = {
@@ -96,7 +102,7 @@ describe('IdempotencyService', () => {
 
   it('looks up the key, the request hash and the stored row', async () => {
     const { prisma, service } = createService();
-    const row = { ...params };
+    const row = { ...params, createdAt: NOW };
     prisma.idempotencyKey.findUnique.mockResolvedValue(row);
     const req = createRequest({ key: KEY });
 
@@ -138,13 +144,42 @@ describe('IdempotencyService', () => {
 
   it('finds a row by scope and key', async () => {
     const { prisma, service } = createService();
-    const row = { ...params };
+    const row = { ...params, createdAt: NOW };
     prisma.idempotencyKey.findUnique.mockResolvedValue(row);
 
     await expect(service.find(IdempotencyScope.SAVE, KEY)).resolves.toBe(row);
     expect(prisma.idempotencyKey.findUnique).toHaveBeenCalledWith({
       where: { scope_key: { scope: IdempotencyScope.SAVE, key: KEY } },
     });
+  });
+
+  it('ignores a row older than 24 hours', async () => {
+    const { prisma, service } = createService();
+    prisma.idempotencyKey.findUnique.mockResolvedValue({
+      ...params,
+      createdAt: new Date(NOW.getTime() - DAY_MS - 1),
+    });
+
+    await expect(service.find(IdempotencyScope.SAVE, KEY)).resolves.toBeNull();
+  });
+
+  it('removes an expired row before recording the key again', async () => {
+    const { service } = createService();
+    const create = vi.fn().mockResolvedValue(undefined);
+    const deleteMany = vi.fn().mockResolvedValue({ count: 1 });
+
+    await service.record(createTx(create, deleteMany), params);
+
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: {
+        scope: IdempotencyScope.SAVE,
+        key: KEY,
+        createdAt: { lt: new Date(NOW.getTime() - DAY_MS) },
+      },
+    });
+    expect(deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
+      create.mock.invocationCallOrder[0],
+    );
   });
 
   it('records a key inside the given transaction', async () => {
@@ -196,15 +231,12 @@ describe('IdempotencyService', () => {
 
   it('replays through the loader registered for the scope', async () => {
     const { service } = createService();
-    const loader = vi.fn().mockResolvedValue({ status: 201, body: { id: 1 } });
+    const loader = vi.fn().mockResolvedValue({ id: 1 });
     service.registerLoader(IdempotencyScope.SAVE, loader);
     const row = { ...params, fakeLeadNumber: null, createdAt: new Date() };
     const req = createRequest();
 
-    await expect(service.replay(row, req)).resolves.toEqual({
-      status: 201,
-      body: { id: 1 },
-    });
+    await expect(service.replay(row, req)).resolves.toEqual({ id: 1 });
     expect(loader).toHaveBeenCalledWith(row, req);
   });
 

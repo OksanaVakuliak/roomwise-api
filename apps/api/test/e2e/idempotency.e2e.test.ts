@@ -41,8 +41,7 @@ class IdempotencyTestController implements OnModuleInit {
 
   onModuleInit(): void {
     this.idempotency.registerLoader(IdempotencyScope.SAVE, async (row) => ({
-      status: 201,
-      body: { id: row.resultId },
+      id: row.resultId,
     }));
   }
 

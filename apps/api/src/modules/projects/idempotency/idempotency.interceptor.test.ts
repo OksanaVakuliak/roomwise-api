@@ -41,12 +41,12 @@ function setup(
   const service = {
     lookup: vi.fn().mockResolvedValue(options.lookup ?? null),
     find: vi.fn().mockResolvedValue(options.found ?? null),
-    replay: vi.fn().mockResolvedValue({ status: 201, body: { id: 'first' } }),
+    replay: vi.fn().mockResolvedValue({ id: 'first' }),
   };
   const next: CallHandler = { handle: vi.fn(() => of('fresh')) };
   const interceptor = new IdempotencyInterceptor(reflector, service as never);
 
-  return { interceptor, context, request, response, service, next };
+  return { interceptor, context, request, service, next };
 }
 
 describe('IdempotencyInterceptor', () => {
@@ -67,7 +67,7 @@ describe('IdempotencyInterceptor', () => {
   });
 
   it('passes the context to the handler on a first request', async () => {
-    const { interceptor, context, request, next, response } = setup({
+    const { interceptor, context, request, next } = setup({
       lookup: lookupOf(null),
     });
 
@@ -79,7 +79,6 @@ describe('IdempotencyInterceptor', () => {
       key: KEY,
       requestHash: 'hash',
     });
-    expect(response.status).not.toHaveBeenCalled();
   });
 
   it('rejects a reused key with a different request', async () => {
@@ -100,7 +99,7 @@ describe('IdempotencyInterceptor', () => {
 
   it('replays the first response without running the handler', async () => {
     const row = { requestHash: 'hash' };
-    const { interceptor, context, request, next, response, service } = setup({
+    const { interceptor, context, request, next, service } = setup({
       lookup: lookupOf(row),
     });
 
@@ -108,14 +107,13 @@ describe('IdempotencyInterceptor', () => {
       lastValueFrom(interceptor.intercept(context, next)),
     ).resolves.toEqual({ id: 'first' });
     expect(service.replay).toHaveBeenCalledWith(row, request);
-    expect(response.status).toHaveBeenCalledWith(201);
     expect(next.handle).not.toHaveBeenCalled();
   });
 
   describe('when the handler loses a concurrent first request', () => {
     it('replays the row stored by the winner', async () => {
       const stored = { requestHash: 'hash' };
-      const { interceptor, context, request, next, response, service } = setup({
+      const { interceptor, context, request, next, service } = setup({
         lookup: lookupOf(null),
         found: stored,
       });
@@ -126,7 +124,6 @@ describe('IdempotencyInterceptor', () => {
       ).resolves.toEqual({ id: 'first' });
       expect(service.find).toHaveBeenCalledWith(IdempotencyScope.SAVE, KEY);
       expect(service.replay).toHaveBeenCalledWith(stored, request);
-      expect(response.status).toHaveBeenCalledWith(201);
     });
 
     it('rejects when the winner stored a different request', async () => {

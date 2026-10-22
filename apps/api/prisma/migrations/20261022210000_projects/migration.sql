@@ -164,3 +164,17 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER "calculation_versions_immutable"
     BEFORE UPDATE ON "calculation_versions"
     FOR EACH ROW EXECUTE FUNCTION "calculation_versions_reject_update"();
+
+-- AddCheckConstraint
+ALTER TABLE "projects_settings" ADD CONSTRAINT "projects_settings_singleton_check" CHECK ("id" = 1);
+
+-- InsertDefaultSettings
+INSERT INTO "projects_settings" ("id", "calculation_validity_days", "lead_retention_days", "lead_form_notice", "revision", "updated_at")
+VALUES (
+    1,
+    14,
+    30,
+    '{"en": "We keep your request for {days} days, then delete it automatically.", "uk": "Ми зберігаємо вашу заявку {days} днів, після чого вона автоматично видаляється."}',
+    gen_random_uuid(),
+    CURRENT_TIMESTAMP
+);

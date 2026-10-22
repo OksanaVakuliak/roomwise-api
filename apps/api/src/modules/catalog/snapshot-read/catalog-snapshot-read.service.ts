@@ -2,10 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import type {
-  ProductUnit,
-  RoomTypeCode,
-} from '../../../generated/prisma/enums';
+import type { RoomTypeCode } from '../../../generated/prisma/enums';
 import { type ImageSource, ImageUrlBuilder } from '../images/image-urls';
 import type { ImageRef } from '../public/dto/image-ref.schema';
 
@@ -28,7 +25,6 @@ export interface SnapshotProduct extends SnapshotNamed {
   manufacturer: string;
   color: LocalizedText;
   size: LocalizedText;
-  unit: ProductUnit;
   image: ImageSource | null;
 }
 
@@ -92,7 +88,6 @@ export class CatalogSnapshotReadService {
         manufacturer: true,
         color: true,
         size: true,
-        unit: true,
         images: {
           select: { image: { select: { id: true, publicId: true } } },
           orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
@@ -108,7 +103,6 @@ export class CatalogSnapshotReadService {
         manufacturer: row.manufacturer,
         color: toLocalizedText(row.color),
         size: toLocalizedText(row.size),
-        unit: row.unit,
         image: row.images[0]?.image ?? null,
       })),
     );

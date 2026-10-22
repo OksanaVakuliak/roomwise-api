@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
+import { Clock } from '../../../common/clock/clock';
 import { canonicalSha256 } from '../../../common/hashing/canonical-hash';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
@@ -7,19 +8,15 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { isPrismaError } from '../../../common/prisma/prisma-error';
 import type { IdempotencyKey, Prisma } from '../../../generated/prisma/client';
 import type { IdempotencyScope } from '../../../generated/prisma/enums';
+import { IDEMPOTENCY_KEY_TTL_MS } from './idempotency.constants';
 import { readIdempotencyKey } from './idempotency-request';
 
 const UNIQUE_CONSTRAINT_ERROR = 'P2002';
 
-export interface IdempotentResponse {
-  status: number;
-  body: unknown;
-}
-
 export type IdempotencyLoader = (
   row: IdempotencyKey,
   request: Request,
-) => Promise<IdempotentResponse>;
+) => Promise<unknown>;
 
 export interface RecordIdempotencyKey {
   scope: IdempotencyScope;
@@ -40,10 +37,13 @@ export class IdempotencyService {
   private readonly loaders = new Map<IdempotencyScope, IdempotencyLoader>();
   private readonly lookups = new WeakMap<
     Request,
-    Promise<IdempotencyLookup | null>
+    Map<IdempotencyScope, Promise<IdempotencyLookup | null>>
   >();
 
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(Clock) private readonly clock: Clock,
+  ) {}
 
   hashRequest(request: Request): string {
     return canonicalSha256({
@@ -57,20 +57,32 @@ export class IdempotencyService {
     request: Request,
     scope: IdempotencyScope,
   ): Promise<IdempotencyLookup | null> {
-    let lookup = this.lookups.get(request);
+    let byScope = this.lookups.get(request);
+
+    if (!byScope) {
+      byScope = new Map();
+      this.lookups.set(request, byScope);
+    }
+
+    let lookup = byScope.get(scope);
 
     if (!lookup) {
       lookup = this.readLookup(request, scope);
-      this.lookups.set(request, lookup);
+      byScope.set(scope, lookup);
     }
 
     return lookup;
   }
 
-  find(scope: IdempotencyScope, key: string): Promise<IdempotencyKey | null> {
-    return this.prisma.idempotencyKey.findUnique({
+  async find(
+    scope: IdempotencyScope,
+    key: string,
+  ): Promise<IdempotencyKey | null> {
+    const row = await this.prisma.idempotencyKey.findUnique({
       where: { scope_key: { scope, key } },
     });
+
+    return row && row.createdAt >= this.cutoff() ? row : null;
   }
 
   async record(
@@ -78,6 +90,13 @@ export class IdempotencyService {
     { fakeLeadNumber, ...data }: RecordIdempotencyKey,
   ): Promise<void> {
     try {
+      await tx.idempotencyKey.deleteMany({
+        where: {
+          scope: data.scope,
+          key: data.key,
+          createdAt: { lt: this.cutoff() },
+        },
+      });
       await tx.idempotencyKey.create({
         data: { ...data, fakeLeadNumber: fakeLeadNumber ?? null },
       });
@@ -96,10 +115,7 @@ export class IdempotencyService {
     this.loaders.set(scope, loader);
   }
 
-  async replay(
-    row: IdempotencyKey,
-    request: Request,
-  ): Promise<IdempotentResponse> {
+  async replay(row: IdempotencyKey, request: Request): Promise<unknown> {
     const loader = this.loaders.get(row.scope);
 
     if (!loader) {
@@ -107,6 +123,10 @@ export class IdempotencyService {
     }
 
     return loader(row, request);
+  }
+
+  private cutoff(): Date {
+    return new Date(this.clock.now().getTime() - IDEMPOTENCY_KEY_TTL_MS);
   }
 
   private async readLookup(

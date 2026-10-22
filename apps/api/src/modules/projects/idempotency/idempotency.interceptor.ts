@@ -6,15 +6,7 @@ import {
   type NestInterceptor,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { Response } from 'express';
-import {
-  catchError,
-  from,
-  map,
-  type Observable,
-  switchMap,
-  throwError,
-} from 'rxjs';
+import { catchError, from, type Observable, switchMap, throwError } from 'rxjs';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { IdempotencyKey } from '../../../generated/prisma/client';
@@ -45,7 +37,6 @@ export class IdempotencyInterceptor implements NestInterceptor {
     );
     const http = context.switchToHttp();
     const request = http.getRequest<IdempotentRequest>();
-    const response = http.getResponse<Response>();
 
     const replay = (row: IdempotencyKey, requestHash: string) => {
       if (row.requestHash !== requestHash) {
@@ -54,12 +45,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         );
       }
 
-      return from(this.idempotency.replay(row, request)).pipe(
-        map(({ status, body }) => {
-          response.status(status);
-          return body;
-        }),
-      );
+      return from(this.idempotency.replay(row, request));
     };
 
     return from(this.idempotency.lookup(request, scope)).pipe(

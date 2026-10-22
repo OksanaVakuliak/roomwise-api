@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { ProductUnit, RoomTypeCode } from '../../../generated/prisma/enums';
+import { RoomTypeCode } from '../../../generated/prisma/enums';
 import type { ImageUrlBuilder } from '../images/image-urls';
 import { CatalogSnapshotReadService } from './catalog-snapshot-read.service';
 
@@ -23,7 +23,6 @@ function productRow(images: unknown[]) {
     manufacturer: 'Maker',
     color: name,
     size: name,
-    unit: ProductUnit.SQM,
     images,
   };
 }
@@ -90,7 +89,6 @@ describe('CatalogSnapshotReadService', () => {
       manufacturer: 'Maker',
       color: name,
       size: name,
-      unit: ProductUnit.SQM,
       image: { id: 'image-1', publicId: 'a/b' },
     });
     const args = findManyArgs(prisma, 'product');
