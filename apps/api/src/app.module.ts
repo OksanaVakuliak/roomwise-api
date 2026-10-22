@@ -10,6 +10,7 @@ import { HttpExceptionFilter } from './common/http/http-exception.filter';
 import { MaintenanceModule } from './common/maintenance/maintenance.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { DemoWriteThrottlerGuard } from './common/throttling/demo-write-throttler.guard';
+import { PublicWriteThrottlerGuard } from './common/throttling/public-write-throttler.guard';
 import { validateEnv } from './config/env';
 import { pinoHttpOptions } from './config/logger';
 import { AdminAuthGuard } from './modules/auth/admin-auth.guard';
@@ -71,6 +72,10 @@ const RATE_LIMIT_MAX_REQUESTS = 100;
     {
       provide: APP_GUARD,
       useClass: DemoWriteThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PublicWriteThrottlerGuard,
     },
   ],
 })
