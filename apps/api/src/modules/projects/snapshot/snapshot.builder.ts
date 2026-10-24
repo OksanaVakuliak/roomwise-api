@@ -10,6 +10,7 @@ import {
   CatalogSnapshotReadService,
   type SnapshotIds,
 } from '../../catalog/snapshot-read/catalog-snapshot-read.service';
+import type { MissingProductsPolicy } from '../../pricing/estimate/find-unknown-references';
 import { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.service';
 import {
   SNAPSHOT_SCHEMA_VERSION,
@@ -21,6 +22,7 @@ export interface SnapshotBuildInput {
   configuration: Configuration;
   styleId: string;
   createdAt: Date;
+  missingProducts?: MissingProductsPolicy;
 }
 
 function distinct(values: Array<string | null>): string[] {
@@ -53,9 +55,11 @@ export class SnapshotBuilder {
   ) {}
 
   async build(input: SnapshotBuildInput): Promise<SnapshotV1> {
-    const { configuration, styleId, createdAt } = input;
-    const { estimate, pricingData } =
-      await this.pricingEstimate.estimate(configuration);
+    const { configuration, styleId, createdAt, missingProducts } = input;
+    const { estimate, pricingData } = await this.pricingEstimate.estimate(
+      configuration,
+      { missingProducts },
+    );
 
     const roomTypeIdByCode = new Map(
       pricingData.roomTypes.map((roomType) => [roomType.code, roomType.id]),

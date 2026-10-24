@@ -9,7 +9,14 @@ import {
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { PricingDataService } from '../pricing-data/pricing-data.service';
-import { findUnknownReferences } from './find-unknown-references';
+import {
+  findUnknownReferences,
+  type MissingProductsPolicy,
+} from './find-unknown-references';
+
+export interface EstimateOptions {
+  missingProducts?: MissingProductsPolicy;
+}
 
 @Injectable()
 export class PricingEstimateService {
@@ -20,10 +27,15 @@ export class PricingEstimateService {
 
   async estimate(
     configuration: Configuration,
+    options: EstimateOptions = {},
   ): Promise<{ estimate: Estimate; pricingData: PricingData }> {
     const data = await this.pricingData.get();
 
-    const references = findUnknownReferences(configuration, data);
+    const references = findUnknownReferences(
+      configuration,
+      data,
+      options.missingProducts,
+    );
 
     if (references.length > 0) {
       throw new AppError(ERROR_CODES.UNKNOWN_REFERENCE, {

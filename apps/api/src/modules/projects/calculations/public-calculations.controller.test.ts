@@ -12,6 +12,7 @@ function createController() {
   const calculations = {
     create: vi.fn().mockResolvedValue({ created: true }),
     findVersion: vi.fn().mockResolvedValue({ found: true }),
+    recalculate: vi.fn().mockResolvedValue({ recalculated: true }),
   };
 
   return {
@@ -29,6 +30,25 @@ describe('PublicCalculationsController', () => {
 
     expect(result).toEqual({ created: true });
     expect(calculations.create).toHaveBeenCalledWith(body, CONTEXT, 'uk');
+  });
+
+  it('recalculates with the public id, base version, idempotency context and language', async () => {
+    const { controller, calculations } = createController();
+
+    const result = await controller.recalculate(
+      'public',
+      { basedOnVersion: 2 },
+      { lang: 'uk' },
+      CONTEXT,
+    );
+
+    expect(result).toEqual({ recalculated: true });
+    expect(calculations.recalculate).toHaveBeenCalledWith(
+      'public',
+      2,
+      CONTEXT,
+      'uk',
+    );
   });
 
   it('reads the latest version without a number', async () => {

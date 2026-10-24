@@ -18,12 +18,15 @@ import type { VersionView } from '../presenters/version-view.schema';
 import { ProjectsSettingsService } from '../settings/projects-settings.service';
 import { SnapshotBuilder } from '../snapshot/snapshot.builder';
 import type { SnapshotV1 } from '../snapshot/snapshot.schema';
+import type { RecalculateCalculationRequestDto } from './dto/recalculate-calculation.schema';
 import {
   type PriceDifference,
   type SaveCalculationRequest,
   type SaveCalculationResponse,
   saveCalculationRequestSchema,
 } from './dto/save-calculation.schema';
+import type { PriceStatus } from './price-status.schema';
+import { PriceStatusService } from './price-status.service';
 import { generatePublicId } from './public-id';
 
 const MS_PER_DAY = 86_400_000;
@@ -66,6 +69,31 @@ interface LoadedVersion {
   };
 }
 
+function expiryOf(now: Date, validityDays: number): Date {
+  return new Date(now.getTime() + validityDays * MS_PER_DAY);
+}
+
+function versionData(
+  calculationId: string,
+  number: number,
+  snapshot: SnapshotV1,
+  expiresAt: Date,
+  createdAt: Date,
+) {
+  return {
+    calculationId,
+    number,
+    snapshot: snapshot as object,
+    snapshotSchemaVersion: snapshot.schemaVersion,
+    pricingVersion: snapshot.pricingVersion,
+    totalUsdCents: snapshot.estimate.totals.usdCents,
+    totalUahKopecks: snapshot.estimate.totals.uahKopecks,
+    incomplete: snapshot.estimate.incomplete,
+    expiresAt,
+    createdAt,
+  };
+}
+
 function priceDifferenceOf(
   client: ClientPrice,
   pricingVersion: string,
@@ -94,11 +122,17 @@ export class CalculationsService implements OnModuleInit {
     private readonly idempotency: IdempotencyService,
     @Inject(VersionViewPresenter)
     private readonly presenter: VersionViewPresenter,
+    @Inject(PriceStatusService)
+    private readonly priceStatus: PriceStatusService,
   ) {}
 
   onModuleInit(): void {
     this.idempotency.registerLoader(IdempotencyScope.SAVE, (row, request) =>
       this.replay(row, request),
+    );
+    this.idempotency.registerLoader(
+      IdempotencyScope.RECALCULATE,
+      (row, request) => this.replayRecalculation(row, request),
     );
   }
 
@@ -116,27 +150,14 @@ export class CalculationsService implements OnModuleInit {
       }),
       this.settings.get(),
     ]);
-    const expiresAt = new Date(
-      now.getTime() + calculationValidityDays * MS_PER_DAY,
-    );
+    const expiresAt = expiryOf(now, calculationValidityDays);
 
     const version = await this.prisma.$transaction(async (tx) => {
       const calculation = await tx.calculation.create({
         data: { publicId: generatePublicId(), latestVersionNumber: 1 },
       });
       const created = await tx.calculationVersion.create({
-        data: {
-          calculationId: calculation.id,
-          number: 1,
-          snapshot: snapshot as object,
-          snapshotSchemaVersion: snapshot.schemaVersion,
-          pricingVersion: snapshot.pricingVersion,
-          totalUsdCents: snapshot.estimate.totals.usdCents,
-          totalUahKopecks: snapshot.estimate.totals.uahKopecks,
-          incomplete: snapshot.estimate.incomplete,
-          expiresAt,
-          createdAt: now,
-        },
+        data: versionData(calculation.id, 1, snapshot, expiresAt, now),
       });
       await this.idempotency.record(tx, {
         ...idempotency,
@@ -151,6 +172,87 @@ export class CalculationsService implements OnModuleInit {
     });
 
     return this.respond(version, input, lang);
+  }
+
+  async recalculate(
+    publicId: string,
+    basedOnVersion: RecalculateCalculationRequestDto['basedOnVersion'],
+    idempotency: IdempotencyContextValue,
+    lang: Language,
+  ): Promise<VersionView> {
+    const calculation = await this.prisma.calculation.findUnique({
+      where: { publicId },
+      select: { id: true, publicId: true },
+    });
+    const base = calculation
+      ? await this.prisma.calculationVersion.findUnique({
+          where: {
+            calculationId_number: {
+              calculationId: calculation.id,
+              number: basedOnVersion,
+            },
+          },
+        })
+      : null;
+
+    if (!calculation || !base) {
+      throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
+    }
+
+    const stored = parseStoredSnapshot(base.snapshot);
+
+    if (!stored.style) {
+      throw new AppError(ERROR_CODES.STYLE_NOT_FOUND);
+    }
+
+    const now = this.clock.now();
+    const [snapshot, { calculationValidityDays }] = await Promise.all([
+      this.builder.build({
+        configuration: stored.configuration,
+        styleId: stored.style.id,
+        createdAt: now,
+        missingProducts: 'unavailable',
+      }),
+      this.settings.get(),
+    ]);
+    const expiresAt = expiryOf(now, calculationValidityDays);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const [locked] = await tx.$queryRaw<
+        { latest_version_number: number }[]
+      >`SELECT latest_version_number FROM calculations WHERE id = ${calculation.id}::uuid FOR UPDATE`;
+
+      if (!locked) {
+        throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
+      }
+
+      const number = locked.latest_version_number + 1;
+      const version = await tx.calculationVersion.create({
+        data: versionData(calculation.id, number, snapshot, expiresAt, now),
+      });
+      await tx.calculation.update({
+        where: { id: calculation.id },
+        data: { latestVersionNumber: number },
+      });
+      await this.idempotency.record(tx, {
+        ...idempotency,
+        resultId: version.id,
+      });
+
+      return version;
+    });
+
+    return this.freshView(
+      {
+        ...created,
+        snapshot,
+        calculation: {
+          publicId: calculation.publicId,
+          versions: await this.summariesUpTo(calculation.id, created.number),
+        },
+      },
+      lang,
+    );
   }
 
   async findVersion(
@@ -189,14 +291,19 @@ export class CalculationsService implements OnModuleInit {
       throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
     }
 
+    const stored = parseStoredSnapshot(version.snapshot);
+    const priceStatus = await this.priceStatus.current({
+      id: version.id,
+      snapshot: stored,
+      totalUsdCents: version.totalUsdCents,
+      pricingVersion: version.pricingVersion,
+    });
+
     return this.view(
-      {
-        ...version,
-        snapshot: parseStoredSnapshot(version.snapshot),
-        calculation,
-      },
+      { ...version, snapshot: stored, calculation },
       lang,
       this.clock.now(),
+      priceStatus,
     );
   }
 
@@ -204,6 +311,24 @@ export class CalculationsService implements OnModuleInit {
     row: IdempotencyKey,
     request: Request,
   ): Promise<SaveCalculationResponse> {
+    const version = await this.loadStored(row);
+    const { lang } = langQuerySchema.parse(request.query);
+    const client = clientPriceSchema.parse(request.body);
+
+    return this.respond(version, client, lang);
+  }
+
+  private async replayRecalculation(
+    row: IdempotencyKey,
+    request: Request,
+  ): Promise<VersionView> {
+    const version = await this.loadStored(row);
+    const { lang } = langQuerySchema.parse(request.query);
+
+    return this.freshView(version, lang);
+  }
+
+  private async loadStored(row: IdempotencyKey): Promise<LoadedVersion> {
     const version = await this.prisma.calculationVersion.findUnique({
       where: { id: row.resultId },
       include: { calculation: { select: { id: true, publicId: true } } },
@@ -213,25 +338,27 @@ export class CalculationsService implements OnModuleInit {
       throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
     }
 
-    const versions = await this.prisma.calculationVersion.findMany({
-      where: {
-        calculationId: version.calculationId,
-        number: { lte: version.number },
+    return {
+      ...version,
+      snapshot: parseStoredSnapshot(version.snapshot),
+      calculation: {
+        ...version.calculation,
+        versions: await this.summariesUpTo(
+          version.calculationId,
+          version.number,
+        ),
       },
+    };
+  }
+
+  private summariesUpTo(
+    calculationId: string,
+    number: number,
+  ): Promise<VersionSummary[]> {
+    return this.prisma.calculationVersion.findMany({
+      where: { calculationId, number: { lte: number } },
       select: VERSION_SUMMARY_SELECT,
     });
-    const { lang } = langQuerySchema.parse(request.query);
-    const client = clientPriceSchema.parse(request.body);
-
-    return this.respond(
-      {
-        ...version,
-        snapshot: parseStoredSnapshot(version.snapshot),
-        calculation: { ...version.calculation, versions },
-      },
-      client,
-      lang,
-    );
   }
 
   private respond(
@@ -240,7 +367,7 @@ export class CalculationsService implements OnModuleInit {
     lang: Language,
   ): SaveCalculationResponse {
     return {
-      version: this.view(version, lang, version.createdAt),
+      version: this.freshView(version, lang),
       priceDifference: priceDifferenceOf(
         client,
         version.pricingVersion,
@@ -249,7 +376,21 @@ export class CalculationsService implements OnModuleInit {
     };
   }
 
-  private view(version: LoadedVersion, lang: Language, now: Date): VersionView {
+  private freshView(version: LoadedVersion, lang: Language): VersionView {
+    return this.view(
+      version,
+      lang,
+      version.createdAt,
+      this.priceStatus.fresh(version),
+    );
+  }
+
+  private view(
+    version: LoadedVersion,
+    lang: Language,
+    now: Date,
+    priceStatus: PriceStatus | null,
+  ): VersionView {
     return this.presenter.present({
       publicId: version.calculation.publicId,
       version: {
@@ -261,6 +402,7 @@ export class CalculationsService implements OnModuleInit {
         createdAt: version.createdAt,
       },
       versions: version.calculation.versions,
+      priceStatus,
       lang,
       now,
     });

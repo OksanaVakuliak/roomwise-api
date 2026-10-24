@@ -136,6 +136,7 @@ const buildInput = (
     createdAt: new Date('2026-10-22T10:00:00.000Z'),
   },
   versions: [],
+  priceStatus: null,
   lang: 'en',
   now: NOW,
   ...overrides,

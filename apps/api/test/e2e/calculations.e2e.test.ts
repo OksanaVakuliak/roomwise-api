@@ -356,7 +356,11 @@ describe('calculations e2e', () => {
           original.body.totals.usdCents,
         );
         expect(after.status).toBe(200);
-        expect(after.body).toEqual(original.body);
+        const { priceStatus: originalStatus, ...originalView } = original.body;
+        const { priceStatus: afterStatus, ...afterView } = after.body;
+        expect(afterView).toEqual(originalView);
+        expect(originalStatus.changed).toBe(false);
+        expect(afterStatus.changed).toBe(true);
         expect(findLine(after.body.lines, renamedId).product?.name).toBe(
           'Ламінат світлого відтінку',
         );

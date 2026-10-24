@@ -9,6 +9,7 @@ import {
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { imageRefSchema } from '../../catalog/public/dto/image-ref.schema';
+import { priceStatusSchema } from '../calculations/price-status.schema';
 
 const nullableText = z.string().nullable();
 
@@ -49,6 +50,7 @@ export const versionViewSchema = z.object({
   totals: EstimateTotalsSchema,
   warnings: z.array(EstimateWarningSchema),
   exchangeRate: ExchangeRateSchema.nullable(),
+  priceStatus: priceStatusSchema.nullable(),
   versions: z.array(
     z.object({
       number: z.number().int(),
