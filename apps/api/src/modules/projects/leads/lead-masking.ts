@@ -40,6 +40,7 @@ export function maskCalculationRoomNames(view: VersionView): VersionView {
 
   return {
     ...view,
+    publicId: MASK,
     configuration: {
       ...view.configuration,
       rooms: view.configuration.rooms.map(({ name: _name, ...room }) => room),
@@ -48,9 +49,9 @@ export function maskCalculationRoomNames(view: VersionView): VersionView {
     lines: view.lines.map((line) => ({
       ...line,
       roomName:
-        (line.roomClientId === null
-          ? undefined
-          : typeNameByClientId.get(line.roomClientId)) ?? line.roomName,
+        line.roomClientId === null
+          ? line.roomName
+          : (typeNameByClientId.get(line.roomClientId) ?? null),
     })),
   };
 }

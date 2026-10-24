@@ -416,14 +416,18 @@ export class OptionsService {
   ): Promise<OptionAdmin> {
     const option = await this.prisma.option.findUnique({
       where: { id },
-      select: { code: true, name: true, description: true },
+      select: { code: true, status: true, name: true, description: true },
     });
 
     if (!option) {
       throw new AppError(ERROR_CODES.NOT_FOUND);
     }
 
-    if (option.code && input.status !== PublicationStatus.PUBLISHED) {
+    if (
+      option.code &&
+      option.status === PublicationStatus.PUBLISHED &&
+      input.status !== PublicationStatus.PUBLISHED
+    ) {
       throw this.codeProtectedError(
         option.code,
         input.status === PublicationStatus.ARCHIVED ? 'ARCHIVE' : 'UNPUBLISH',

@@ -51,6 +51,7 @@ describe('maskEmail', () => {
 
 describe('maskCalculationRoomNames', () => {
   const view = {
+    publicId: 'abc123',
     configuration: {
       rooms: [
         { clientId: 'a', name: 'Master bedroom', lengthM: 4 },
@@ -88,8 +89,34 @@ describe('maskCalculationRoomNames', () => {
     expect(result.totals).toEqual(view.totals);
   });
 
+  it('masks the public id', () => {
+    expect(maskCalculationRoomNames(view).publicId).toBe('•••');
+  });
+
+  it('nulls the room name of a line whose room is not in the view', () => {
+    const orphaned = {
+      ...view,
+      lines: [{ roomClientId: 'gone', roomName: 'Secret study' }],
+    } as unknown as VersionView;
+
+    expect(maskCalculationRoomNames(orphaned).lines[0]?.roomName).toBeNull();
+  });
+
+  it('keeps the room name of a line without a room', () => {
+    const roomless = {
+      ...view,
+      lines: [{ roomClientId: null, roomName: 'Whole project' }],
+    } as unknown as VersionView;
+
+    expect(maskCalculationRoomNames(roomless).lines[0]?.roomName).toBe(
+      'Whole project',
+    );
+  });
+
   it('does not mutate the input', () => {
     maskCalculationRoomNames(view);
+
+    expect(view.publicId).toBe('abc123');
 
     expect(view.rooms[0]?.name).toBe('Master bedroom');
     expect(view.configuration.rooms[0]?.name).toBe('Master bedroom');

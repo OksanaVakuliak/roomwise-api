@@ -642,6 +642,24 @@ describe('admin engineering e2e', () => {
         });
       });
 
+      it('allows moving an archived coded option back to DRAFT', async () => {
+        await withCodedOption(async ({ id, revision }) => {
+          await testApp.prisma.option.update({
+            where: { id },
+            data: { status: PublicationStatus.ARCHIVED },
+          });
+
+          const response = await request(testApp.http)
+            .post(`/api/v1/admin/options/${id}/status`)
+            .set('Cookie', adminCookie)
+            .send({ status: PublicationStatus.DRAFT, revision });
+
+          expect(response.status).toBe(200);
+          expect(response.body.status).toBe(PublicationStatus.DRAFT);
+          await expectStillCoded(id);
+        });
+      });
+
       it('rejects changing the unit of a coded option with OPTION_CODE_PROTECTED', async () => {
         await withCodedOption(async ({ id, revision }) => {
           const response = await request(testApp.http)

@@ -196,7 +196,7 @@ describe('AdminLeadsService.get', () => {
       consentText: null,
       masked: true,
       notes: [{ id: 'note-1', text: null }],
-      calculation: { publicId: 'public' },
+      calculation: { publicId: '•••' },
     });
   });
 

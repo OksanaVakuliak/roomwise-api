@@ -909,6 +909,7 @@ describe('OptionsService.updateStatus coded option', () => {
     const updateMany = vi.fn();
     const findUnique = vi.fn().mockResolvedValue({
       code: 'HEATED_FLOOR',
+      status: PublicationStatus.PUBLISHED,
       name: localized('Heated floor', 'Тепла підлога'),
       description: localized('Warms', 'Обігрів'),
     });
@@ -929,6 +930,7 @@ describe('OptionsService.updateStatus coded option', () => {
       .fn()
       .mockResolvedValueOnce({
         code: 'HEATED_FLOOR',
+        status: PublicationStatus.DRAFT,
         name: localized('Heated floor', 'Тепла підлога'),
         description: localized('Warms', 'Обігрів'),
       })
@@ -949,6 +951,38 @@ describe('OptionsService.updateStatus coded option', () => {
     );
 
     expect(result.status).toBe(PublicationStatus.PUBLISHED);
+  });
+});
+
+describe('OptionsService.updateStatus coded option outside PUBLISHED', () => {
+  it.each([
+    [PublicationStatus.ARCHIVED, PublicationStatus.DRAFT],
+    [PublicationStatus.DRAFT, PublicationStatus.DRAFT],
+    [PublicationStatus.DRAFT, PublicationStatus.ARCHIVED],
+  ])('allows moving a coded %s option to %s', async (from, to) => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValueOnce({
+        code: 'HEATED_FLOOR',
+        status: from,
+        name: localized('Heated floor', 'Тепла підлога'),
+        description: localized('Warms', 'Обігрів'),
+      })
+      .mockResolvedValueOnce(
+        createOptionRow({ code: 'HEATED_FLOOR', status: to }),
+      );
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ option: { findUnique, updateMany } });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    const result = await service.updateStatus(
+      OPTION_ID,
+      { status: to, revision: REVISION },
+      ADMIN_ID,
+    );
+
+    expect(result.status).toBe(to);
+    expect(updateMany).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -775,9 +775,10 @@ describe('admin leads e2e', () => {
       expect(body.notes).toHaveLength(1);
       expect(body.notes[0].text).toBeNull();
       expect(body.calculation).toMatchObject({
-        publicId: saved.publicId,
+        publicId: MASK,
         totals: { usdCents: expect.any(Number) },
       });
+      expect(JSON.stringify(body)).not.toContain(saved.publicId);
       const serialized = JSON.stringify(body);
       for (const secret of [
         PERSON.name,
@@ -810,6 +811,9 @@ describe('admin leads e2e', () => {
         ),
       );
       expect(JSON.stringify(demoCard)).not.toMatch(/Master bedroom|Kids room/);
+      expect(demoCard.calculation.publicId).toBe(MASK);
+      expect(adminCard.calculation.publicId).not.toBe(MASK);
+      expect(adminCard.calculation.publicId).toEqual(expect.any(String));
       expect(JSON.stringify(adminCard)).toContain('Master bedroom');
     });
 
