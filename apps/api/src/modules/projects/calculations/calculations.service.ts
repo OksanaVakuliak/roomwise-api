@@ -214,13 +214,10 @@ export class CalculationsService implements OnModuleInit {
     publicId: string,
     number: number,
   ): Promise<StoredVersionRef> {
-    const version =
-      number < 1
-        ? null
-        : await this.prisma.calculationVersion.findFirst({
-            where: { number, calculation: { publicId } },
-            select: { id: true, number: true, expiresAt: true },
-          });
+    const version = await this.prisma.calculationVersion.findFirst({
+      where: { number, calculation: { publicId } },
+      select: { id: true, number: true, expiresAt: true },
+    });
 
     if (!version) {
       throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);

@@ -95,6 +95,7 @@ export class LeadsService implements OnModuleInit {
           ...idempotency,
           resultId: version.id,
           fakeLeadNumber: leadNumber,
+          createdAt: now,
         });
 
         return responseOf(leadNumber, version, expiredAtSubmission);
@@ -103,10 +104,10 @@ export class LeadsService implements OnModuleInit {
       const lead = await tx.lead.create({
         data: {
           calculationVersionId: version.id,
-          name: input.name.trim(),
+          name: input.name,
           phone,
-          email: input.email,
-          comment: input.comment,
+          email: input.email || null,
+          comment: input.comment || null,
           consentText: input.consent.text,
           consentAt: now,
           locale: LOCALE_BY_LANGUAGE[input.locale],

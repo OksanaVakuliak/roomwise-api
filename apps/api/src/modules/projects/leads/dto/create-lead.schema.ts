@@ -5,6 +5,8 @@ import { SUPPORTED_LANGUAGES } from '../../../../common/i18n/resolve-lang';
 
 const PUBLIC_ID_MAX = 64;
 const NAME_MAX = 100;
+const PHONE_MAX = 32;
+const WEBSITE_MAX = 2048;
 const EMAIL_MAX = 254;
 const COMMENT_MAX = 1000;
 const CONSENT_TEXT_MAX = 2000;
@@ -25,15 +27,15 @@ export const createLeadRequestSchema = z
     calculation: leadCalculationRefSchema.optional(),
     draft: leadDraftSchema.optional(),
     name: z.string().trim().min(1).max(NAME_MAX),
-    phone: z.string().min(1),
-    email: z.email().max(EMAIL_MAX).optional(),
-    comment: z.string().max(COMMENT_MAX).optional(),
+    phone: z.string().min(1).max(PHONE_MAX),
+    email: z.email().max(EMAIL_MAX).or(z.literal('')).optional(),
+    comment: z.string().trim().max(COMMENT_MAX).optional(),
     consent: z.object({
       accepted: z.literal(true),
       text: z.string().min(1).max(CONSENT_TEXT_MAX),
     }),
     locale: z.enum(SUPPORTED_LANGUAGES),
-    website: z.string().optional(),
+    website: z.string().max(WEBSITE_MAX).optional(),
   })
   .superRefine((value, ctx) => {
     if ((value.calculation === undefined) === (value.draft === undefined)) {

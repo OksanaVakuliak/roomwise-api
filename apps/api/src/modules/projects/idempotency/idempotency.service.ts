@@ -24,6 +24,7 @@ export interface RecordIdempotencyKey {
   requestHash: string;
   resultId: string;
   fakeLeadNumber?: number;
+  createdAt?: Date;
 }
 
 export interface IdempotencyLookup {

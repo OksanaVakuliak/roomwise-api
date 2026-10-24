@@ -24,7 +24,7 @@ const stored = {
 };
 
 const base = {
-  name: '  Oksana  ',
+  name: 'Oksana',
   phone: '+380 67 123 45 67',
   email: 'oksana@example.com',
   comment: 'call me',
@@ -201,6 +201,7 @@ describe('LeadsService.create', () => {
         ...CONTEXT,
         resultId: VERSION_ID,
         fakeLeadNumber: FAKE_NUMBER,
+        createdAt: NOW,
       });
       expect(result).toEqual({
         leadNumber: FAKE_NUMBER,

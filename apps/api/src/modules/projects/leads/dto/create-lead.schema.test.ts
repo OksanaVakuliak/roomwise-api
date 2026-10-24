@@ -114,4 +114,22 @@ describe('createLeadRequestSchema', () => {
       failedPaths({ ...base, calculation, comment: 'a'.repeat(1001) }),
     ).toContain('comment');
   });
+
+  it('accepts an empty email and trims the comment', () => {
+    const result = createLeadRequestSchema.parse({
+      ...base,
+      calculation,
+      email: '',
+      comment: '   ',
+    });
+
+    expect(result.email).toBe('');
+    expect(result.comment).toBe('');
+  });
+
+  it('rejects a phone of 33 characters', () => {
+    expect(
+      failedPaths({ ...base, calculation, phone: `+${'1'.repeat(32)}` }),
+    ).toContain('phone');
+  });
 });
