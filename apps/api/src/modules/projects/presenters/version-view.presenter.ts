@@ -57,9 +57,7 @@ export class VersionViewPresenter {
     const { publicId, version, versions, priceStatus, lang, now } = input;
     const { snapshot } = version;
     const customNameByClientId = new Map(
-      snapshot.rooms.flatMap((room) =>
-        room.name === undefined ? [] : [[room.clientId, room.name] as const],
-      ),
+      snapshot.rooms.map((room) => [room.clientId, room.name]),
     );
 
     return {

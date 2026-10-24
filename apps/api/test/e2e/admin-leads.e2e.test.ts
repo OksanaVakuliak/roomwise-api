@@ -51,6 +51,10 @@ const PERSON = {
 };
 const PHONE_E164 = '+380671234567';
 
+function roomName(room: { name: string }): string {
+  return room.name;
+}
+
 type Method = 'get' | 'post' | 'patch' | 'delete';
 
 vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });
@@ -783,6 +787,30 @@ describe('admin leads e2e', () => {
       ]) {
         expect(serialized).not.toContain(secret);
       }
+    });
+
+    it('replaces custom room names with room type names', async () => {
+      const lead = await createLead({
+        calculation: undefined,
+        draft: {
+          configuration: buildNamedBedroomsConfiguration(),
+          styleId: projectsStyleId,
+          clientPricingVersion: currentPricingVersion,
+        },
+      });
+
+      const demoCard = (
+        await asDemo('get', `${ADMIN_LEADS}/${lead.id}`).expect(200)
+      ).body;
+      const adminCard = await card(lead.id);
+
+      expect(demoCard.calculation.rooms.map(roomName)).toEqual(
+        demoCard.calculation.rooms.map(
+          (room: { roomTypeName: string }) => room.roomTypeName,
+        ),
+      );
+      expect(JSON.stringify(demoCard)).not.toMatch(/Master bedroom|Kids room/);
+      expect(JSON.stringify(adminCard)).toContain('Master bedroom');
     });
 
     it('answers 403 DEMO_FORBIDDEN for every write and changes nothing', async () => {
