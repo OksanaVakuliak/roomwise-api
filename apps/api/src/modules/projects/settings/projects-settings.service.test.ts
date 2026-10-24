@@ -51,6 +51,79 @@ describe('ProjectsSettingsService', () => {
     expect(findUnique).toHaveBeenCalledTimes(2);
   });
 
+  describe('update', () => {
+    const admin = { id: 'admin-1', login: 'admin' };
+
+    function createUpdatable(updateMany: ReturnType<typeof vi.fn>) {
+      const findUnique = vi.fn().mockResolvedValue({
+        ...row,
+        updatedBy: admin,
+      });
+      const prisma = {
+        projectsSettings: { findUnique, updateMany },
+      } as unknown as PrismaService;
+      return { service: new ProjectsSettingsService(prisma), findUnique };
+    }
+
+    it('updates only the given fields, stamps the admin and invalidates the cache', async () => {
+      const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+      const { service, findUnique } = createUpdatable(updateMany);
+      await service.get();
+
+      const result = await service.update(
+        { leadRetentionDays: 10, revision: row.revision },
+        admin.id,
+      );
+      await service.get();
+
+      const call = updateMany.mock.calls[0][0];
+      expect(call.where).toEqual({ id: 1, revision: row.revision });
+      expect(call.data).toMatchObject({
+        leadRetentionDays: 10,
+        updatedById: admin.id,
+      });
+      expect(call.data).not.toHaveProperty('calculationValidityDays');
+      expect(call.data.revision).not.toBe(row.revision);
+      expect(findUnique).toHaveBeenCalledTimes(3);
+      expect(result.updatedBy).toEqual(admin);
+      expect(result.lastRetentionRunAt).toBeNull();
+    });
+
+    it('rejects a notice missing the placeholder without touching the row', async () => {
+      const updateMany = vi.fn();
+      const { service } = createUpdatable(updateMany);
+
+      await expect(
+        service.update(
+          {
+            leadFormNotice: { en: 'no placeholder', uk: 'ok {days}' },
+            revision: row.revision,
+          },
+          admin.id,
+        ),
+      ).rejects.toMatchObject({
+        code: 'NOTICE_PLACEHOLDER_MISSING',
+        params: { languages: ['en'] },
+      });
+      expect(updateMany).not.toHaveBeenCalled();
+    });
+
+    it('throws a stale revision error when the revision does not match', async () => {
+      const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+      const { service } = createUpdatable(updateMany);
+
+      await expect(
+        service.update(
+          { calculationValidityDays: 5, revision: 'stale' },
+          admin.id,
+        ),
+      ).rejects.toMatchObject({
+        code: 'STALE_REVISION',
+        params: { currentRevision: row.revision },
+      });
+    });
+  });
+
   it('throws when the row is missing and retries on the next call', async () => {
     const findUnique = vi
       .fn()
