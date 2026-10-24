@@ -329,6 +329,7 @@ export class PublicCatalogService {
       })),
       options: options.map((option) => ({
         id: option.id,
+        code: option.code,
         kind: option.kind,
         name: pickLocalized(option.name, lang),
         description: pickLocalized(option.description, lang),

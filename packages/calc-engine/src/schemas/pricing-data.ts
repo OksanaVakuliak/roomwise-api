@@ -3,6 +3,7 @@ import {
   CentsSchema,
   FinishLevelSchema,
   LocalizedTextSchema,
+  OptionCodeSchema,
   OptionKindSchema,
   OptionUnitSchema,
   ProductUnitSchema,
@@ -93,6 +94,7 @@ export type PricingPackageItem = z.infer<typeof PricingPackageItemSchema>;
 
 export const PricingOptionSchema = z.object({
   id: z.string(),
+  code: OptionCodeSchema.nullable(),
   kind: OptionKindSchema,
   priceCents: CentsSchema,
   unit: OptionUnitSchema,

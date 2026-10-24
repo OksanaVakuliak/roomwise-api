@@ -4,6 +4,7 @@ import {
   localizedNameSchema,
 } from '../../../common/i18n/localized-text.schema';
 import {
+  OptionCode,
   OptionKind,
   OptionUnit,
   ProductUnit,
@@ -216,6 +217,7 @@ export type SeedEngineeringPackageItem = z.infer<
 export const seedOptionSchema = z
   .object({
     id: z.uuid(),
+    code: z.enum(OptionCode).nullable(),
     kind: z.enum(OptionKind),
     name: localizedNameSchema,
     description: localizedDescriptionSchema,

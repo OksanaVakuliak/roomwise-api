@@ -40,6 +40,10 @@ enum OptionKind {
   ADDITIONAL
 }
 
+enum OptionCode {
+  HEATED_FLOOR
+}
+
 enum RoomTypeCode {
   LIVING_ROOM
   BEDROOM
@@ -321,6 +325,7 @@ model EngineeringPackageItem {
 
 model Option {
   id          String            @id @default(uuid()) @db.Uuid
+  code        OptionCode?
   kind        OptionKind
   name        Json              @db.JsonB
   description Json              @db.JsonB
@@ -339,6 +344,7 @@ model Option {
 
   optionRoomTypes OptionRoomType[]
 
+  @@unique([code])
   @@unique([kind, sortOrder])
   @@map("options")
 }

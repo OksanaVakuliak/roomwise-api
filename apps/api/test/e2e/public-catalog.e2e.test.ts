@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '../../src/common/http/error-codes';
-import { RoomTypeCode } from '../../src/generated/prisma/client';
+import { OptionCode, RoomTypeCode } from '../../src/generated/prisma/client';
 import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
 import { createTestApp, type TestApp } from './app-factory';
 import {
@@ -618,6 +618,7 @@ describe('public catalog e2e', () => {
           option.id === fixtures.engineering.optionRoomSqmRestricted,
       );
       expect(roomSqmOption.kind).toBe('ENGINEERING');
+      expect(roomSqmOption.code).toBe(OptionCode.HEATED_FLOOR);
       expect(roomSqmOption.perRoom).toBe(true);
       expect([...roomSqmOption.roomTypeCodes].sort()).toEqual(
         [RoomTypeCode.BATHROOM, RoomTypeCode.KITCHEN].sort(),
@@ -630,6 +631,7 @@ describe('public catalog e2e', () => {
           option.id === fixtures.engineering.optionRoomAll,
       );
       expect(roomAllOption.perRoom).toBe(true);
+      expect(roomAllOption.code).toBeNull();
       expect(roomAllOption.roomTypeCodes).toEqual([]);
 
       const pieceOption = response.body.options.find(

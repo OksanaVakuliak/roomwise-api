@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
+  OptionCode,
   OptionKind,
   OptionUnit,
   ProductUnit,
@@ -736,6 +737,7 @@ describe('PublicCatalogService.getEngineering', () => {
     const optionFindMany = vi.fn().mockResolvedValue([
       {
         id: 'option-room-sqm',
+        code: OptionCode.HEATED_FLOOR,
         kind: OptionKind.ENGINEERING,
         name: localized('Heated Floor', 'Тепла підлога'),
         description: localized('Underfloor heating', 'Тепла підлога опис'),
@@ -751,6 +753,7 @@ describe('PublicCatalogService.getEngineering', () => {
       },
       {
         id: 'option-room-all',
+        code: null,
         kind: OptionKind.ENGINEERING,
         name: localized('Smart Home', 'Розумний дім'),
         description: localized('Wiring', 'Проводка'),
@@ -821,6 +824,7 @@ describe('PublicCatalogService.getEngineering', () => {
       (option) => option.id === 'option-room-sqm',
     );
     expect(roomSqm?.perRoom).toBe(true);
+    expect(roomSqm?.code).toBe(OptionCode.HEATED_FLOOR);
     expect(roomSqm?.roomTypeCodes).toEqual([
       RoomTypeCode.BATHROOM,
       RoomTypeCode.KITCHEN,
@@ -830,6 +834,7 @@ describe('PublicCatalogService.getEngineering', () => {
       (option) => option.id === 'option-room-all',
     );
     expect(roomAll?.perRoom).toBe(true);
+    expect(roomAll?.code).toBeNull();
     expect(roomAll?.roomTypeCodes).toEqual([]);
 
     const piece = result.options.find((option) => option.id === 'option-piece');

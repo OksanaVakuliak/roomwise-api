@@ -3,6 +3,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ERROR_CODES } from '../../src/common/http/error-codes';
 import {
+  OptionCode,
   OptionKind,
   OptionUnit,
   PublicationStatus,
@@ -77,6 +78,7 @@ interface PublicEngineeringPackageItem {
 
 interface PublicEngineeringOption {
   id: string;
+  code: string | null;
   kind: string;
   name: string;
   priceCents: number;
@@ -474,6 +476,73 @@ describe('admin engineering e2e', () => {
       expect(response.body.status).toBe(PublicationStatus.DRAFT);
       expect(typeof response.body.id).toBe('string');
       expect(typeof response.body.revision).toBe('string');
+    });
+
+    it('shows a null code on a created option', async () => {
+      const response = await createOption();
+
+      expect(response.status).toBe(201);
+      expect(response.body.code).toBeNull();
+    });
+
+    it('rejects a code on create with VALIDATION_FAILED', async () => {
+      const response = await request(testApp.http)
+        .post('/api/v1/admin/options')
+        .set('Cookie', adminCookie)
+        .send({ ...buildOptionInput(), code: OptionCode.HEATED_FLOOR });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('rejects a code on patch with VALIDATION_FAILED and keeps it unchanged', async () => {
+      const created = await createOption();
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/options/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({
+          code: OptionCode.HEATED_FLOOR,
+          revision: created.body.revision,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+      const stored = await testApp.prisma.option.findUnique({
+        where: { id: created.body.id },
+      });
+      expect(stored?.code).toBeNull();
+    });
+
+    it('keeps the code of a coded option visible in the admin list and unique', async () => {
+      const first = await createOption();
+      const second = await createOption();
+      await testApp.prisma.option.update({
+        where: { id: first.body.id },
+        data: { code: OptionCode.HEATED_FLOOR },
+      });
+
+      try {
+        const list = await request(testApp.http)
+          .get('/api/v1/admin/options')
+          .set('Cookie', adminCookie);
+        const listed = list.body.items.find(
+          (item: { id: string }) => item.id === first.body.id,
+        );
+        expect(listed.code).toBe(OptionCode.HEATED_FLOOR);
+
+        await expect(
+          testApp.prisma.option.update({
+            where: { id: second.body.id },
+            data: { code: OptionCode.HEATED_FLOOR },
+          }),
+        ).rejects.toMatchObject({ code: 'P2002' });
+      } finally {
+        await testApp.prisma.option.update({
+          where: { id: first.body.id },
+          data: { code: null },
+        });
+      }
     });
 
     it('rejects a PIECE option without min/max quantity with QUANTITY_BOUNDS_REQUIRED', async () => {

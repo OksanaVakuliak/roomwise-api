@@ -1,6 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import {
+  OptionCode,
   OptionKind,
   OptionUnit,
   RoomTypeCode,
@@ -20,6 +21,7 @@ export const engineeringPackageItemSchema = z.object({
 
 export const engineeringOptionSchema = z.object({
   id: z.uuid(),
+  code: z.enum(OptionCode).nullable(),
   kind: z.enum(OptionKind),
   name: z.string(),
   description: z.string(),

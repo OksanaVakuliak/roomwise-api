@@ -500,6 +500,7 @@ export class OptionsService {
   private toOptionAdmin(option: OptionWithRelations): OptionAdmin {
     return {
       id: option.id,
+      code: option.code,
       kind: option.kind,
       name: toLocalizedText(option.name),
       description: toLocalizedText(option.description),
