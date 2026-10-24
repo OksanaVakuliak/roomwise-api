@@ -51,6 +51,29 @@ export async function seedProjectsData(testApp: TestApp): Promise<void> {
   testApp.app.get(PricingDataService).invalidate();
 }
 
+export function buildNamedBedroomsConfiguration(): Configuration {
+  const base = buildProjectsConfiguration();
+  const bedroom = (clientId: string, name: string) => ({
+    clientId,
+    name,
+    roomTypeCode: 'BEDROOM' as const,
+    lengthM: 4,
+    widthM: 3,
+    heightM: 2.7,
+    heatedFloor: false,
+    selections: [],
+  });
+
+  return {
+    ...base,
+    rooms: [
+      bedroom('bedroom-1', 'Master bedroom'),
+      bedroom('bedroom-2', 'Kids room'),
+    ],
+    options: [],
+  };
+}
+
 export function buildProjectsConfiguration(): Configuration {
   return {
     finishLevel: 'PRE_FINISH',

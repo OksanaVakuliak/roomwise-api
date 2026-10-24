@@ -3,6 +3,7 @@ import type { CatalogSnapshotReadService } from '../../catalog/snapshot-read/cat
 import {
   SNAPSHOT_SCHEMA_VERSION,
   type SnapshotV1,
+  SnapshotV1Schema,
 } from '../snapshot/snapshot.schema';
 import {
   type PresentVersionInput,
@@ -157,6 +158,39 @@ describe('VersionViewPresenter', () => {
     expect(en.rooms[0].name).toBe('Bedroom');
     expect(en.lines[0].product?.size).toBe('120x20');
     expect(en.lines[0].optionName).toBeNull();
+  });
+
+  it('uses the custom room name and keeps the room type name apart', () => {
+    const snapshot = buildSnapshot();
+    snapshot.rooms[0].name = 'Master bedroom';
+    const version = { ...buildInput().version, snapshot };
+
+    const uk = presenter.present(buildInput({ lang: 'uk', version }));
+    const en = presenter.present(buildInput({ lang: 'en', version }));
+
+    expect(uk.rooms[0].name).toBe('Master bedroom');
+    expect(uk.rooms[0].roomTypeName).toBe('Bedroom-uk');
+    expect(uk.lines[0].roomName).toBe('Master bedroom');
+    expect(en.rooms[0].name).toBe('Master bedroom');
+    expect(en.rooms[0].roomTypeName).toBe('Bedroom');
+    expect(en.lines[0].roomName).toBe('Master bedroom');
+    expect(versionViewSchema.safeParse(en).success).toBe(true);
+  });
+
+  it('falls back to the room type name for a snapshot without a room name', () => {
+    const snapshot = SnapshotV1Schema.parse(buildSnapshot());
+    expect(snapshot.rooms[0]).not.toHaveProperty('name');
+
+    const view = presenter.present(
+      buildInput({
+        lang: 'uk',
+        version: { ...buildInput().version, snapshot },
+      }),
+    );
+
+    expect(view.rooms[0].name).toBe('Bedroom-uk');
+    expect(view.rooms[0].roomTypeName).toBe('Bedroom-uk');
+    expect(view.lines[0].roomName).toBe('Bedroom-uk');
   });
 
   it('maps the product image to an image reference', () => {

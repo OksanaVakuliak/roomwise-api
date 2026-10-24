@@ -56,6 +56,11 @@ export class VersionViewPresenter {
   present(input: PresentVersionInput): VersionView {
     const { publicId, version, versions, priceStatus, lang, now } = input;
     const { snapshot } = version;
+    const customNameByClientId = new Map(
+      snapshot.rooms.flatMap((room) =>
+        room.name === undefined ? [] : [[room.clientId, room.name] as const],
+      ),
+    );
 
     return {
       publicId,
@@ -70,13 +75,18 @@ export class VersionViewPresenter {
           ? null
           : { id: snapshot.style.id, name: pick(snapshot.style.name, lang) },
       configuration: snapshot.configuration,
-      rooms: snapshot.rooms.map(({ roomTypeName, ...room }) => ({
+      rooms: snapshot.rooms.map(({ roomTypeName, name, ...room }) => ({
         ...room,
-        name: pick(roomTypeName, lang),
+        name: name ?? pick(roomTypeName, lang),
+        roomTypeName: pick(roomTypeName, lang),
       })),
       lines: snapshot.lines.map((line) => ({
         ...line,
-        roomName: pickNullable(line.roomName, lang),
+        roomName:
+          (line.roomClientId === null
+            ? undefined
+            : customNameByClientId.get(line.roomClientId)) ??
+          pickNullable(line.roomName, lang),
         categoryName: pickNullable(line.categoryName, lang),
         optionName: pickNullable(line.optionName, lang),
         packageItemName: pickNullable(line.packageItemName, lang),

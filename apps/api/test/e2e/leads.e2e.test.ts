@@ -6,6 +6,7 @@ import { PUBLIC_WRITE_LIMITS_PER_HOUR } from '../../src/common/throttling/public
 import { LeadStatus, Locale } from '../../src/generated/prisma/enums';
 import { createTestApp, type TestApp } from './app-factory';
 import {
+  buildNamedBedroomsConfiguration,
   buildProjectsConfiguration,
   newIdempotencyKey,
   projectsStyleId,
@@ -175,6 +176,41 @@ describe('leads e2e', () => {
       expect(version.status).toBe(200);
       expect(version.body.number).toBe(1);
       expect(linked.number).toBe(1);
+    });
+
+    it('saves a draft with room names', async () => {
+      const response = await submit(
+        leadBody({
+          calculation: undefined,
+          draft: {
+            ...draft(),
+            configuration: buildNamedBedroomsConfiguration(),
+          },
+        }),
+      );
+      expect(response.status).toBe(201);
+
+      const version = await request(testApp.http).get(
+        `${CALCULATIONS}/${response.body.calculation.publicId}`,
+      );
+
+      expect(
+        version.body.rooms.map((room: { name: string }) => room.name),
+      ).toEqual(['Master bedroom', 'Kids room']);
+    });
+
+    it('rejects a draft with a too long room name', async () => {
+      const configuration = buildNamedBedroomsConfiguration();
+      configuration.rooms[0].name = 'a'.repeat(61);
+
+      const response = await submit(
+        leadBody({
+          calculation: undefined,
+          draft: { ...draft(), configuration },
+        }),
+      );
+
+      expect(response.status).toBe(400);
     });
 
     it('rejects a lead without consent and phone', async () => {

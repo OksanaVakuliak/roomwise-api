@@ -14,6 +14,7 @@ import { IdempotencyScope, LeadStatus } from '../../src/generated/prisma/enums';
 import { createTestApp, type TestApp } from './app-factory';
 import { createAdmin, login } from './auth-helpers';
 import {
+  buildNamedBedroomsConfiguration,
   buildProjectsConfiguration,
   newIdempotencyKey,
   projectsStyleId,
@@ -326,6 +327,22 @@ describe('admin leads e2e', () => {
       });
       expect(body.calculation).toHaveProperty('priceStatus');
       expect(body.calculation.totals.usdCents).toBe(body.totalUsdCents);
+    });
+
+    it('shows the room names of a draft saved with the lead', async () => {
+      const lead = await createLead({
+        calculation: undefined,
+        draft: {
+          configuration: buildNamedBedroomsConfiguration(),
+          styleId: projectsStyleId,
+          clientPricingVersion: currentPricingVersion,
+        },
+      });
+      const body = await card(lead.id);
+
+      expect(
+        body.calculation.rooms.map((room: { name: string }) => room.name),
+      ).toEqual(['Master bedroom', 'Kids room']);
     });
 
     it('flags a lead submitted on an expired version', async () => {

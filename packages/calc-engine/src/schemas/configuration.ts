@@ -14,6 +14,7 @@ export type RoomSelection = z.infer<typeof RoomSelectionSchema>;
 
 export const RoomConfigurationSchema = z.object({
   clientId: z.string(),
+  name: z.string().trim().min(1).max(60).optional(),
   roomTypeCode: RoomTypeCodeSchema,
   lengthM: z.number().positive(),
   widthM: z.number().positive(),
