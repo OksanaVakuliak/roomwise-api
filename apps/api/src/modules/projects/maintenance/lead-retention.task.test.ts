@@ -7,6 +7,7 @@ import {
 } from './lead-retention.task';
 
 const NOW = new Date('2026-10-24T03:00:00.000Z');
+const UPDATED_AT = new Date('2026-10-20T10:00:00.000Z');
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 
@@ -16,19 +17,25 @@ function createRetention(
     leadRetentionDays: number;
   } | null,
 ) {
+  const row = settings && { ...settings, updatedAt: UPDATED_AT };
+  const tx = {
+    projectsSettings: {
+      findUniqueOrThrow: vi.fn().mockResolvedValue(row),
+      update: vi.fn().mockResolvedValue(undefined),
+    },
+    lead: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+  };
   const prisma = {
     projectsSettings: {
       findUnique: vi.fn().mockResolvedValue(settings),
-      findUniqueOrThrow: vi.fn().mockResolvedValue(settings),
-      update: vi.fn().mockReturnValue('update-op'),
     },
-    lead: { deleteMany: vi.fn().mockReturnValue('delete-op') },
-    $transaction: vi.fn().mockResolvedValue([]),
+    $transaction: vi.fn((fn: (client: typeof tx) => unknown) => fn(tx)),
   };
   const projectsSettings = { invalidate: vi.fn() };
 
   return {
     prisma,
+    tx,
     projectsSettings,
     task: new LeadRetentionTask(
       prisma as unknown as PrismaService,
@@ -76,24 +83,20 @@ describe('LeadRetentionTask', () => {
   });
 
   it('deletes leads older than the configured days and records the run', async () => {
-    const { task, prisma, projectsSettings } = createRetention({
+    const { task, tx, projectsSettings } = createRetention({
       lastRetentionRunAt: null,
       leadRetentionDays: 7,
     });
 
     await task.run(NOW);
 
-    expect(prisma.lead.deleteMany).toHaveBeenCalledWith({
+    expect(tx.lead.deleteMany).toHaveBeenCalledWith({
       where: { createdAt: { lt: new Date(NOW.getTime() - 7 * DAY_MS) } },
     });
-    expect(prisma.projectsSettings.update).toHaveBeenCalledWith({
+    expect(tx.projectsSettings.update).toHaveBeenCalledWith({
       where: { id: 1 },
-      data: { lastRetentionRunAt: NOW },
+      data: { lastRetentionRunAt: NOW, updatedAt: UPDATED_AT },
     });
-    expect(prisma.$transaction).toHaveBeenCalledWith([
-      'delete-op',
-      'update-op',
-    ]);
     expect(projectsSettings.invalidate).toHaveBeenCalledOnce();
   });
 

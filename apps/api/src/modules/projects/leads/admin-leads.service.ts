@@ -5,8 +5,13 @@ import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { Language } from '../../../common/i18n/resolve-lang';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { isPrismaError } from '../../../common/prisma/prisma-error';
 import type { Prisma } from '../../../generated/prisma/client';
-import { LeadStatus, Locale } from '../../../generated/prisma/enums';
+import {
+  IdempotencyScope,
+  LeadStatus,
+  Locale,
+} from '../../../generated/prisma/enums';
 import type { AuthenticatedAdmin } from '../../auth/current-admin.decorator';
 import { CalculationsService } from '../calculations/calculations.service';
 import type {
@@ -227,19 +232,17 @@ export class AdminLeadsService {
     input: AddLeadNoteInput,
     admin: AuthenticatedAdmin,
   ): Promise<LeadNote> {
-    const lead = await this.prisma.lead.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-
-    if (!lead) {
-      throw new AppError(ERROR_CODES.NOT_FOUND);
-    }
-
-    const note = await this.prisma.leadNote.create({
-      data: { leadId: id, text: input.text, authorId: admin.id },
-      select: { id: true, text: true, createdAt: true },
-    });
+    const note = await this.prisma.leadNote
+      .create({
+        data: { leadId: id, text: input.text, authorId: admin.id },
+        select: { id: true, text: true, createdAt: true },
+      })
+      .catch((error: unknown) => {
+        if (isPrismaError(error, 'P2003')) {
+          throw new AppError(ERROR_CODES.NOT_FOUND);
+        }
+        throw error;
+      });
 
     return {
       id: note.id,
@@ -250,7 +253,12 @@ export class AdminLeadsService {
   }
 
   async delete(id: string): Promise<void> {
-    const { count } = await this.prisma.lead.deleteMany({ where: { id } });
+    const [, { count }] = await this.prisma.$transaction([
+      this.prisma.idempotencyKey.deleteMany({
+        where: { scope: IdempotencyScope.LEAD, resultId: id },
+      }),
+      this.prisma.lead.deleteMany({ where: { id } }),
+    ]);
 
     if (count === 0) {
       throw new AppError(ERROR_CODES.NOT_FOUND);

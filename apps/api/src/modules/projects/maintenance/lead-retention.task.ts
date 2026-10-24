@@ -3,6 +3,7 @@ import type { MaintenanceTask } from '../../../common/maintenance/maintenance-ta
 import { MaintenanceTaskProvider } from '../../../common/maintenance/maintenance-task-provider.decorator';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { PROJECTS_SETTINGS_ID } from '../dataset/projects-settings';
+import { IDEMPOTENCY_KEY_TTL_MS } from '../idempotency/idempotency.constants';
 import { ProjectsSettingsService } from '../settings/projects-settings.service';
 
 export const LEAD_RETENTION_TASK_NAME = 'lead-retention';
@@ -12,7 +13,6 @@ const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 const RETENTION_INTERVAL_HOURS = 20;
 const RETENTION_INTERVAL_MS = RETENTION_INTERVAL_HOURS * HOUR_MS;
-const IDEMPOTENCY_KEY_TTL_MS = DAY_MS;
 
 @MaintenanceTaskProvider()
 @Injectable()
@@ -42,20 +42,20 @@ export class LeadRetentionTask implements MaintenanceTask {
   }
 
   async run(now: Date): Promise<void> {
-    const { leadRetentionDays } =
-      await this.prisma.projectsSettings.findUniqueOrThrow({
-        where: { id: PROJECTS_SETTINGS_ID },
-        select: { leadRetentionDays: true },
-      });
-    const cutoff = new Date(now.getTime() - leadRetentionDays * DAY_MS);
+    await this.prisma.$transaction(async (tx) => {
+      const { leadRetentionDays, updatedAt } =
+        await tx.projectsSettings.findUniqueOrThrow({
+          where: { id: PROJECTS_SETTINGS_ID },
+          select: { leadRetentionDays: true, updatedAt: true },
+        });
+      const cutoff = new Date(now.getTime() - leadRetentionDays * DAY_MS);
 
-    await this.prisma.$transaction([
-      this.prisma.lead.deleteMany({ where: { createdAt: { lt: cutoff } } }),
-      this.prisma.projectsSettings.update({
+      await tx.lead.deleteMany({ where: { createdAt: { lt: cutoff } } });
+      await tx.projectsSettings.update({
         where: { id: PROJECTS_SETTINGS_ID },
-        data: { lastRetentionRunAt: now },
-      }),
-    ]);
+        data: { lastRetentionRunAt: now, updatedAt },
+      });
+    });
 
     this.settings.invalidate();
   }

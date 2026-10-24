@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
-import { LeadStatus, Locale } from '../../../generated/prisma/enums';
+import { Prisma } from '../../../generated/prisma/client';
+import {
+  IdempotencyScope,
+  LeadStatus,
+  Locale,
+} from '../../../generated/prisma/enums';
 import { AdminLeadsService } from './admin-leads.service';
 
 const LEAD_ID = 'lead-1';
@@ -58,7 +63,10 @@ function createService() {
     leadStatusChange: { create: vi.fn() },
   };
   const prisma = {
-    $transaction: vi.fn((fn: (client: typeof tx) => unknown) => fn(tx)),
+    $transaction: vi.fn((arg: ((client: typeof tx) => unknown) | unknown[]) =>
+      typeof arg === 'function' ? arg(tx) : Promise.all(arg),
+    ),
+    idempotencyKey: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
     lead: {
       findMany: vi.fn().mockResolvedValue([listRow]),
       count: vi.fn().mockResolvedValue(1),
@@ -311,25 +319,46 @@ describe('AdminLeadsService.addNote', () => {
 
   it('throws NOT_FOUND for a missing lead', async () => {
     const { service, prisma } = createService();
-    prisma.lead.findUnique.mockResolvedValue(null);
+    prisma.leadNote.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Foreign key violation', {
+        code: 'P2003',
+        clientVersion: '7.10.0',
+      }),
+    );
 
     expect(await codeOf(service.addNote(LEAD_ID, { text: 'x' }, ADMIN))).toBe(
       ERROR_CODES.NOT_FOUND,
     );
-    expect(prisma.leadNote.create).not.toHaveBeenCalled();
+  });
+
+  it('rethrows other database errors', async () => {
+    const { service, prisma } = createService();
+    const failure = new Error('db down');
+    prisma.leadNote.create.mockRejectedValue(failure);
+
+    expect(await codeOf(service.addNote(LEAD_ID, { text: 'x' }, ADMIN))).toBe(
+      failure,
+    );
   });
 });
 
 describe('AdminLeadsService.delete', () => {
-  it('deletes the lead', async () => {
+  it('deletes the lead together with its idempotency keys', async () => {
     const { service, prisma } = createService();
     prisma.lead.deleteMany.mockResolvedValue({ count: 1 });
 
     await service.delete(LEAD_ID);
 
+    expect(prisma.idempotencyKey.deleteMany).toHaveBeenCalledWith({
+      where: { scope: IdempotencyScope.LEAD, resultId: LEAD_ID },
+    });
     expect(prisma.lead.deleteMany).toHaveBeenCalledWith({
       where: { id: LEAD_ID },
     });
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      expect.anything(),
+      expect.anything(),
+    ]);
   });
 
   it('throws NOT_FOUND when nothing was deleted', async () => {

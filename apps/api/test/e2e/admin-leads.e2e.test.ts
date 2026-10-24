@@ -473,6 +473,27 @@ describe('admin leads e2e', () => {
       await asAdmin('get', `${ADMIN_LEADS}/${lead.id}`).expect(404);
       await asAdmin('delete', `${ADMIN_LEADS}/${lead.id}`).expect(404);
     });
+
+    it('drops the idempotency key with the lead so a replay creates a new lead', async () => {
+      const key = newIdempotencyKey();
+      const first = await createLead({}, key);
+      await expect(
+        testApp.prisma.idempotencyKey.count({
+          where: { scope: IdempotencyScope.LEAD, key },
+        }),
+      ).resolves.toBe(1);
+
+      await asAdmin('delete', `${ADMIN_LEADS}/${first.id}`).expect(204);
+
+      await expect(
+        testApp.prisma.idempotencyKey.count({
+          where: { scope: IdempotencyScope.LEAD, key },
+        }),
+      ).resolves.toBe(0);
+      const replay = await createLead({}, key);
+      expect(replay.id).not.toBe(first.id);
+      await expect(testApp.prisma.lead.count()).resolves.toBe(1);
+    });
   });
 
   describe('settings', () => {
@@ -642,6 +663,17 @@ describe('admin leads e2e', () => {
       } finally {
         await restoreSettings(original);
       }
+    });
+
+    it('does not move the settings audit fields', async () => {
+      const before = await getSettings();
+
+      await runMaintenance();
+
+      const after = await getSettings();
+      expect(after.lastRetentionRunAt).not.toBeNull();
+      expect(after.updatedAt).toBe(before.updatedAt);
+      expect(after.updatedBy).toEqual(before.updatedBy);
     });
 
     it('runs again once more than 20 hours have passed', async () => {
