@@ -5,7 +5,7 @@ import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { Language } from '../../../common/i18n/resolve-lang';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { IdempotencyKey } from '../../../generated/prisma/client';
+import type { IdempotencyKey, Prisma } from '../../../generated/prisma/client';
 import { IdempotencyScope } from '../../../generated/prisma/enums';
 import { langQuerySchema } from '../../catalog/public/dto/lang-query.schema';
 import { IdempotencyService } from '../idempotency/idempotency.service';
@@ -67,6 +67,19 @@ interface LoadedVersion {
     publicId: string;
     versions: VersionSummary[];
   };
+}
+
+export interface PreparedCalculation {
+  snapshot: SnapshotV1;
+  now: Date;
+  expiresAt: Date;
+}
+
+export interface StoredVersionRef {
+  id: string;
+  number: number;
+  expiresAt: Date;
+  publicId: string;
 }
 
 function expiryOf(now: Date, validityDays: number): Date {
@@ -141,6 +154,31 @@ export class CalculationsService implements OnModuleInit {
     idempotency: IdempotencyContextValue,
     lang: Language,
   ): Promise<SaveCalculationResponse> {
+    const prepared = await this.prepareNew(input);
+
+    const version = await this.prisma.$transaction(async (tx) => {
+      const { version: created, calculation } = await this.persistNew(
+        tx,
+        prepared,
+      );
+      await this.idempotency.record(tx, {
+        ...idempotency,
+        resultId: created.id,
+      });
+
+      return {
+        ...created,
+        snapshot: prepared.snapshot,
+        calculation: { ...calculation, versions: [created] },
+      };
+    });
+
+    return this.respond(version, input, lang);
+  }
+
+  async prepareNew(
+    input: Pick<SaveCalculationRequest, 'configuration' | 'styleId'>,
+  ): Promise<PreparedCalculation> {
     const now = this.clock.now();
     const [snapshot, { calculationValidityDays }] = await Promise.all([
       this.builder.build({
@@ -150,28 +188,45 @@ export class CalculationsService implements OnModuleInit {
       }),
       this.settings.get(),
     ]);
-    const expiresAt = expiryOf(now, calculationValidityDays);
 
-    const version = await this.prisma.$transaction(async (tx) => {
-      const calculation = await tx.calculation.create({
-        data: { publicId: generatePublicId(), latestVersionNumber: 1 },
-      });
-      const created = await tx.calculationVersion.create({
-        data: versionData(calculation.id, 1, snapshot, expiresAt, now),
-      });
-      await this.idempotency.record(tx, {
-        ...idempotency,
-        resultId: created.id,
-      });
+    return {
+      snapshot,
+      now,
+      expiresAt: expiryOf(now, calculationValidityDays),
+    };
+  }
 
-      return {
-        ...created,
-        snapshot,
-        calculation: { ...calculation, versions: [created] },
-      };
+  async persistNew(
+    tx: Prisma.TransactionClient,
+    { snapshot, expiresAt, now }: PreparedCalculation,
+  ) {
+    const calculation = await tx.calculation.create({
+      data: { publicId: generatePublicId(), latestVersionNumber: 1 },
+    });
+    const version = await tx.calculationVersion.create({
+      data: versionData(calculation.id, 1, snapshot, expiresAt, now),
     });
 
-    return this.respond(version, input, lang);
+    return { version, calculation };
+  }
+
+  async findStoredVersion(
+    publicId: string,
+    number: number,
+  ): Promise<StoredVersionRef> {
+    const version =
+      number < 1
+        ? null
+        : await this.prisma.calculationVersion.findFirst({
+            where: { number, calculation: { publicId } },
+            select: { id: true, number: true, expiresAt: true },
+          });
+
+    if (!version) {
+      throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
+    }
+
+    return { ...version, publicId };
   }
 
   async recalculate(

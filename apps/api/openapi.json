@@ -4488,6 +4488,131 @@
           "PublicCalculations"
         ]
       }
+    },
+    "/api/v1/public/leads": {
+      "post": {
+        "operationId": "PublicLeadsController_create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLeadRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateLeadResponseDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CALCULATION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "PHONE_INVALID | INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "IDEMPOTENCY_KEY_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicLeads"
+        ]
+      }
+    },
+    "/api/v1/public/leads/form-settings": {
+      "get": {
+        "operationId": "PublicLeadsController_formSettings",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadFormSettingsDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicLeads"
+        ]
+      }
     }
   },
   "info": {
@@ -14031,6 +14156,301 @@
           "exchangeRate",
           "priceStatus",
           "versions"
+        ],
+        "additionalProperties": false
+      },
+      "CreateLeadRequestDto": {
+        "type": "object",
+        "properties": {
+          "calculation": {
+            "type": "object",
+            "properties": {
+              "publicId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "versionNumber": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "publicId",
+              "versionNumber"
+            ]
+          },
+          "draft": {
+            "type": "object",
+            "properties": {
+              "configuration": {
+                "type": "object",
+                "properties": {
+                  "finishLevel": {
+                    "type": "string",
+                    "enum": [
+                      "ROUGH",
+                      "PRE_FINISH"
+                    ]
+                  },
+                  "totalAreaSqm": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "balconyAreaSqm": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "balconyTiles": {
+                    "type": "boolean"
+                  },
+                  "gas": {
+                    "type": "boolean"
+                  },
+                  "kitchenType": {
+                    "type": "string",
+                    "enum": [
+                      "SEPARATE",
+                      "KITCHEN_LIVING"
+                    ]
+                  },
+                  "rooms": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "clientId": {
+                          "type": "string"
+                        },
+                        "roomTypeCode": {
+                          "type": "string",
+                          "enum": [
+                            "LIVING_ROOM",
+                            "BEDROOM",
+                            "KITCHEN",
+                            "KITCHEN_LIVING",
+                            "BATHROOM"
+                          ]
+                        },
+                        "lengthM": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "widthM": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "heightM": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "heatedFloor": {
+                          "type": "boolean"
+                        },
+                        "selections": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "categoryId": {
+                                "type": "string"
+                              },
+                              "productId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "categoryId",
+                              "productId"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "clientId",
+                        "roomTypeCode",
+                        "lengthM",
+                        "widthM",
+                        "heightM",
+                        "heatedFloor",
+                        "selections"
+                      ]
+                    }
+                  },
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "optionId": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "roomClientIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "optionId"
+                      ]
+                    }
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "USD",
+                      "UAH"
+                    ]
+                  }
+                },
+                "required": [
+                  "finishLevel",
+                  "totalAreaSqm",
+                  "balconyAreaSqm",
+                  "balconyTiles",
+                  "gas",
+                  "kitchenType",
+                  "rooms",
+                  "options",
+                  "currency"
+                ]
+              },
+              "styleId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "clientPricingVersion": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{16}$"
+              }
+            },
+            "required": [
+              "configuration",
+              "styleId",
+              "clientPricingVersion"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "consent": {
+            "type": "object",
+            "properties": {
+              "accepted": {
+                "type": "boolean",
+                "const": true
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "accepted",
+              "text"
+            ]
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "en",
+              "uk"
+            ]
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "phone",
+          "consent",
+          "locale"
+        ]
+      },
+      "CreateLeadResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "leadNumber": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "calculation": {
+            "type": "object",
+            "properties": {
+              "publicId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "versionNumber": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "publicId",
+              "versionNumber"
+            ],
+            "additionalProperties": false
+          },
+          "expiredAtSubmission": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "leadNumber",
+          "calculation",
+          "expiredAtSubmission"
+        ],
+        "additionalProperties": false
+      },
+      "LeadFormSettingsDto_Output": {
+        "type": "object",
+        "properties": {
+          "retentionDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "notice": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "retentionDays",
+          "notice"
         ],
         "additionalProperties": false
       }
