@@ -9,11 +9,6 @@ vi.mock('../presenters/version-view.presenter', async (importOriginal) => ({
   parseStoredSnapshot: (value: unknown) => value,
 }));
 
-vi.mock('./dto/save-calculation.schema', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  saveCalculationRequestSchema: { parse: (value: unknown) => value },
-}));
-
 const NOW = new Date('2026-10-22T12:00:00.000Z');
 const DAY_MS = 86_400_000;
 const VALIDITY_DAYS = 14;
@@ -287,6 +282,18 @@ describe('CalculationsService.findVersion', () => {
     );
   });
 
+  it('answers CALCULATION_NOT_FOUND for a non-positive number without reading the database', async () => {
+    const ctx = setup();
+
+    const error = await ctx.service
+      .findVersion('public', 0, 'uk')
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).code).toBe(ERROR_CODES.CALCULATION_NOT_FOUND);
+    expect(ctx.prisma.calculation.findUnique).not.toHaveBeenCalled();
+  });
+
   it('answers CALCULATION_NOT_FOUND for an unknown id and an unknown number', async () => {
     const ctx = setup();
     const unknownId = await ctx.service
@@ -367,13 +374,13 @@ describe('CalculationsService save replay', () => {
     );
   });
 
-  it('evaluates expiry at the creation time of the idempotency key', async () => {
+  it('evaluates expiry at the creation time of the version, as the first response did', async () => {
     const ctx = setup();
 
     await ctx.loader(ROW, { query: { lang: 'en' }, body });
 
     expect(ctx.presenter.present).toHaveBeenCalledWith(
-      expect.objectContaining({ now: KEY_CREATED_AT }),
+      expect.objectContaining({ now: NOW }),
     );
   });
 

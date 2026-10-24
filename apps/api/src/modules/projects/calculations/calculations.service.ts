@@ -17,6 +17,7 @@ import {
 import type { VersionView } from '../presenters/version-view.schema';
 import { ProjectsSettingsService } from '../settings/projects-settings.service';
 import { SnapshotBuilder } from '../snapshot/snapshot.builder';
+import type { SnapshotV1 } from '../snapshot/snapshot.schema';
 import {
   type PriceDifference,
   type SaveCalculationRequest,
@@ -26,6 +27,11 @@ import {
 import { generatePublicId } from './public-id';
 
 const MS_PER_DAY = 86_400_000;
+
+const clientPriceSchema = saveCalculationRequestSchema.pick({
+  clientPricingVersion: true,
+  clientTotalUsdCents: true,
+});
 
 type ClientPrice = Pick<
   SaveCalculationRequest,
@@ -48,7 +54,7 @@ const VERSION_SUMMARY_SELECT = {
 
 interface LoadedVersion {
   number: number;
-  snapshot: unknown;
+  snapshot: SnapshotV1;
   pricingVersion: string;
   totalUsdCents: number;
   incomplete: boolean;
@@ -139,6 +145,7 @@ export class CalculationsService implements OnModuleInit {
 
       return {
         ...created,
+        snapshot,
         calculation: { ...calculation, versions: [created] },
       };
     });
@@ -151,6 +158,10 @@ export class CalculationsService implements OnModuleInit {
     number: number | null,
     lang: Language,
   ): Promise<VersionView> {
+    if (number !== null && number < 1) {
+      throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
+    }
+
     const calculation = await this.prisma.calculation.findUnique({
       where: { publicId },
       select: {
@@ -178,7 +189,15 @@ export class CalculationsService implements OnModuleInit {
       throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
     }
 
-    return this.view({ ...version, calculation }, lang);
+    return this.view(
+      {
+        ...version,
+        snapshot: parseStoredSnapshot(version.snapshot),
+        calculation,
+      },
+      lang,
+      this.clock.now(),
+    );
   }
 
   private async replay(
@@ -202,13 +221,16 @@ export class CalculationsService implements OnModuleInit {
       select: VERSION_SUMMARY_SELECT,
     });
     const { lang } = langQuerySchema.parse(request.query);
-    const body = saveCalculationRequestSchema.parse(request.body);
+    const client = clientPriceSchema.parse(request.body);
 
     return this.respond(
-      { ...version, calculation: { ...version.calculation, versions } },
-      body,
+      {
+        ...version,
+        snapshot: parseStoredSnapshot(version.snapshot),
+        calculation: { ...version.calculation, versions },
+      },
+      client,
       lang,
-      row.createdAt,
     );
   }
 
@@ -216,10 +238,9 @@ export class CalculationsService implements OnModuleInit {
     version: LoadedVersion,
     client: ClientPrice,
     lang: Language,
-    now?: Date,
   ): SaveCalculationResponse {
     return {
-      version: this.view(version, lang, now),
+      version: this.view(version, lang, version.createdAt),
       priceDifference: priceDifferenceOf(
         client,
         version.pricingVersion,
@@ -228,16 +249,12 @@ export class CalculationsService implements OnModuleInit {
     };
   }
 
-  private view(
-    version: LoadedVersion,
-    lang: Language,
-    now: Date = this.clock.now(),
-  ): VersionView {
+  private view(version: LoadedVersion, lang: Language, now: Date): VersionView {
     return this.presenter.present({
       publicId: version.calculation.publicId,
       version: {
         number: version.number,
-        snapshot: parseStoredSnapshot(version.snapshot),
+        snapshot: version.snapshot,
         pricingVersion: version.pricingVersion,
         incomplete: version.incomplete,
         expiresAt: version.expiresAt,
