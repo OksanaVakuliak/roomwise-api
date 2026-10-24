@@ -234,6 +234,9 @@ function resolveRouteId(path: string): string {
   ) {
     return UNSEEDED_PRICING_ID;
   }
+  if (path.startsWith('/api/v1/admin/leads/')) {
+    return UNSEEDED_PRICING_ID;
+  }
   throw new Error(`No seeded id resolver for path: ${path}`);
 }
 
