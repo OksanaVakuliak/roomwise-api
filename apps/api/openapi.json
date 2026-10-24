@@ -4266,6 +4266,117 @@
         ]
       }
     },
+    "/api/v1/public/calculations/{publicId}/versions": {
+      "post": {
+        "operationId": "PublicCalculationsController_recalculate",
+        "parameters": [
+          {
+            "name": "publicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "en",
+                "uk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecalculateCalculationRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionViewDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CALCULATION_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "IDEMPOTENCY_KEY_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicCalculations"
+        ]
+      }
+    },
     "/api/v1/public/calculations/{publicId}": {
       "get": {
         "operationId": "PublicCalculationsController_getLatest",
@@ -12957,6 +13068,77 @@
                   }
                 ]
               },
+              "priceStatus": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "changed": {
+                        "type": "boolean"
+                      },
+                      "snapshotTotalUsdCents": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "currentTotalUsdCents": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "diffCents": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "unavailableItems": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "lineId": {
+                              "type": "string"
+                            },
+                            "productId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "optionId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "lineId",
+                            "productId",
+                            "optionId"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "currentPricingVersion": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "changed",
+                      "snapshotTotalUsdCents",
+                      "currentTotalUsdCents",
+                      "diffCents",
+                      "unavailableItems",
+                      "currentPricingVersion"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "versions": {
                 "type": "array",
                 "items": {
@@ -13006,6 +13188,7 @@
               "totals",
               "warnings",
               "exchangeRate",
+              "priceStatus",
               "versions"
             ],
             "additionalProperties": false
@@ -13049,6 +13232,19 @@
           "priceDifference"
         ],
         "additionalProperties": false
+      },
+      "RecalculateCalculationRequestDto": {
+        "type": "object",
+        "properties": {
+          "basedOnVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "basedOnVersion"
+        ]
       },
       "VersionViewDto_Output": {
         "type": "object",
@@ -13713,6 +13909,77 @@
               }
             ]
           },
+          "priceStatus": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "changed": {
+                    "type": "boolean"
+                  },
+                  "snapshotTotalUsdCents": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "currentTotalUsdCents": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "diffCents": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "unavailableItems": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "lineId": {
+                          "type": "string"
+                        },
+                        "productId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "optionId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "lineId",
+                        "productId",
+                        "optionId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "currentPricingVersion": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "changed",
+                  "snapshotTotalUsdCents",
+                  "currentTotalUsdCents",
+                  "diffCents",
+                  "unavailableItems",
+                  "currentPricingVersion"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "versions": {
             "type": "array",
             "items": {
@@ -13762,6 +14029,7 @@
           "totals",
           "warnings",
           "exchangeRate",
+          "priceStatus",
           "versions"
         ],
         "additionalProperties": false

@@ -28,6 +28,7 @@ const PUBLIC_MUTATING_ROUTES = new Set([
   'POST /api/v1/admin/auth/logout',
   'POST /api/v1/public/estimates',
   'POST /api/v1/public/calculations',
+  'POST /api/v1/public/calculations/{publicId}/versions',
 ]);
 
 vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });

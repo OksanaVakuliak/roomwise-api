@@ -3,6 +3,7 @@ import { PublicWriteExemption } from '../../common/throttling/public-write-exemp
 import { CatalogModule } from '../catalog/catalog.module';
 import { PricingModule } from '../pricing/pricing.module';
 import { CalculationsService } from './calculations/calculations.service';
+import { PriceStatusService } from './calculations/price-status.service';
 import { PublicCalculationsController } from './calculations/public-calculations.controller';
 import { IdempotencyInterceptor } from './idempotency/idempotency.interceptor';
 import { IdempotencyService } from './idempotency/idempotency.service';
@@ -24,6 +25,7 @@ import { SnapshotBuilder } from './snapshot/snapshot.builder';
     },
     ProjectsSettingsService,
     SnapshotBuilder,
+    PriceStatusService,
     VersionViewPresenter,
     CalculationsService,
   ],

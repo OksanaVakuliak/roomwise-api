@@ -34,6 +34,9 @@ const snapshot = {
   },
 };
 
+const CURRENT_STATUS = { changed: true, marker: 'current' };
+const FRESH_STATUS = { changed: false, marker: 'fresh' };
+
 function storedVersion(number = 1) {
   return {
     id: VERSION_ID,
@@ -70,7 +73,9 @@ function createService() {
   const tx = {
     calculation: {
       create: vi.fn().mockResolvedValue(storedCalculation([])),
+      update: vi.fn().mockResolvedValue({}),
     },
+    $queryRaw: vi.fn().mockResolvedValue([{ latest_version_number: 2 }]),
     calculationVersion: {
       create: vi
         .fn()
@@ -90,6 +95,10 @@ function createService() {
   };
   const idempotency = { record: vi.fn(), registerLoader: vi.fn() };
   const presenter = { present: vi.fn((input) => ({ presented: input })) };
+  const priceStatus = {
+    current: vi.fn().mockResolvedValue(CURRENT_STATUS),
+    fresh: vi.fn().mockReturnValue(FRESH_STATUS),
+  };
   const service = new CalculationsService(
     prisma as never,
     { now: () => NOW } as never,
@@ -97,9 +106,10 @@ function createService() {
     settings as never,
     idempotency as never,
     presenter as never,
+    priceStatus as never,
   );
 
-  return { service, tx, prisma, builder, idempotency, presenter };
+  return { service, tx, prisma, builder, idempotency, presenter, priceStatus };
 }
 
 const input = {
@@ -200,6 +210,275 @@ describe('CalculationsService.create', () => {
       expect.objectContaining({ lang: 'en', publicId: 'public', now: NOW }),
     );
   });
+
+  it('presents a fresh price status for the created version', async () => {
+    const { service, presenter, priceStatus } = createService();
+
+    await service.create(input, CONTEXT, 'uk');
+
+    expect(priceStatus.fresh).toHaveBeenCalledWith(
+      expect.objectContaining({
+        totalUsdCents: SAVED_TOTAL,
+        pricingVersion: PRICING_VERSION,
+      }),
+    );
+    expect(priceStatus.current).not.toHaveBeenCalled();
+    expect(presenter.present).toHaveBeenCalledWith(
+      expect.objectContaining({ priceStatus: FRESH_STATUS }),
+    );
+  });
+});
+
+describe('CalculationsService.recalculate', () => {
+  const CONFIGURATION = { rooms: [{ id: 'room' }] };
+  const RECALCULATE_CONTEXT = {
+    ...CONTEXT,
+    scope: IdempotencyScope.RECALCULATE,
+  };
+  const base = {
+    ...storedVersion(1),
+    snapshot: {
+      ...snapshot,
+      configuration: CONFIGURATION,
+      style: { id: STYLE_ID, name: { en: 'Style', uk: 'Style' } },
+    },
+  };
+
+  function setup(overrides: { style?: null; version?: null } = {}) {
+    const ctx = createService();
+    ctx.prisma.calculation.findUnique.mockResolvedValue({
+      id: 'calc-1',
+      publicId: 'public',
+    });
+    ctx.prisma.calculationVersion.findUnique.mockResolvedValue(
+      overrides.version === null
+        ? null
+        : { ...base, snapshot: { ...base.snapshot, ...overrides } },
+    );
+    ctx.prisma.calculationVersion.findMany.mockResolvedValue([
+      summaryOf(storedVersion(1)),
+      summaryOf(storedVersion(3)),
+    ]);
+
+    return ctx;
+  }
+
+  async function failureOf(promise: Promise<unknown>) {
+    const error = await promise.catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(AppError);
+
+    return (error as AppError).code;
+  }
+
+  it('answers CALCULATION_NOT_FOUND for an unknown public id', async () => {
+    const ctx = setup();
+    ctx.prisma.calculation.findUnique.mockResolvedValue(null);
+
+    const code = await failureOf(
+      ctx.service.recalculate('missing', 1, RECALCULATE_CONTEXT, 'uk'),
+    );
+
+    expect(code).toBe(ERROR_CODES.CALCULATION_NOT_FOUND);
+    expect(ctx.prisma.calculationVersion.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('answers CALCULATION_NOT_FOUND for an unknown base version', async () => {
+    const ctx = setup({ version: null });
+
+    const code = await failureOf(
+      ctx.service.recalculate('public', 9, RECALCULATE_CONTEXT, 'uk'),
+    );
+
+    expect(code).toBe(ERROR_CODES.CALCULATION_NOT_FOUND);
+    expect(ctx.prisma.calculationVersion.findUnique).toHaveBeenCalledWith({
+      where: { calculationId_number: { calculationId: 'calc-1', number: 9 } },
+    });
+  });
+
+  it('answers STYLE_NOT_FOUND when the stored snapshot has no style', async () => {
+    const ctx = setup({ style: null });
+
+    const code = await failureOf(
+      ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk'),
+    );
+
+    expect(code).toBe(ERROR_CODES.STYLE_NOT_FOUND);
+    expect(ctx.builder.build).not.toHaveBeenCalled();
+  });
+
+  it('rebuilds the snapshot from the stored configuration and style', async () => {
+    const ctx = setup();
+
+    await ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk');
+
+    expect(ctx.builder.build).toHaveBeenCalledWith({
+      configuration: CONFIGURATION,
+      styleId: STYLE_ID,
+      createdAt: NOW,
+    });
+  });
+
+  it('stores the number after the latest one read under the row lock', async () => {
+    const ctx = setup();
+    ctx.tx.$queryRaw.mockResolvedValue([{ latest_version_number: 5 }]);
+
+    await ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk');
+
+    expect(ctx.tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(ctx.tx.calculationVersion.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        calculationId: 'calc-1',
+        number: 6,
+        expiresAt: new Date(NOW.getTime() + VALIDITY_DAYS * DAY_MS),
+        createdAt: NOW,
+      }),
+    });
+    expect(ctx.tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      ctx.tx.calculationVersion.create.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('moves latestVersionNumber to the new number', async () => {
+    const ctx = setup();
+
+    await ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk');
+
+    expect(ctx.tx.calculation.update).toHaveBeenCalledWith({
+      where: { id: 'calc-1' },
+      data: { latestVersionNumber: 3 },
+    });
+  });
+
+  it('records the idempotency key inside the transaction with the version id', async () => {
+    const ctx = setup();
+
+    await ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk');
+
+    expect(ctx.idempotency.record).toHaveBeenCalledWith(ctx.tx, {
+      ...RECALCULATE_CONTEXT,
+      resultId: VERSION_ID,
+    });
+  });
+
+  it('presents the new version with the sibling versions up to it', async () => {
+    const ctx = setup();
+
+    await ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'en');
+
+    expect(ctx.prisma.calculationVersion.findMany).toHaveBeenCalledWith({
+      where: { calculationId: 'calc-1', number: { lte: 3 } },
+      select: {
+        number: true,
+        createdAt: true,
+        totalUsdCents: true,
+        expiresAt: true,
+      },
+    });
+    expect(ctx.presenter.present).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lang: 'en',
+        publicId: 'public',
+        now: NOW,
+        version: expect.objectContaining({ number: 3 }),
+      }),
+    );
+  });
+
+  it('presents a fresh price status for the new version', async () => {
+    const ctx = setup();
+
+    await ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'en');
+
+    expect(ctx.priceStatus.fresh).toHaveBeenCalledWith(
+      expect.objectContaining({
+        totalUsdCents: SAVED_TOTAL,
+        pricingVersion: PRICING_VERSION,
+      }),
+    );
+    expect(ctx.priceStatus.current).not.toHaveBeenCalled();
+    expect(ctx.presenter.present).toHaveBeenCalledWith(
+      expect.objectContaining({ priceStatus: FRESH_STATUS }),
+    );
+  });
+});
+
+describe('CalculationsService recalculation replay', () => {
+  function setup() {
+    const ctx = createService();
+    ctx.service.onModuleInit();
+    const [scope, loader] = ctx.idempotency.registerLoader.mock.calls[1];
+
+    expect(scope).toBe(IdempotencyScope.RECALCULATE);
+
+    return { ...ctx, loader };
+  }
+
+  it('replays the stored version as a version view', async () => {
+    const ctx = setup();
+    ctx.prisma.calculationVersion.findUnique.mockResolvedValue({
+      ...storedVersion(3),
+      calculation: { id: 'calc-1', publicId: 'public' },
+    });
+    ctx.prisma.calculationVersion.findMany.mockResolvedValue([
+      summaryOf(storedVersion(3)),
+    ]);
+
+    const result = await ctx.loader(
+      { resultId: VERSION_ID },
+      { query: { lang: 'en' }, body: { basedOnVersion: 1 } },
+    );
+
+    expect(ctx.prisma.calculationVersion.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: VERSION_ID } }),
+    );
+    expect(ctx.prisma.calculationVersion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { calculationId: 'calc-1', number: { lte: 3 } },
+      }),
+    );
+    expect(result).toEqual({
+      presented: expect.objectContaining({
+        lang: 'en',
+        publicId: 'public',
+        now: NOW,
+        version: expect.objectContaining({ number: 3 }),
+      }),
+    });
+  });
+
+  it('replays a fresh price status without re-estimating', async () => {
+    const ctx = setup();
+    ctx.prisma.calculationVersion.findUnique.mockResolvedValue({
+      ...storedVersion(3),
+      calculation: { id: 'calc-1', publicId: 'public' },
+    });
+    ctx.prisma.calculationVersion.findMany.mockResolvedValue([
+      summaryOf(storedVersion(3)),
+    ]);
+
+    await ctx.loader(
+      { resultId: VERSION_ID },
+      { query: { lang: 'en' }, body: { basedOnVersion: 1 } },
+    );
+
+    expect(ctx.priceStatus.fresh).toHaveBeenCalledWith(
+      expect.objectContaining({ totalUsdCents: SAVED_TOTAL }),
+    );
+    expect(ctx.priceStatus.current).not.toHaveBeenCalled();
+  });
+
+  it('answers CALCULATION_NOT_FOUND when the version no longer exists', async () => {
+    const ctx = setup();
+    ctx.prisma.calculationVersion.findUnique.mockResolvedValue(null);
+
+    const error = await ctx
+      .loader({ resultId: VERSION_ID }, { query: { lang: 'en' }, body: {} })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).code).toBe(ERROR_CODES.CALCULATION_NOT_FOUND);
+  });
 });
 
 describe('CalculationsService.findVersion', () => {
@@ -246,6 +525,22 @@ describe('CalculationsService.findVersion', () => {
           expect.objectContaining({ number: 2 }),
         ],
       }),
+    );
+  });
+
+  it('presents the current price status of the stored version', async () => {
+    const ctx = setup();
+
+    await ctx.service.findVersion('public', 1, 'uk');
+
+    expect(ctx.priceStatus.current).toHaveBeenCalledWith({
+      id: VERSION_ID,
+      snapshot,
+      totalUsdCents: SAVED_TOTAL,
+    });
+    expect(ctx.priceStatus.fresh).not.toHaveBeenCalled();
+    expect(ctx.presenter.present).toHaveBeenCalledWith(
+      expect.objectContaining({ priceStatus: CURRENT_STATUS }),
     );
   });
 
@@ -382,6 +677,17 @@ describe('CalculationsService save replay', () => {
     expect(ctx.presenter.present).toHaveBeenCalledWith(
       expect.objectContaining({ now: NOW }),
     );
+  });
+
+  it('replays a fresh price status without re-estimating', async () => {
+    const ctx = setup();
+
+    await ctx.loader(ROW, { query: { lang: 'en' }, body });
+
+    expect(ctx.priceStatus.fresh).toHaveBeenCalledWith(
+      expect.objectContaining({ totalUsdCents: SAVED_TOTAL }),
+    );
+    expect(ctx.priceStatus.current).not.toHaveBeenCalled();
   });
 
   it('answers CALCULATION_NOT_FOUND when the version no longer exists', async () => {

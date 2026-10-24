@@ -25,6 +25,7 @@ import {
   VersionViewDto,
 } from '../presenters/version-view.schema';
 import { CalculationsService } from './calculations.service';
+import { RecalculateCalculationRequestDto } from './dto/recalculate-calculation.schema';
 import {
   SaveCalculationRequestDto,
   type SaveCalculationResponse,
@@ -82,6 +83,53 @@ export class PublicCalculationsController {
     @IdempotencyContext() idempotency: IdempotencyContextValue,
   ): Promise<SaveCalculationResponse> {
     return this.calculations.create(body, idempotency, query.lang);
+  }
+
+  @Public()
+  @PublicWriteLimit('saves')
+  @Idempotent(IdempotencyScope.RECALCULATE)
+  @Post(':publicId/versions')
+  @ApiQuery(LANG_QUERY)
+  @ApiBody({ type: RecalculateCalculationRequestDto })
+  @ZodResponse({ status: HttpStatus.CREATED, type: VersionViewDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'CALCULATION_NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description:
+      'INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.PRECONDITION_REQUIRED,
+    description: 'IDEMPOTENCY_KEY_REQUIRED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: 'RATE_LIMITED',
+    type: ErrorResponseDto,
+  })
+  recalculate(
+    @Param('publicId') publicId: string,
+    @Body() body: RecalculateCalculationRequestDto,
+    @Query() query: LangQueryDto,
+    @IdempotencyContext() idempotency: IdempotencyContextValue,
+  ): Promise<VersionView> {
+    return this.calculations.recalculate(
+      publicId,
+      body.basedOnVersion,
+      idempotency,
+      query.lang,
+    );
   }
 
   @Public()

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import type { Language } from '../../../common/i18n/resolve-lang';
 import { CatalogSnapshotReadService } from '../../catalog/snapshot-read/catalog-snapshot-read.service';
+import type { PriceStatus } from '../calculations/price-status.schema';
 import { type SnapshotV1, SnapshotV1Schema } from '../snapshot/snapshot.schema';
 import type { VersionView } from './version-view.schema';
 
@@ -21,6 +22,7 @@ export interface PresentVersionInput {
     totalUsdCents: number;
     expiresAt: Date;
   }[];
+  priceStatus: PriceStatus | null;
   lang: Language;
   now: Date;
 }
@@ -52,7 +54,7 @@ export class VersionViewPresenter {
   ) {}
 
   present(input: PresentVersionInput): VersionView {
-    const { publicId, version, versions, lang, now } = input;
+    const { publicId, version, versions, priceStatus, lang, now } = input;
     const { snapshot } = version;
 
     return {
@@ -97,6 +99,7 @@ export class VersionViewPresenter {
       totals: snapshot.estimate.totals,
       warnings: snapshot.estimate.warnings,
       exchangeRate: snapshot.pricing.exchangeRate,
+      priceStatus,
       versions: [...versions]
         .sort((a, b) => b.number - a.number)
         .map((item) => ({
