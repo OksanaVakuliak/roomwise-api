@@ -7,6 +7,17 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-25
+
+### Added
+
+- `PricingOption.code`: a stable option code (`OptionCode`, currently `HEATED_FLOOR`) or `null`.
+- `RoomConfiguration.name`: an optional room name chosen by the user, 1–60 characters after trimming.
+
+### Fixed
+
+- An option with an empty `roomTypeCodes` list now applies to rooms of every type instead of producing a zero quantity and `OPTION_ROOM_TYPE_NOT_ALLOWED` warnings.
+
 ## [0.1.0] - 2026-10-21
 
 Initial release.
