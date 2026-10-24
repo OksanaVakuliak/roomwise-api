@@ -46,6 +46,7 @@ const pieceOption = (
   overrides: Partial<PricingOption> = {},
 ): PricingOption => ({
   id: 'o1',
+  code: null,
   kind: 'ADDITIONAL',
   priceCents: 1000,
   unit: 'PIECE',

@@ -1,4 +1,5 @@
 import {
+  OptionCode,
   OptionKind,
   OptionUnit,
   PublicationStatus,
@@ -21,6 +22,7 @@ export const optionIds = {
 export const options: SeedOption[] = [
   {
     id: optionIds.heatedFloor,
+    code: OptionCode.HEATED_FLOOR,
     kind: OptionKind.ENGINEERING,
     name: { en: 'Heated floor', uk: 'Тепла підлога' },
     description: {
@@ -42,6 +44,7 @@ export const options: SeedOption[] = [
   },
   {
     id: optionIds.airConditioning,
+    code: null,
     kind: OptionKind.ENGINEERING,
     name: { en: 'Air conditioning', uk: 'Кондиціонування' },
     description: {
@@ -59,6 +62,7 @@ export const options: SeedOption[] = [
   },
   {
     id: optionIds.videoSurveillance,
+    code: null,
     kind: OptionKind.ENGINEERING,
     name: { en: 'Video surveillance', uk: 'Відеоспостереження' },
     description: {
@@ -76,6 +80,7 @@ export const options: SeedOption[] = [
   },
   {
     id: optionIds.smartLighting,
+    code: null,
     kind: OptionKind.ENGINEERING,
     name: { en: 'Smart lighting', uk: 'Розумне освітлення' },
     description: {
@@ -93,6 +98,7 @@ export const options: SeedOption[] = [
   },
   {
     id: optionIds.soundproofing,
+    code: null,
     kind: OptionKind.ENGINEERING,
     name: { en: 'Soundproofing', uk: 'Звукоізоляція' },
     description: {
@@ -110,6 +116,7 @@ export const options: SeedOption[] = [
   },
   {
     id: optionIds.finalCleaning,
+    code: null,
     kind: OptionKind.ADDITIONAL,
     name: { en: 'Final cleaning', uk: 'Фінальне прибирання' },
     description: {
@@ -127,6 +134,7 @@ export const options: SeedOption[] = [
   },
   {
     id: optionIds.furnitureAssembly,
+    code: null,
     kind: OptionKind.ADDITIONAL,
     name: { en: 'Furniture assembly', uk: 'Збирання меблів' },
     description: {
@@ -144,6 +152,7 @@ export const options: SeedOption[] = [
   },
   {
     id: optionIds.designConsultation,
+    code: null,
     kind: OptionKind.ADDITIONAL,
     name: { en: 'Design consultation', uk: 'Консультація дизайнера' },
     description: {

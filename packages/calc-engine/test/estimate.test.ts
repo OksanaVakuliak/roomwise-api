@@ -237,6 +237,70 @@ describe('estimate references and options', () => {
     ).toMatchObject({ quantity: 0, amountCents: 0 });
   });
 
+  describe('room type restriction of a room option', () => {
+    const roomOption = (
+      unit: 'ROOM' | 'ROOM_SQM',
+      roomTypeCodes: string[],
+    ): PricingData => ({
+      ...data,
+      options: [
+        {
+          id: 'opt-room',
+          kind: 'ADDITIONAL',
+          priceCents: 1000,
+          unit,
+          roomTypeCodes,
+          minQuantity: null,
+          maxQuantity: null,
+          available: true,
+          code: null,
+        },
+      ],
+    });
+    const configuration: Configuration = {
+      ...request,
+      options: [{ optionId: 'opt-room', roomClientIds: ['living', 'bath'] }],
+    };
+    const line = (unit: 'ROOM' | 'ROOM_SQM', roomTypeCodes: string[]) =>
+      lineOf(
+        estimate(configuration, roomOption(unit, roomTypeCodes)),
+        'ADDITIONAL:option:opt-room',
+      );
+
+    it.each([
+      ['ROOM', 2, 2000],
+      ['ROOM_SQM', 24, 24000],
+    ] as const)(
+      'applies a %s option without restriction to every selected room',
+      (unit, quantity, amountCents) => {
+        expect(line(unit, [])).toMatchObject({
+          quantity,
+          amountCents,
+          warnings: [],
+        });
+      },
+    );
+
+    it.each([
+      ['ROOM', 1, 1000],
+      ['ROOM_SQM', 20, 20000],
+    ] as const)(
+      'still rejects rooms outside a non-empty list of a %s option',
+      (unit, quantity, amountCents) => {
+        expect(line(unit, ['LIVING_ROOM'])).toMatchObject({
+          quantity,
+          amountCents,
+          warnings: [
+            {
+              code: 'OPTION_ROOM_TYPE_NOT_ALLOWED',
+              params: { roomClientId: 'bath', roomTypeCode: 'BATHROOM' },
+            },
+          ],
+        });
+      },
+    );
+  });
+
   it('leaves the UAH amounts empty without an exchange rate', () => {
     const result = estimate(request, { ...data, exchangeRate: null });
     expect(result.totals.uahKopecks).toBeNull();

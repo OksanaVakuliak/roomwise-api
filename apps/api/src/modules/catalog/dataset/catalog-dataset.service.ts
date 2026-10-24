@@ -152,6 +152,7 @@ export function buildCatalogDatasetRows(
     })),
     options: dataset.options.map((option) => ({
       id: option.id,
+      code: option.code,
       kind: option.kind,
       name: option.name,
       description: option.description,

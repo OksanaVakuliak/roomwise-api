@@ -15,7 +15,8 @@ const nullableText = z.string().nullable();
 
 export const versionViewRoomSchema = RoomConfigurationSchema.omit({
   selections: true,
-}).extend({ name: z.string() });
+  name: true,
+}).extend({ name: z.string(), roomTypeName: z.string() });
 
 export const versionViewLineSchema = EstimateLineSchema.extend({
   roomName: nullableText,

@@ -23,7 +23,12 @@ import type {
   LeadListResponse,
   LeadNote,
 } from './dto/admin-lead.schema';
-import { maskEmail, maskName, maskPhone } from './lead-masking';
+import {
+  maskCalculationRoomNames,
+  maskEmail,
+  maskName,
+  maskPhone,
+} from './lead-masking';
 
 const DEFAULT_LANGUAGE: Language = 'en';
 
@@ -172,7 +177,7 @@ export class AdminLeadsService {
         createdAt: note.createdAt.toISOString(),
         author: note.author,
       })),
-      calculation,
+      calculation: masked ? maskCalculationRoomNames(calculation) : calculation,
     };
   }
 

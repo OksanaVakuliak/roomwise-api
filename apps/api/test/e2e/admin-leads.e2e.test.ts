@@ -14,6 +14,7 @@ import { IdempotencyScope, LeadStatus } from '../../src/generated/prisma/enums';
 import { createTestApp, type TestApp } from './app-factory';
 import { createAdmin, login } from './auth-helpers';
 import {
+  buildNamedBedroomsConfiguration,
   buildProjectsConfiguration,
   newIdempotencyKey,
   projectsStyleId,
@@ -49,6 +50,10 @@ const PERSON = {
   comment: 'Please call after six',
 };
 const PHONE_E164 = '+380671234567';
+
+function roomName(room: { name: string }): string {
+  return room.name;
+}
 
 type Method = 'get' | 'post' | 'patch' | 'delete';
 
@@ -326,6 +331,22 @@ describe('admin leads e2e', () => {
       });
       expect(body.calculation).toHaveProperty('priceStatus');
       expect(body.calculation.totals.usdCents).toBe(body.totalUsdCents);
+    });
+
+    it('shows the room names of a draft saved with the lead', async () => {
+      const lead = await createLead({
+        calculation: undefined,
+        draft: {
+          configuration: buildNamedBedroomsConfiguration(),
+          styleId: projectsStyleId,
+          clientPricingVersion: currentPricingVersion,
+        },
+      });
+      const body = await card(lead.id);
+
+      expect(
+        body.calculation.rooms.map((room: { name: string }) => room.name),
+      ).toEqual(['Master bedroom', 'Kids room']);
     });
 
     it('flags a lead submitted on an expired version', async () => {
@@ -754,9 +775,10 @@ describe('admin leads e2e', () => {
       expect(body.notes).toHaveLength(1);
       expect(body.notes[0].text).toBeNull();
       expect(body.calculation).toMatchObject({
-        publicId: saved.publicId,
+        publicId: MASK,
         totals: { usdCents: expect.any(Number) },
       });
+      expect(JSON.stringify(body)).not.toContain(saved.publicId);
       const serialized = JSON.stringify(body);
       for (const secret of [
         PERSON.name,
@@ -766,6 +788,33 @@ describe('admin leads e2e', () => {
       ]) {
         expect(serialized).not.toContain(secret);
       }
+    });
+
+    it('replaces custom room names with room type names', async () => {
+      const lead = await createLead({
+        calculation: undefined,
+        draft: {
+          configuration: buildNamedBedroomsConfiguration(),
+          styleId: projectsStyleId,
+          clientPricingVersion: currentPricingVersion,
+        },
+      });
+
+      const demoCard = (
+        await asDemo('get', `${ADMIN_LEADS}/${lead.id}`).expect(200)
+      ).body;
+      const adminCard = await card(lead.id);
+
+      expect(demoCard.calculation.rooms.map(roomName)).toEqual(
+        demoCard.calculation.rooms.map(
+          (room: { roomTypeName: string }) => room.roomTypeName,
+        ),
+      );
+      expect(JSON.stringify(demoCard)).not.toMatch(/Master bedroom|Kids room/);
+      expect(demoCard.calculation.publicId).toBe(MASK);
+      expect(adminCard.calculation.publicId).not.toBe(MASK);
+      expect(adminCard.calculation.publicId).toEqual(expect.any(String));
+      expect(JSON.stringify(adminCard)).toContain('Master bedroom');
     });
 
     it('answers 403 DEMO_FORBIDDEN for every write and changes nothing', async () => {

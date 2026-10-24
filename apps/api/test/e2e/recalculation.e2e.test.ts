@@ -11,6 +11,7 @@ import { PROJECTS_SETTINGS_ID } from '../../src/modules/projects/dataset/project
 import { ProjectsSettingsService } from '../../src/modules/projects/settings/projects-settings.service';
 import { createTestApp, type TestApp } from './app-factory';
 import {
+  buildNamedBedroomsConfiguration,
   buildProjectsConfiguration,
   newIdempotencyKey,
   projectsStyleId,
@@ -18,6 +19,8 @@ import {
 } from './projects-fixtures';
 
 const SEED_TIMEOUT_MS = 120_000;
+const FORWARDED_FOR_HEADER = 'x-forwarded-for';
+const NAMED_ROOMS_IP = '10.40.0.1';
 const CALCULATIONS = '/api/v1/public/calculations';
 const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 const UNKNOWN_PUBLIC_ID = 'AAAAAAAAAAAAAAAAAAAAAA';
@@ -291,6 +294,30 @@ describe('recalculation e2e', () => {
       } finally {
         await deleteProduct(productId);
       }
+    });
+
+    it('keeps the room names in the new version', async () => {
+      const first = await request(testApp.http)
+        .post(CALCULATIONS)
+        .set(FORWARDED_FOR_HEADER, NAMED_ROOMS_IP)
+        .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
+        .send({
+          configuration: buildNamedBedroomsConfiguration(),
+          styleId: projectsStyleId,
+          clientPricingVersion: currentPricingVersion,
+          clientTotalUsdCents: 1,
+        })
+        .expect(201);
+
+      const recalculated = await recalculate(first.body.version.publicId).set(
+        FORWARDED_FOR_HEADER,
+        NAMED_ROOMS_IP,
+      );
+
+      expect(recalculated.status).toBe(201);
+      expect(
+        recalculated.body.rooms.map((room: { name: string }) => room.name),
+      ).toEqual(['Master bedroom', 'Kids room']);
     });
 
     it('creates a new version with current prices from the same configuration and style and leaves the old one intact', async () => {

@@ -1,4 +1,5 @@
 import { parsePhoneNumberFromString } from 'libphonenumber-js/max';
+import type { VersionView } from '../presenters/version-view.schema';
 
 const MASK = '•••';
 const PHONE_TAIL_LENGTH = 2;
@@ -30,4 +31,27 @@ export function maskEmail(email: string | null): string | null {
   const topLevelDomain = domain.split('.').pop() ?? '';
 
   return `${firstCodePoint(local)}${MASK}@${MASK}.${topLevelDomain}`;
+}
+
+export function maskCalculationRoomNames(view: VersionView): VersionView {
+  const typeNameByClientId = new Map(
+    view.rooms.map((room) => [room.clientId, room.roomTypeName]),
+  );
+
+  return {
+    ...view,
+    publicId: MASK,
+    configuration: {
+      ...view.configuration,
+      rooms: view.configuration.rooms.map(({ name: _name, ...room }) => room),
+    },
+    rooms: view.rooms.map((room) => ({ ...room, name: room.roomTypeName })),
+    lines: view.lines.map((line) => ({
+      ...line,
+      roomName:
+        line.roomClientId === null
+          ? line.roomName
+          : (typeNameByClientId.get(line.roomClientId) ?? null),
+    })),
+  };
 }

@@ -4,6 +4,7 @@ import { seedDemoAdmin } from '../../prisma/seed/admins';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import type { AppConfigService } from '../../src/config/env';
 import {
+  OptionCode,
   OptionKind,
   OptionUnit,
   ProductUnit,
@@ -487,6 +488,7 @@ describe('seed e2e (US5)', () => {
     });
 
     expect(heatedFloorOption).not.toBeNull();
+    expect(heatedFloorOption?.code).toBe(OptionCode.HEATED_FLOOR);
 
     const roomTypeCodes = (heatedFloorOption?.optionRoomTypes ?? [])
       .map((entry) => entry.roomType.code)

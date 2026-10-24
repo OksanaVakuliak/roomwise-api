@@ -2870,7 +2870,7 @@
             }
           },
           "409": {
-            "description": "STALE_REVISION",
+            "description": "STALE_REVISION | OPTION_CODE_PROTECTED",
             "content": {
               "application/json": {
                 "schema": {
@@ -2929,6 +2929,16 @@
           },
           "404": {
             "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "OPTION_CODE_PROTECTED",
             "content": {
               "application/json": {
                 "schema": {
@@ -3064,7 +3074,7 @@
             }
           },
           "409": {
-            "description": "STALE_REVISION",
+            "description": "STALE_REVISION | OPTION_CODE_PROTECTED",
             "content": {
               "application/json": {
                 "schema": {
@@ -5968,6 +5978,19 @@
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                 },
+                "code": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "HEATED_FLOOR"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "kind": {
                   "type": "string",
                   "enum": [
@@ -6074,6 +6097,7 @@
               },
               "required": [
                 "id",
+                "code",
                 "kind",
                 "name",
                 "description",
@@ -9618,6 +9642,19 @@
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                 },
+                "code": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "HEATED_FLOOR"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "kind": {
                   "type": "string",
                   "enum": [
@@ -9797,6 +9834,7 @@
               },
               "required": [
                 "id",
+                "code",
                 "kind",
                 "name",
                 "description",
@@ -9829,6 +9867,19 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "HEATED_FLOOR"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "kind": {
             "type": "string",
@@ -10009,6 +10060,7 @@
         },
         "required": [
           "id",
+          "code",
           "kind",
           "name",
           "description",
@@ -10699,6 +10751,19 @@
                 "id": {
                   "type": "string"
                 },
+                "code": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "HEATED_FLOOR"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "kind": {
                   "type": "string",
                   "enum": [
@@ -10756,6 +10821,7 @@
               },
               "required": [
                 "id",
+                "code",
                 "kind",
                 "priceCents",
                 "unit",
@@ -10825,6 +10891,11 @@
                   "properties": {
                     "clientId": {
                       "type": "string"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
                     },
                     "roomTypeCode": {
                       "type": "string",
@@ -12939,6 +13010,11 @@
                     "clientId": {
                       "type": "string"
                     },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
                     "roomTypeCode": {
                       "type": "string",
                       "enum": [
@@ -13159,6 +13235,11 @@
                         "clientId": {
                           "type": "string"
                         },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
                         "roomTypeCode": {
                           "type": "string",
                           "enum": [
@@ -13301,6 +13382,9 @@
                     },
                     "name": {
                       "type": "string"
+                    },
+                    "roomTypeName": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -13310,7 +13394,8 @@
                     "widthM",
                     "heightM",
                     "heatedFloor",
-                    "name"
+                    "name",
+                    "roomTypeName"
                   ],
                   "additionalProperties": false
                 }
@@ -14000,6 +14085,11 @@
                     "clientId": {
                       "type": "string"
                     },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
                     "roomTypeCode": {
                       "type": "string",
                       "enum": [
@@ -14142,6 +14232,9 @@
                 },
                 "name": {
                   "type": "string"
+                },
+                "roomTypeName": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -14151,7 +14244,8 @@
                 "widthM",
                 "heightM",
                 "heatedFloor",
-                "name"
+                "name",
+                "roomTypeName"
               ],
               "additionalProperties": false
             }
@@ -14759,6 +14853,11 @@
                       "properties": {
                         "clientId": {
                           "type": "string"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
                         },
                         "roomTypeCode": {
                           "type": "string",
@@ -15528,6 +15627,11 @@
                         "clientId": {
                           "type": "string"
                         },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
                         "roomTypeCode": {
                           "type": "string",
                           "enum": [
@@ -15670,6 +15774,9 @@
                     },
                     "name": {
                       "type": "string"
+                    },
+                    "roomTypeName": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -15679,7 +15786,8 @@
                     "widthM",
                     "heightM",
                     "heatedFloor",
-                    "name"
+                    "name",
+                    "roomTypeName"
                   ],
                   "additionalProperties": false
                 }

@@ -114,6 +114,7 @@ export class CatalogPricingReadService {
     const rows = await this.prisma.option.findMany({
       select: {
         id: true,
+        code: true,
         kind: true,
         priceCents: true,
         unit: true,
@@ -127,6 +128,7 @@ export class CatalogPricingReadService {
 
     return rows.map((row) => ({
       id: row.id,
+      code: row.code,
       kind: row.kind,
       priceCents: row.priceCents,
       unit: row.unit,

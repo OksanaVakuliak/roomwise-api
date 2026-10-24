@@ -45,9 +45,12 @@ export function optionLine(
   const selected = configuration.rooms.filter((room) =>
     selection.roomClientIds?.includes(room.clientId),
   );
-  const allowed = selected.filter((room) =>
-    option.roomTypeCodes.includes(room.roomTypeCode),
-  );
+  const allowed =
+    option.roomTypeCodes.length === 0
+      ? selected
+      : selected.filter((room) =>
+          option.roomTypeCodes.includes(room.roomTypeCode),
+        );
   const rejected = selected.filter((room) => !allowed.includes(room));
   const quantity = unitQuantity(
     option.unit,

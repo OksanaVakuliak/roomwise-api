@@ -76,7 +76,12 @@ function createService() {
     leadNote: { create: vi.fn() },
   };
   const calculations = {
-    findVersion: vi.fn().mockResolvedValue({ publicId: 'public' }),
+    findVersion: vi.fn().mockResolvedValue({
+      publicId: 'public',
+      configuration: { rooms: [] },
+      rooms: [],
+      lines: [],
+    }),
   };
   const service = new AdminLeadsService(prisma as never, calculations as never);
 
@@ -191,7 +196,39 @@ describe('AdminLeadsService.get', () => {
       consentText: null,
       masked: true,
       notes: [{ id: 'note-1', text: null }],
-      calculation: { publicId: 'public' },
+      calculation: { publicId: '•••' },
+    });
+  });
+
+  describe('room names', () => {
+    const named = {
+      configuration: { rooms: [{ clientId: 'a', name: 'Master bedroom' }] },
+      rooms: [
+        { clientId: 'a', name: 'Master bedroom', roomTypeName: 'Bedroom' },
+      ],
+      lines: [{ roomClientId: 'a', roomName: 'Master bedroom' }],
+    };
+
+    it('replaces custom room names for the demo admin', async () => {
+      const { service, calculations } = createService();
+      calculations.findVersion.mockResolvedValue(named);
+
+      const result = await service.get(LEAD_ID, 'en', DEMO);
+
+      expect(JSON.stringify(result.calculation)).not.toContain(
+        'Master bedroom',
+      );
+      expect(result.calculation.rooms[0]?.name).toBe('Bedroom');
+      expect(result.calculation.lines[0]?.roomName).toBe('Bedroom');
+    });
+
+    it('keeps custom room names for a regular admin', async () => {
+      const { service, calculations } = createService();
+      calculations.findVersion.mockResolvedValue(named);
+
+      const result = await service.get(LEAD_ID, 'en', ADMIN);
+
+      expect(result.calculation).toEqual(named);
     });
   });
 

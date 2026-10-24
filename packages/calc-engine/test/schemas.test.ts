@@ -59,6 +59,7 @@ const pricingData = {
   options: [
     {
       id: 'o1',
+      code: null,
       kind: 'ADDITIONAL',
       priceCents: 5000,
       unit: 'PIECE',
@@ -171,6 +172,23 @@ describe('schemas', () => {
     expect(
       ConfigurationSchema.safeParse({ ...configuration, rooms }).success,
     ).toBe(false);
+  });
+
+  it('validates the optional room name', () => {
+    const withName = (name: unknown) =>
+      ConfigurationSchema.safeParse({
+        ...configuration,
+        rooms: [{ ...configuration.rooms[0], name }],
+      });
+
+    expect(withName('Master bedroom').success).toBe(true);
+    expect(withName('a'.repeat(60)).success).toBe(true);
+    expect(withName('  Kids room  ').data?.rooms[0].name).toBe('Kids room');
+    expect(withName(undefined).data?.rooms[0].name).toBeUndefined();
+    expect(withName('').success).toBe(false);
+    expect(withName('   ').success).toBe(false);
+    expect(withName('a'.repeat(61)).success).toBe(false);
+    expect(withName(7).success).toBe(false);
   });
 
   it('rejects duplicate room ids, categories in a room and option ids', () => {

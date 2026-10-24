@@ -8,6 +8,7 @@ import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
 import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
 import { createTestApp, type TestApp } from './app-factory';
 import {
+  buildNamedBedroomsConfiguration,
   buildProjectsConfiguration,
   newIdempotencyKey,
   projectsStyleId,
@@ -182,6 +183,56 @@ describe('calculations e2e', () => {
         savedTotalUsdCents: savedTotal,
         diffCents: -PRICE_OFFSET_CENTS,
       });
+    });
+
+    it('keeps two bedrooms with distinct names after reopening', async () => {
+      const response = await save(
+        savedBody({ configuration: buildNamedBedroomsConfiguration() }),
+      );
+      expect(response.status).toBe(201);
+
+      const reopened = await latest(response.body.version.publicId);
+      const rooms = reopened.body.rooms as {
+        name: string;
+        roomTypeName: string;
+      }[];
+
+      expect(rooms.map((room) => room.name)).toEqual([
+        'Master bedroom',
+        'Kids room',
+      ]);
+      expect(rooms.map((room) => room.roomTypeName)).toEqual([
+        'Спальня',
+        'Спальня',
+      ]);
+      expect(
+        reopened.body.configuration.rooms.map(
+          (room: { name: string }) => room.name,
+        ),
+      ).toEqual(['Master bedroom', 'Kids room']);
+    });
+
+    it('trims the room name', async () => {
+      const configuration = buildNamedBedroomsConfiguration();
+      configuration.rooms[0].name = '  Master bedroom  ';
+
+      const response = await save(savedBody({ configuration }));
+
+      expect(response.status).toBe(201);
+      expect(response.body.version.rooms[0].name).toBe('Master bedroom');
+    });
+
+    it.each([
+      ['empty', ''],
+      ['blank', '   '],
+      ['too long', 'a'.repeat(61)],
+    ])('rejects a %s room name', async (_label, name) => {
+      const configuration = buildNamedBedroomsConfiguration();
+      configuration.rooms[0].name = name;
+
+      const response = await save(savedBody({ configuration }));
+
+      expect(response.status).toBe(400);
     });
 
     it('rejects an unknown style with STYLE_NOT_FOUND', async () => {

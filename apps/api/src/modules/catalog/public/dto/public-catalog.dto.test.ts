@@ -331,6 +331,7 @@ describe('publicEngineeringResponseSchema', () => {
       options: [
         {
           id: 'c2f5c3a0-1b2c-4d3e-8f9a-0b1c2d3e4f32',
+          code: 'HEATED_FLOOR',
           kind: 'ENGINEERING',
           name: 'Тепла підлога',
           description: 'Електрична тепла підлога під фінішне покриття',
@@ -354,6 +355,7 @@ describe('publicEngineeringResponseSchema', () => {
       options: [
         {
           id: 'c2f5c3a0-1b2c-4d3e-8f9a-0b1c2d3e4f32',
+          code: null,
           kind: 'ADDITIONAL',
           name: 'Прибирання після ремонту',
           description: 'Клінінг усієї квартири',

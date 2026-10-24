@@ -294,6 +294,7 @@
     "options": [
       {
         "id": "opt-ac",
+        "code": null,
         "kind": "ENGINEERING",
         "priceCents": 45000,
         "unit": "PIECE",
@@ -304,6 +305,7 @@
       },
       {
         "id": "opt-heated-floor",
+        "code": "HEATED_FLOOR",
         "kind": "ENGINEERING",
         "priceCents": 8500,
         "unit": "ROOM_SQM",
@@ -314,6 +316,7 @@
       },
       {
         "id": "opt-design",
+        "code": null,
         "kind": "ADDITIONAL",
         "priceCents": 120000,
         "unit": "PROJECT",
@@ -324,6 +327,7 @@
       },
       {
         "id": "opt-smart-switches",
+        "code": null,
         "kind": "ADDITIONAL",
         "priceCents": 20000,
         "unit": "ROOM",
