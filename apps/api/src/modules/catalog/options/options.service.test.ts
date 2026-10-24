@@ -33,6 +33,7 @@ function createImageUrls(): ImageUrlBuilder {
 function createOptionRow(overrides: Record<string, unknown> = {}) {
   return {
     id: OPTION_ID,
+    code: null,
     kind: OptionKind.ENGINEERING,
     name: localized('Heated floor', 'Тепла підлога'),
     description: localized('Warms the floor', 'Обігрів підлоги'),
@@ -632,6 +633,55 @@ describe('OptionsService.update', () => {
   });
 });
 
+describe('OptionsService.update coded option', () => {
+  const codedRow = () =>
+    createOptionRow({ code: 'HEATED_FLOOR', unit: OptionUnit.ROOM_SQM });
+
+  it.each([
+    [{ kind: OptionKind.ADDITIONAL }, 'CHANGE_KIND'],
+    [{ unit: OptionUnit.PROJECT }, 'CHANGE_UNIT'],
+  ])('rejects %o with OPTION_CODE_PROTECTED', async (patch, action) => {
+    const updateMany = vi.fn();
+    const findUnique = vi.fn().mockResolvedValue(codedRow());
+    const prisma = createPrisma({ option: { findUnique, updateMany } });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    await expect(
+      service.update(OPTION_ID, { ...patch, revision: REVISION }, ADMIN_ID),
+    ).rejects.toMatchObject({
+      code: 'OPTION_CODE_PROTECTED',
+      params: { code: 'HEATED_FLOOR', action },
+    });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('allows the same kind and unit with other fields changed', async () => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValueOnce(codedRow())
+      .mockResolvedValueOnce(
+        createOptionRow({ code: 'HEATED_FLOOR', priceCents: 5000 }),
+      );
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ option: { findUnique, updateMany } });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    const result = await service.update(
+      OPTION_ID,
+      {
+        kind: OptionKind.ENGINEERING,
+        unit: OptionUnit.ROOM_SQM,
+        priceCents: 5000,
+        revision: REVISION,
+      },
+      ADMIN_ID,
+    );
+
+    expect(updateMany).toHaveBeenCalled();
+    expect(result.priceCents).toBe(5000);
+  });
+});
+
 describe('OptionsService.reorder', () => {
   it('rejects a set missing an existing option in the same kind', async () => {
     const findMany = vi
@@ -851,6 +901,57 @@ describe('OptionsService.updateStatus', () => {
   });
 });
 
+describe('OptionsService.updateStatus coded option', () => {
+  it.each([
+    [PublicationStatus.ARCHIVED, 'ARCHIVE'],
+    [PublicationStatus.DRAFT, 'UNPUBLISH'],
+  ])('rejects %s with OPTION_CODE_PROTECTED', async (status, action) => {
+    const updateMany = vi.fn();
+    const findUnique = vi.fn().mockResolvedValue({
+      code: 'HEATED_FLOOR',
+      name: localized('Heated floor', 'Тепла підлога'),
+      description: localized('Warms', 'Обігрів'),
+    });
+    const prisma = createPrisma({ option: { findUnique, updateMany } });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    await expect(
+      service.updateStatus(OPTION_ID, { status, revision: REVISION }, ADMIN_ID),
+    ).rejects.toMatchObject({
+      code: 'OPTION_CODE_PROTECTED',
+      params: { code: 'HEATED_FLOOR', action },
+    });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('allows publishing a coded option', async () => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValueOnce({
+        code: 'HEATED_FLOOR',
+        name: localized('Heated floor', 'Тепла підлога'),
+        description: localized('Warms', 'Обігрів'),
+      })
+      .mockResolvedValueOnce(
+        createOptionRow({
+          code: 'HEATED_FLOOR',
+          status: PublicationStatus.PUBLISHED,
+        }),
+      );
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ option: { findUnique, updateMany } });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    const result = await service.updateStatus(
+      OPTION_ID,
+      { status: PublicationStatus.PUBLISHED, revision: REVISION },
+      ADMIN_ID,
+    );
+
+    expect(result.status).toBe(PublicationStatus.PUBLISHED);
+  });
+});
+
 describe('OptionsService.remove', () => {
   it('deletes an existing option', async () => {
     const deleteMany = vi.fn().mockResolvedValue({ count: 1 });
@@ -863,12 +964,27 @@ describe('OptionsService.remove', () => {
   });
 
   it('rejects deleting an unknown option', async () => {
-    const deleteMany = vi.fn().mockResolvedValue({ count: 0 });
-    const prisma = createPrisma({ option: { deleteMany } });
+    const findUnique = vi.fn().mockResolvedValue(null);
+    const prisma = createPrisma({ option: { findUnique } });
     const service = new OptionsService(prisma, createImageUrls());
 
     await expect(service.remove(OPTION_ID)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+
+  it('rejects deleting a coded option with OPTION_CODE_PROTECTED', async () => {
+    const deleteMany = vi.fn();
+    const findUnique = vi
+      .fn()
+      .mockResolvedValue(createOptionRow({ code: 'HEATED_FLOOR' }));
+    const prisma = createPrisma({ option: { findUnique, deleteMany } });
+    const service = new OptionsService(prisma, createImageUrls());
+
+    await expect(service.remove(OPTION_ID)).rejects.toMatchObject({
+      code: 'OPTION_CODE_PROTECTED',
+      params: { code: 'HEATED_FLOOR', action: 'DELETE' },
+    });
+    expect(deleteMany).not.toHaveBeenCalled();
   });
 });

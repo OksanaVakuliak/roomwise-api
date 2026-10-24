@@ -12,6 +12,7 @@ import {
 import {
   type AdminCatalogRoomTypeIds,
   createAdminCatalogRoomTypes,
+  localizedText,
 } from './admin-catalog-fixtures';
 import {
   buildOptionInput,
@@ -543,6 +544,172 @@ describe('admin engineering e2e', () => {
           data: { code: null },
         });
       }
+    });
+
+    describe('coded option protection', () => {
+      async function withCodedOption(
+        run: (option: { id: string; revision: string }) => Promise<void>,
+      ) {
+        const created = await createOption({ unit: OptionUnit.ROOM_SQM });
+        await testApp.prisma.option.update({
+          where: { id: created.body.id },
+          data: { code: OptionCode.HEATED_FLOOR },
+        });
+
+        try {
+          await run({ id: created.body.id, revision: created.body.revision });
+        } finally {
+          await testApp.prisma.option.deleteMany({
+            where: { id: created.body.id },
+          });
+        }
+      }
+
+      async function expectStillCoded(id: string) {
+        const stored = await testApp.prisma.option.findUnique({
+          where: { id },
+        });
+        expect(stored?.code).toBe(OptionCode.HEATED_FLOOR);
+        return stored;
+      }
+
+      it('rejects deleting a coded option with OPTION_CODE_PROTECTED', async () => {
+        await withCodedOption(async ({ id }) => {
+          const response = await request(testApp.http)
+            .delete(`/api/v1/admin/options/${id}`)
+            .set('Cookie', adminCookie);
+
+          expect(response.status).toBe(409);
+          expect(response.body.error.code).toBe(
+            ERROR_CODES.OPTION_CODE_PROTECTED,
+          );
+          expect(response.body.error.params).toEqual({
+            code: OptionCode.HEATED_FLOOR,
+            action: 'DELETE',
+          });
+          await expectStillCoded(id);
+        });
+      });
+
+      it('rejects archiving a coded option with OPTION_CODE_PROTECTED', async () => {
+        await withCodedOption(async ({ id, revision }) => {
+          const published = await request(testApp.http)
+            .post(`/api/v1/admin/options/${id}/status`)
+            .set('Cookie', adminCookie)
+            .send({ status: PublicationStatus.PUBLISHED, revision });
+          expect(published.status).toBe(200);
+
+          const response = await request(testApp.http)
+            .post(`/api/v1/admin/options/${id}/status`)
+            .set('Cookie', adminCookie)
+            .send({
+              status: PublicationStatus.ARCHIVED,
+              revision: published.body.revision,
+            });
+
+          expect(response.status).toBe(409);
+          expect(response.body.error.code).toBe(
+            ERROR_CODES.OPTION_CODE_PROTECTED,
+          );
+          expect(response.body.error.params).toEqual({
+            code: OptionCode.HEATED_FLOOR,
+            action: 'ARCHIVE',
+          });
+          const stored = await expectStillCoded(id);
+          expect(stored?.status).toBe(PublicationStatus.PUBLISHED);
+        });
+      });
+
+      it('rejects moving a coded option back to DRAFT with OPTION_CODE_PROTECTED', async () => {
+        await withCodedOption(async ({ id, revision }) => {
+          const published = await request(testApp.http)
+            .post(`/api/v1/admin/options/${id}/status`)
+            .set('Cookie', adminCookie)
+            .send({ status: PublicationStatus.PUBLISHED, revision });
+
+          const response = await request(testApp.http)
+            .post(`/api/v1/admin/options/${id}/status`)
+            .set('Cookie', adminCookie)
+            .send({
+              status: PublicationStatus.DRAFT,
+              revision: published.body.revision,
+            });
+
+          expect(response.status).toBe(409);
+          expect(response.body.error.code).toBe(
+            ERROR_CODES.OPTION_CODE_PROTECTED,
+          );
+        });
+      });
+
+      it('rejects changing the unit of a coded option with OPTION_CODE_PROTECTED', async () => {
+        await withCodedOption(async ({ id, revision }) => {
+          const response = await request(testApp.http)
+            .patch(`/api/v1/admin/options/${id}`)
+            .set('Cookie', adminCookie)
+            .send({ unit: OptionUnit.PROJECT, revision });
+
+          expect(response.status).toBe(409);
+          expect(response.body.error.code).toBe(
+            ERROR_CODES.OPTION_CODE_PROTECTED,
+          );
+          expect(response.body.error.params).toEqual({
+            code: OptionCode.HEATED_FLOOR,
+            action: 'CHANGE_UNIT',
+          });
+          const stored = await expectStillCoded(id);
+          expect(stored?.unit).toBe(OptionUnit.ROOM_SQM);
+        });
+      });
+
+      it('rejects changing the kind of a coded option with OPTION_CODE_PROTECTED', async () => {
+        await withCodedOption(async ({ id, revision }) => {
+          const response = await request(testApp.http)
+            .patch(`/api/v1/admin/options/${id}`)
+            .set('Cookie', adminCookie)
+            .send({ kind: OptionKind.ADDITIONAL, revision });
+
+          expect(response.status).toBe(409);
+          expect(response.body.error.code).toBe(
+            ERROR_CODES.OPTION_CODE_PROTECTED,
+          );
+          const stored = await expectStillCoded(id);
+          expect(stored?.kind).toBe(OptionKind.ENGINEERING);
+        });
+      });
+
+      it('allows patching the same kind and unit together with name and price', async () => {
+        await withCodedOption(async ({ id, revision }) => {
+          const response = await request(testApp.http)
+            .patch(`/api/v1/admin/options/${id}`)
+            .set('Cookie', adminCookie)
+            .send({
+              kind: OptionKind.ENGINEERING,
+              unit: OptionUnit.ROOM_SQM,
+              name: localizedText('Renamed floor', 'Перейменована підлога'),
+              priceCents: 4200,
+              revision,
+            });
+
+          expect(response.status).toBe(200);
+          expect(response.body.priceCents).toBe(4200);
+          expect(response.body.code).toBe(OptionCode.HEATED_FLOOR);
+        });
+      });
+
+      it('still deletes an option without a code', async () => {
+        const created = await createOption();
+
+        const response = await request(testApp.http)
+          .delete(`/api/v1/admin/options/${created.body.id}`)
+          .set('Cookie', adminCookie);
+
+        expect(response.status).toBe(204);
+        const stored = await testApp.prisma.option.findUnique({
+          where: { id: created.body.id },
+        });
+        expect(stored).toBeNull();
+      });
     });
 
     it('rejects a PIECE option without min/max quantity with QUANTITY_BOUNDS_REQUIRED', async () => {
