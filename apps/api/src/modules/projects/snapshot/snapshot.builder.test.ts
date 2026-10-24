@@ -207,12 +207,24 @@ function createBuilder(
 const input = { configuration, styleId: 'style-1', createdAt };
 
 describe('SnapshotBuilder', () => {
+  it('passes the missing products policy to the estimate', async () => {
+    const { builder, pricingEstimate } = createBuilder();
+
+    await builder.build({ ...input, missingProducts: 'unavailable' });
+
+    expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration, {
+      missingProducts: 'unavailable',
+    });
+  });
+
   it('builds a valid snapshot with enriched names', async () => {
     const { builder, pricingEstimate, catalog } = createBuilder();
 
     const snapshot = await builder.build(input);
 
-    expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration);
+    expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration, {
+      missingProducts: undefined,
+    });
     expect(catalog.read).toHaveBeenCalledWith({
       productIds: ['product-1', 'product-gone'],
       categoryIds: ['category-1'],

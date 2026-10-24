@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Clock } from '../../src/common/clock/clock';
 import { ERROR_CODES } from '../../src/common/http/error-codes';
+import type { Prisma } from '../../src/generated/prisma/client';
 import { PublicationStatus } from '../../src/generated/prisma/enums';
 import { productIds } from '../../src/modules/catalog/dataset/data/products';
 import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
@@ -46,12 +47,12 @@ describe('recalculation e2e', () => {
     testApp.app.get(ProjectsSettingsService).invalidate();
   }
 
-  async function saveVersion() {
+  async function saveVersion(configuration = buildProjectsConfiguration()) {
     const response = await request(testApp.http)
       .post(CALCULATIONS)
       .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
       .send({
-        configuration: buildProjectsConfiguration(),
+        configuration,
         styleId: projectsStyleId,
         clientPricingVersion: currentPricingVersion,
         clientTotalUsdCents: 1,
@@ -137,6 +138,32 @@ describe('recalculation e2e', () => {
       });
       invalidateCaches();
     }
+  }
+
+  async function createThrowawayProduct(): Promise<string> {
+    const { id, revision, updatedAt, ...template } =
+      await testApp.prisma.product.findUniqueOrThrow({
+        where: { id: productIds.whiteGlossyWallTile },
+      });
+    const created = await testApp.prisma.product.create({
+      data: {
+        ...template,
+        name: template.name as Prisma.InputJsonValue,
+        description: template.description as Prisma.InputJsonValue,
+        color: template.color as Prisma.InputJsonValue,
+        size: template.size as Prisma.InputJsonValue,
+        textureImageId: null,
+        updatedById: null,
+      },
+    });
+    invalidateCaches();
+
+    return created.id;
+  }
+
+  async function deleteProduct(productId: string): Promise<void> {
+    await testApp.prisma.product.deleteMany({ where: { id: productId } });
+    invalidateCaches();
   }
 
   async function withValidityDays<T>(
@@ -233,7 +260,40 @@ describe('recalculation e2e', () => {
   });
 
   describe('POST /api/v1/public/calculations/{publicId}/versions', () => {
-    it('creates a new version with current prices and leaves the old one intact', async () => {
+    it('treats a hard-deleted product as unavailable in price status and recalculation', async () => {
+      const productId = await createThrowawayProduct();
+
+      try {
+        const configuration = buildProjectsConfiguration();
+        const selection = configuration.rooms[1].selections[1];
+        selection.productId = productId;
+        const first = await saveVersion(configuration);
+        const { publicId } = first;
+        expect(findLine(first.lines, productId).status).toBe('OK');
+
+        await deleteProduct(productId);
+        const status = await latest(publicId);
+        const recalculated = await recalculate(publicId);
+
+        expect(status.status).toBe(200);
+        expect(status.body.priceStatus.changed).toBe(true);
+        expect(status.body.priceStatus.unavailableItems).toHaveLength(1);
+        expect(status.body.priceStatus.unavailableItems[0]).toMatchObject({
+          productId,
+        });
+        expect(recalculated.status).toBe(201);
+        expect(findLine(recalculated.body.lines, productId).status).toBe(
+          'UNAVAILABLE',
+        );
+        expect(recalculated.body.totals.usdCents).toBeLessThan(
+          first.totals.usdCents,
+        );
+      } finally {
+        await deleteProduct(productId);
+      }
+    });
+
+    it('creates a new version with current prices from the same configuration and style and leaves the old one intact', async () => {
       const first = await saveVersion();
       const { publicId } = first;
       const oldBefore = (await versionByNumber(publicId, 1)).body;
@@ -265,6 +325,9 @@ describe('recalculation e2e', () => {
       expect(old.body.totals).toEqual(oldBefore.totals);
       expect(old.body.createdAt).toBe(oldBefore.createdAt);
       expect(old.body.configuration).toEqual(oldBefore.configuration);
+      expect(first.configuration).toEqual(buildProjectsConfiguration());
+      expect(recalculated.body.configuration).toEqual(first.configuration);
+      expect(recalculated.body.style).toEqual(first.style);
     });
 
     it('marks archived products unavailable and excludes them from totals', async () => {
@@ -293,16 +356,6 @@ describe('recalculation e2e', () => {
       expect(current.body.priceStatus.unavailableItems).toEqual([]);
       expect(old.body.priceStatus.changed).toBe(true);
       expect(old.body.priceStatus.unavailableItems).toHaveLength(1);
-    });
-
-    it('takes the configuration and style of the based-on version', async () => {
-      const first = await saveVersion();
-
-      const recalculated = await recalculate(first.publicId);
-
-      expect(first.configuration).toEqual(buildProjectsConfiguration());
-      expect(recalculated.body.configuration).toEqual(first.configuration);
-      expect(recalculated.body.style).toEqual(first.style);
     });
 
     it('replays the response for the same key and body', async () => {

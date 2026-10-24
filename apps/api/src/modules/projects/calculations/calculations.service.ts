@@ -211,16 +211,22 @@ export class CalculationsService implements OnModuleInit {
         configuration: stored.configuration,
         styleId: stored.style.id,
         createdAt: now,
+        missingProducts: 'unavailable',
       }),
       this.settings.get(),
     ]);
     const expiresAt = expiryOf(now, calculationValidityDays);
 
     const created = await this.prisma.$transaction(async (tx) => {
-      const [{ latest_version_number: latest }] = await tx.$queryRaw<
+      const [locked] = await tx.$queryRaw<
         { latest_version_number: number }[]
       >`SELECT latest_version_number FROM calculations WHERE id = ${calculation.id}::uuid FOR UPDATE`;
-      const number = latest + 1;
+
+      if (!locked) {
+        throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
+      }
+
+      const number = locked.latest_version_number + 1;
       const version = await tx.calculationVersion.create({
         data: versionData(calculation.id, number, snapshot, expiresAt, now),
       });
@@ -290,6 +296,7 @@ export class CalculationsService implements OnModuleInit {
       id: version.id,
       snapshot: stored,
       totalUsdCents: version.totalUsdCents,
+      pricingVersion: version.pricingVersion,
     });
 
     return this.view(

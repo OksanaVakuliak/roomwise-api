@@ -68,7 +68,12 @@ function setup() {
 const okLine = line({ id: 'a' });
 
 function versionOf(id: string, lines: EstimateLine[] = [okLine]) {
-  return { id, snapshot: makeSnapshot(lines), totalUsdCents: 1000 };
+  return {
+    id,
+    snapshot: makeSnapshot(lines),
+    totalUsdCents: 1000,
+    pricingVersion: 'v0',
+  };
 }
 
 describe('PriceStatusService', () => {
@@ -86,9 +91,10 @@ describe('PriceStatusService', () => {
       unavailableItems: [],
       currentPricingVersion: 'v1',
     });
-    expect(pricingEstimate.estimate).toHaveBeenCalledWith({
-      marker: 'configuration',
-    });
+    expect(pricingEstimate.estimate).toHaveBeenCalledWith(
+      { marker: 'configuration' },
+      { missingProducts: 'unavailable' },
+    );
   });
 
   it('reports the difference when the total changed', async () => {
@@ -157,6 +163,67 @@ describe('PriceStatusService', () => {
 
     expect(pricingEstimate.estimate).toHaveBeenCalledTimes(2);
     expect(third?.currentPricingVersion).toBe('v2');
+  });
+
+  it('skips estimating when the snapshot has the current pricing version', async () => {
+    const { service, pricingEstimate } = setup();
+
+    const status = await service.current({
+      ...versionOf('version-1'),
+      pricingVersion: 'v1',
+    });
+
+    expect(status).toEqual({
+      changed: false,
+      snapshotTotalUsdCents: 1000,
+      currentTotalUsdCents: 1000,
+      diffCents: 0,
+      unavailableItems: [],
+      currentPricingVersion: 'v1',
+    });
+    expect(pricingEstimate.estimate).not.toHaveBeenCalled();
+  });
+
+  it('stores the status under the pricing version the estimate used', async () => {
+    const { service, pricingEstimate, setPricingVersion } = setup();
+    pricingEstimate.estimate.mockImplementationOnce(async () => {
+      setPricingVersion('v2');
+
+      return {
+        estimate: makeEstimate(1000, [okLine]),
+        pricingData: { version: 'v1' },
+      };
+    });
+    pricingEstimate.estimate.mockImplementation(async () => ({
+      estimate: makeEstimate(1000, [okLine]),
+      pricingData: { version: 'v2' },
+    }));
+    const version = { ...versionOf('version-1'), pricingVersion: 'v0' };
+
+    const first = await service.current(version);
+    const second = await service.current(version);
+
+    expect(first?.currentPricingVersion).toBe('v1');
+    expect(second?.currentPricingVersion).toBe('v2');
+    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps recently read entries when evicting', async () => {
+    const { service, resolveEstimate, pricingEstimate } = setup();
+    resolveEstimate(makeEstimate(1000, [okLine]));
+
+    for (let index = 0; index < 1000; index += 1) {
+      await service.current(versionOf(`version-${index}`));
+    }
+    await service.current(versionOf('version-0'));
+    await service.current(versionOf('version-1000'));
+    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1001);
+
+    await service.current(versionOf('version-0'));
+    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1001);
+
+    await service.current(versionOf('version-1'));
+    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1002);
   });
 
   it('evicts the oldest entry beyond 1000 cached statuses', async () => {

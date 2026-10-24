@@ -12,6 +12,7 @@ export interface PriceStatusSource {
   id: string;
   snapshot: SnapshotV1;
   totalUsdCents: number;
+  pricingVersion: string;
 }
 
 function isUnevaluable(error: unknown): boolean {
@@ -35,16 +36,26 @@ export class PriceStatusService {
 
   async current(version: PriceStatusSource): Promise<PriceStatus | null> {
     const { version: pricingVersion } = await this.pricingData.get();
-    const key = `${version.id}:${pricingVersion}`;
 
-    if (this.cache.has(key)) {
-      return this.cache.get(key) ?? null;
+    if (version.pricingVersion === pricingVersion) {
+      return this.fresh(version);
     }
 
-    const status = await this.evaluate(version);
-    this.remember(key, status);
+    const lookupKey = `${version.id}:${pricingVersion}`;
+    const cached = this.recall(lookupKey);
 
-    return status;
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const evaluation = await this.evaluate(version);
+    const key =
+      evaluation.pricingVersion === null
+        ? lookupKey
+        : `${version.id}:${evaluation.pricingVersion}`;
+    this.remember(key, evaluation.status);
+
+    return evaluation.status;
   }
 
   fresh(version: {
@@ -63,10 +74,11 @@ export class PriceStatusService {
 
   private async evaluate(
     version: PriceStatusSource,
-  ): Promise<PriceStatus | null> {
+  ): Promise<{ status: PriceStatus | null; pricingVersion: string | null }> {
     try {
       const { estimate, pricingData } = await this.pricingEstimate.estimate(
         version.snapshot.configuration,
+        { missingProducts: 'unavailable' },
       );
       const alreadyUnavailable = new Set(
         version.snapshot.lines
@@ -86,22 +98,38 @@ export class PriceStatusService {
       const diffCents = estimate.totals.usdCents - version.totalUsdCents;
 
       return {
-        changed: diffCents !== 0 || unavailableItems.length > 0,
-        snapshotTotalUsdCents: version.totalUsdCents,
-        currentTotalUsdCents: estimate.totals.usdCents,
-        diffCents,
-        unavailableItems,
-        currentPricingVersion: pricingData.version,
+        status: {
+          changed: diffCents !== 0 || unavailableItems.length > 0,
+          snapshotTotalUsdCents: version.totalUsdCents,
+          currentTotalUsdCents: estimate.totals.usdCents,
+          diffCents,
+          unavailableItems,
+          currentPricingVersion: pricingData.version,
+        },
+        pricingVersion: pricingData.version,
       };
     } catch (error) {
       if (isUnevaluable(error)) {
-        return null;
+        return { status: null, pricingVersion: null };
       }
       throw error;
     }
   }
 
+  private recall(key: string): PriceStatus | null | undefined {
+    if (!this.cache.has(key)) {
+      return undefined;
+    }
+
+    const status = this.cache.get(key) ?? null;
+    this.cache.delete(key);
+    this.cache.set(key, status);
+
+    return status;
+  }
+
   private remember(key: string, status: PriceStatus | null): void {
+    this.cache.delete(key);
     this.cache.set(key, status);
 
     if (this.cache.size > CACHE_LIMIT) {

@@ -316,7 +316,20 @@ describe('CalculationsService.recalculate', () => {
       configuration: CONFIGURATION,
       styleId: STYLE_ID,
       createdAt: NOW,
+      missingProducts: 'unavailable',
     });
+  });
+
+  it('answers CALCULATION_NOT_FOUND when the locked row has vanished', async () => {
+    const ctx = setup();
+    ctx.tx.$queryRaw.mockResolvedValue([]);
+
+    const code = await failureOf(
+      ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk'),
+    );
+
+    expect(code).toBe(ERROR_CODES.CALCULATION_NOT_FOUND);
+    expect(ctx.tx.calculationVersion.create).not.toHaveBeenCalled();
   });
 
   it('stores the number after the latest one read under the row lock', async () => {
@@ -537,6 +550,7 @@ describe('CalculationsService.findVersion', () => {
       id: VERSION_ID,
       snapshot,
       totalUsdCents: SAVED_TOTAL,
+      pricingVersion: PRICING_VERSION,
     });
     expect(ctx.priceStatus.fresh).not.toHaveBeenCalled();
     expect(ctx.presenter.present).toHaveBeenCalledWith(

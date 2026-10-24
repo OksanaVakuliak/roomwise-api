@@ -98,4 +98,33 @@ describe('PricingEstimateService', () => {
       params: { references: [{ field: 'options[0].optionId', id: 'missing' }] },
     });
   });
+
+  it('estimates a deleted product as unavailable when asked to', async () => {
+    const withProduct = configuration({
+      rooms: [
+        {
+          ...room,
+          selections: [{ categoryId: 'cat-1', productId: 'deleted' }],
+        },
+      ],
+    });
+    const service = new PricingEstimateService({
+      get: vi.fn().mockResolvedValue({
+        ...data,
+        categories: [{ id: 'cat-1', wastePercent: 0, surface: 'FLOOR' }],
+      }),
+    } as unknown as PricingDataService);
+
+    await expect(service.estimate(withProduct)).rejects.toMatchObject({
+      code: ERROR_CODES.UNKNOWN_REFERENCE,
+    });
+
+    const result = await service.estimate(withProduct, {
+      missingProducts: 'unavailable',
+    });
+
+    expect(result.estimate.lines).toContainEqual(
+      expect.objectContaining({ productId: 'deleted', status: 'UNAVAILABLE' }),
+    );
+  });
 });

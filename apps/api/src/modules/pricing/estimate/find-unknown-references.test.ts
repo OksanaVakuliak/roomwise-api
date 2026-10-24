@@ -103,4 +103,61 @@ describe('findUnknownReferences', () => {
       { field: 'rooms[0].selections[0].productId', id: 'prod-2' },
     ]);
   });
+
+  describe("with missing products tolerated as 'unavailable'", () => {
+    const roomWith = (categoryId: string, productId: string) =>
+      configuration({
+        rooms: [
+          {
+            clientId: 'room-1',
+            roomTypeCode: 'BEDROOM',
+            lengthM: 4,
+            widthM: 3,
+            heightM: 2.7,
+            heatedFloor: false,
+            selections: [{ categoryId, productId }],
+          },
+        ],
+      });
+
+    it('accepts a product id absent from the pricing data', () => {
+      const result = findUnknownReferences(
+        roomWith('cat-1', 'deleted'),
+        data,
+        'unavailable',
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it('still reports a product that belongs to another category', () => {
+      const result = findUnknownReferences(
+        roomWith('cat-1', 'prod-2'),
+        data,
+        'unavailable',
+      );
+
+      expect(result).toEqual([
+        { field: 'rooms[0].selections[0].productId', id: 'prod-2' },
+      ]);
+    });
+
+    it('still reports an unknown category', () => {
+      const result = findUnknownReferences(
+        roomWith('cat-x', 'deleted'),
+        data,
+        'unavailable',
+      );
+
+      expect(result).toEqual([
+        { field: 'rooms[0].selections[0].categoryId', id: 'cat-x' },
+      ]);
+    });
+
+    it('rejects a missing product by default', () => {
+      expect(findUnknownReferences(roomWith('cat-1', 'deleted'), data)).toEqual(
+        [{ field: 'rooms[0].selections[0].productId', id: 'deleted' }],
+      );
+    });
+  });
 });
