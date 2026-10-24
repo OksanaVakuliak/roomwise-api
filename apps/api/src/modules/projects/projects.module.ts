@@ -8,12 +8,14 @@ import { PublicCalculationsController } from './calculations/public-calculations
 import { IdempotencyInterceptor } from './idempotency/idempotency.interceptor';
 import { IdempotencyService } from './idempotency/idempotency.service';
 import { IdempotencyThrottleExemption } from './idempotency/idempotency-throttle-exemption';
+import { LeadsService } from './leads/leads.service';
+import { PublicLeadsController } from './leads/public-leads.controller';
 import { VersionViewPresenter } from './presenters/version-view.presenter';
 import { ProjectsSettingsService } from './settings/projects-settings.service';
 import { SnapshotBuilder } from './snapshot/snapshot.builder';
 
 @Module({
-  controllers: [PublicCalculationsController],
+  controllers: [PublicCalculationsController, PublicLeadsController],
   imports: [CatalogModule, PricingModule],
   providers: [
     IdempotencyService,
@@ -28,6 +30,7 @@ import { SnapshotBuilder } from './snapshot/snapshot.builder';
     PriceStatusService,
     VersionViewPresenter,
     CalculationsService,
+    LeadsService,
   ],
   exports: [IdempotencyService, PublicWriteExemption],
 })

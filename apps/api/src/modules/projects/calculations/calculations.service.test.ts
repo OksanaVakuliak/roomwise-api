@@ -716,3 +716,33 @@ describe('CalculationsService save replay', () => {
     expect((error as AppError).code).toBe(ERROR_CODES.CALCULATION_NOT_FOUND);
   });
 });
+
+describe('CalculationsService.findStoredVersion', () => {
+  it('returns the version reference with the public id', async () => {
+    const ctx = createService();
+    const expiresAt = new Date(NOW.getTime() + DAY_MS);
+    (ctx.prisma.calculationVersion as { findFirst?: unknown }).findFirst = vi
+      .fn()
+      .mockResolvedValue({ id: VERSION_ID, number: 2, expiresAt });
+
+    await expect(ctx.service.findStoredVersion('public', 2)).resolves.toEqual({
+      id: VERSION_ID,
+      number: 2,
+      expiresAt,
+      publicId: 'public',
+    });
+  });
+
+  it('answers CALCULATION_NOT_FOUND for a missing or non-positive version', async () => {
+    const ctx = createService();
+    (ctx.prisma.calculationVersion as { findFirst?: unknown }).findFirst = vi
+      .fn()
+      .mockResolvedValue(null);
+
+    for (const number of [1, 0]) {
+      await expect(
+        ctx.service.findStoredVersion('public', number),
+      ).rejects.toMatchObject({ code: ERROR_CODES.CALCULATION_NOT_FOUND });
+    }
+  });
+});
