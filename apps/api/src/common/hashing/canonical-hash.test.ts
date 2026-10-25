@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalHash, canonicalJson } from './canonical-hash';
+import {
+  canonicalHash,
+  canonicalJson,
+  canonicalSha256,
+} from './canonical-hash';
 
 describe('canonicalJson', () => {
   it('sorts object keys at every depth', () => {
@@ -22,6 +26,25 @@ describe('canonicalJson', () => {
     expect(canonicalJson({ a: null, b: 'x"y', c: true })).toBe(
       '{"a":null,"b":"x\\"y","c":true}',
     );
+  });
+});
+
+describe('canonicalSha256', () => {
+  it('returns 64 lowercase hex characters', () => {
+    expect(canonicalSha256({ a: 1 })).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('ignores key order', () => {
+    expect(canonicalSha256({ a: 1, b: [1, 2] })).toBe(
+      canonicalSha256({ b: [1, 2], a: 1 }),
+    );
+  });
+
+  it('is the full-length form of canonicalHash', () => {
+    const value = { a: 1 };
+
+    expect(canonicalHash(value)).toHaveLength(16);
+    expect(canonicalSha256(value).startsWith(canonicalHash(value))).toBe(true);
   });
 });
 

@@ -12,12 +12,12 @@ import {
   type PricingRule,
 } from '@roomwise/calc-engine';
 import type { Subscription } from 'rxjs';
+import { canonicalHash } from '../../../common/hashing/canonical-hash';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { Prisma } from '../../../generated/prisma/client';
 import { CatalogChangeNotifier } from '../../catalog/common/catalog-change.notifier';
 import { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
 import { ExchangeRateService } from '../exchange-rate/exchange-rate.service';
-import { canonicalHash } from './canonical-hash';
 
 const SETTINGS_ID = 1;
 const RULE_LEVEL_ORDER = { OBJECT: 0, CATEGORY: 1, MATERIAL_TYPE: 2 } as const;

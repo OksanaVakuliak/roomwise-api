@@ -6,6 +6,7 @@ import {
   localizedNameDraftSchema,
 } from '../../../../common/i18n/localized-text.schema';
 import {
+  OptionCode,
   OptionKind,
   OptionUnit,
   PublicationStatus,
@@ -15,6 +16,7 @@ import { imageRefSchema } from '../../public/dto/image-ref.schema';
 export const optionAdminSchema = z
   .object({
     id: z.uuid(),
+    code: z.enum(OptionCode).nullable(),
     kind: z.enum(OptionKind),
     name: localizedNameDraftSchema,
     description: localizedDescriptionDraftSchema,

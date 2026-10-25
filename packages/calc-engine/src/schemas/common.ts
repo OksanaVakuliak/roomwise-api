@@ -32,6 +32,9 @@ export type OptionUnit = z.infer<typeof OptionUnitSchema>;
 export const OptionKindSchema = z.enum(['ENGINEERING', 'ADDITIONAL']);
 export type OptionKind = z.infer<typeof OptionKindSchema>;
 
+export const OptionCodeSchema = z.enum(['HEATED_FLOOR']);
+export type OptionCode = z.infer<typeof OptionCodeSchema>;
+
 export const RoomTypeCodeSchema = z.enum([
   'LIVING_ROOM',
   'BEDROOM',

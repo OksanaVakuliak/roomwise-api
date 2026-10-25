@@ -5,9 +5,12 @@ export interface UnknownReference {
   id: string;
 }
 
+export type MissingProductsPolicy = 'reject' | 'unavailable';
+
 export function findUnknownReferences(
   configuration: Configuration,
   data: PricingData,
+  missingProducts: MissingProductsPolicy = 'reject',
 ): UnknownReference[] {
   const roomTypeCodes = new Set(data.roomTypes.map((type) => type.code));
   const categoryIds = new Set(data.categories.map((category) => category.id));
@@ -38,9 +41,11 @@ export function findUnknownReferences(
       );
 
       if (selection.productId !== null) {
-        if (
-          productCategoryIds.get(selection.productId) !== selection.categoryId
-        ) {
+        const productCategoryId = productCategoryIds.get(selection.productId);
+        const tolerated =
+          missingProducts === 'unavailable' && productCategoryId === undefined;
+
+        if (!tolerated && productCategoryId !== selection.categoryId) {
           unknown.push({
             field: `${selectionPath}.productId`,
             id: selection.productId,

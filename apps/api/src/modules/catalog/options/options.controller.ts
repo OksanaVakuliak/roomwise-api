@@ -111,7 +111,7 @@ export class OptionsController {
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
-    description: 'STALE_REVISION',
+    description: 'STALE_REVISION | OPTION_CODE_PROTECTED',
     type: ErrorResponseDto,
   })
   @ApiResponse({
@@ -159,7 +159,7 @@ export class OptionsController {
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
-    description: 'STALE_REVISION',
+    description: 'STALE_REVISION | OPTION_CODE_PROTECTED',
     type: ErrorResponseDto,
   })
   @ApiResponse({
@@ -182,6 +182,11 @@ export class OptionsController {
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'OPTION_CODE_PROTECTED',
     type: ErrorResponseDto,
   })
   async remove(@Param() params: OptionIdParamDto): Promise<void> {

@@ -9,14 +9,13 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiHeader, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { checkLimits, estimate, type PricingData } from '@roomwise/calc-engine';
+import type { PricingData } from '@roomwise/calc-engine';
 import type { Response } from 'express';
 import { ZodResponse } from 'nestjs-zod';
-import { AppError } from '../../../common/http/app-error';
-import { ERROR_CODES } from '../../../common/http/error-codes';
 import { ErrorResponseDto } from '../../../common/http/error-response.dto';
 import { ZodResponseWithHeaders } from '../../../common/openapi/api-response-headers.decorator';
 import { Public } from '../../auth/public.decorator';
+import { PricingEstimateService } from '../estimate/pricing-estimate.service';
 import { PricingDataService } from '../pricing-data/pricing-data.service';
 import {
   EstimateRequestDto,
@@ -24,7 +23,6 @@ import {
   EstimateResponseDto,
 } from './dto/estimate.schema';
 import { PricingDataResponseDto } from './dto/pricing-data.schema';
-import { findUnknownReferences } from './find-unknown-references';
 
 export const PRICING_DATA_CACHE_CONTROL = 'public, max-age=30';
 
@@ -44,7 +42,10 @@ const ESTIMATES_WINDOW_MS = 60_000;
 
 @Controller('public')
 export class PublicPricingController {
-  constructor(private readonly pricingData: PricingDataService) {}
+  constructor(
+    private readonly pricingData: PricingDataService,
+    private readonly pricingEstimate: PricingEstimateService,
+  ) {}
 
   @Public()
   @Get('pricing-data')
@@ -98,31 +99,16 @@ export class PublicPricingController {
   async createEstimate(
     @Body() body: EstimateRequestDto,
   ): Promise<EstimateResponse> {
-    const data = await this.pricingData.get();
     const { configuration, clientPricingVersion } = body;
-
-    const references = findUnknownReferences(configuration, data);
-
-    if (references.length > 0) {
-      throw new AppError(ERROR_CODES.UNKNOWN_REFERENCE, {
-        params: { references },
-      });
-    }
-
-    const violations = checkLimits(configuration, data.limits, data.options);
-
-    if (violations.length > 0) {
-      throw new AppError(ERROR_CODES.INPUT_OUT_OF_BOUNDS, {
-        params: { violations },
-      });
-    }
+    const { estimate, pricingData } =
+      await this.pricingEstimate.estimate(configuration);
 
     return {
-      estimate: estimate(configuration, data),
+      estimate,
       stale:
         clientPricingVersion !== undefined &&
-        clientPricingVersion !== data.version,
-      pricingVersion: data.version,
+        clientPricingVersion !== pricingData.version,
+      pricingVersion: pricingData.version,
     };
   }
 }

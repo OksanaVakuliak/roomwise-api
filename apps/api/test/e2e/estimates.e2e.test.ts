@@ -12,6 +12,7 @@ import { ERROR_CODES } from '../../src/common/http/error-codes';
 import { RateSource } from '../../src/generated/prisma/enums';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
+import { optionIds } from '../../src/modules/catalog/dataset/data/options';
 import { pricingDataset } from '../../src/modules/pricing/dataset/data';
 import { PricingDatasetService } from '../../src/modules/pricing/dataset/pricing-dataset.service';
 import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
@@ -84,6 +85,14 @@ describe('estimates e2e', () => {
       expect(response.headers['cache-control']).toBe(CACHE_CONTROL_HEADER);
       expect(data.version).toMatch(/^[0-9a-f]{16}$/);
       expect(data.exchangeRate?.rate).toBe(RATE);
+    });
+
+    it('marks only the heated floor option with its code', async () => {
+      const coded = data.options.filter((option) => option.code !== null);
+
+      expect(coded.map((option) => [option.id, option.code])).toEqual([
+        [optionIds.heatedFloor, 'HEATED_FLOOR'],
+      ]);
     });
 
     it('answers 304 when If-None-Match carries the current version', async () => {
@@ -307,6 +316,36 @@ describe('estimates e2e', () => {
         expect(result.totals).toEqual(
           roundTrip(estimate(configuration, data)).totals,
         );
+      },
+    );
+
+    it.each([
+      ['smart lighting', optionIds.smartLighting],
+      ['sound insulation', optionIds.soundproofing],
+    ])(
+      'prices the unrestricted %s option for every selected room',
+      async (_name, optionId) => {
+        const configuration: Configuration = {
+          ...samples[0],
+          options: [
+            {
+              optionId,
+              roomClientIds: samples[0].rooms.map((room) => room.clientId),
+            },
+          ],
+        };
+
+        const response = await request(testApp.http)
+          .post('/api/v1/public/estimates')
+          .send({ configuration })
+          .expect(200);
+
+        const line = response.body.estimate.lines.find(
+          (item: { optionId?: string }) => item.optionId === optionId,
+        );
+        expect(line.quantity).toBeGreaterThan(0);
+        expect(line.amountCents).toBeGreaterThan(0);
+        expect(line.warnings).toEqual([]);
       },
     );
 

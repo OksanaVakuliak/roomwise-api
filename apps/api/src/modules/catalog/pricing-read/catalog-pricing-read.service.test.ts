@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
 import {
+  OptionCode,
   OptionKind,
   OptionUnit,
   ProductUnit,
@@ -174,6 +175,7 @@ describe('CatalogPricingReadService', () => {
       option: [
         {
           id: 'option-1',
+          code: OptionCode.HEATED_FLOOR,
           kind: OptionKind.ADDITIONAL,
           priceCents: 1500,
           unit: OptionUnit.PIECE,
@@ -191,6 +193,7 @@ describe('CatalogPricingReadService', () => {
     await expect(service.options()).resolves.toEqual([
       {
         id: 'option-1',
+        code: OptionCode.HEATED_FLOOR,
         kind: OptionKind.ADDITIONAL,
         priceCents: 1500,
         unit: OptionUnit.PIECE,

@@ -7,6 +7,7 @@ import { catalogDataset } from '../../src/modules/catalog/dataset/data';
 import { pricingDataset } from '../../src/modules/pricing/dataset/data';
 import { PricingDatasetService } from '../../src/modules/pricing/dataset/pricing-dataset.service';
 import { seedDemoAdmin } from './admins';
+import { seedProjectsSettings } from './projects-settings';
 
 const EXIT_FAILURE = 1;
 const TRANSACTION_TIMEOUT_MS = 120_000;
@@ -126,6 +127,9 @@ async function main(): Promise<void> {
     for (const [table, count] of Object.entries(pricingCounts)) {
       process.stdout.write(`  ${table}: ${count}\n`);
     }
+
+    await seedProjectsSettings(prisma);
+    process.stdout.write('Projects settings ensured.\n');
 
     await seedDemoAdmin(prisma, {
       login: demoAdminEnv.data.DEMO_ADMIN_LOGIN,

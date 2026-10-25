@@ -12,7 +12,11 @@ import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { isPrismaError } from '../../../common/prisma/prisma-error';
 import { Prisma } from '../../../generated/prisma/client';
-import { OptionUnit, PublicationStatus } from '../../../generated/prisma/enums';
+import {
+  type OptionCode,
+  OptionUnit,
+  PublicationStatus,
+} from '../../../generated/prisma/enums';
 import { assertRoomTypesExist } from '../common/assert-room-types-exist';
 import { assertZeroPriceConfirmed } from '../common/assert-zero-price-confirmed';
 import { isPerRoomUnit } from '../common/is-per-room-unit';
@@ -156,6 +160,7 @@ export class OptionsService {
       where: { id },
       select: {
         revision: true,
+        code: true,
         kind: true,
         status: true,
         name: true,
@@ -173,6 +178,16 @@ export class OptionsService {
 
     if (existing.revision !== input.revision) {
       throw staleRevisionError(existing.revision);
+    }
+
+    if (existing.code) {
+      if (input.kind !== undefined && input.kind !== existing.kind) {
+        throw this.codeProtectedError(existing.code, 'CHANGE_KIND');
+      }
+
+      if (input.unit !== undefined && input.unit !== existing.unit) {
+        throw this.codeProtectedError(existing.code, 'CHANGE_UNIT');
+      }
     }
 
     const resolvedUnit = input.unit ?? existing.unit;
@@ -399,16 +414,27 @@ export class OptionsService {
     input: UpdateOptionStatusInput,
     adminId: string,
   ): Promise<OptionAdmin> {
+    const option = await this.prisma.option.findUnique({
+      where: { id },
+      select: { code: true, status: true, name: true, description: true },
+    });
+
+    if (!option) {
+      throw new AppError(ERROR_CODES.NOT_FOUND);
+    }
+
+    if (
+      option.code &&
+      option.status === PublicationStatus.PUBLISHED &&
+      input.status !== PublicationStatus.PUBLISHED
+    ) {
+      throw this.codeProtectedError(
+        option.code,
+        input.status === PublicationStatus.ARCHIVED ? 'ARCHIVE' : 'UNPUBLISH',
+      );
+    }
+
     if (input.status === PublicationStatus.PUBLISHED) {
-      const option = await this.prisma.option.findUnique({
-        where: { id },
-        select: { name: true, description: true },
-      });
-
-      if (!option) {
-        throw new AppError(ERROR_CODES.NOT_FOUND);
-      }
-
       this.assertPublishable({
         name: toLocalizedText(option.name),
         description: toLocalizedText(option.description),
@@ -439,11 +465,30 @@ export class OptionsService {
   }
 
   async remove(id: string): Promise<void> {
+    const option = await this.prisma.option.findUnique({
+      where: { id },
+      select: { code: true },
+    });
+
+    if (!option) {
+      throw new AppError(ERROR_CODES.NOT_FOUND);
+    }
+
+    if (option.code) {
+      throw this.codeProtectedError(option.code, 'DELETE');
+    }
+
     const result = await this.prisma.option.deleteMany({ where: { id } });
 
     if (result.count === 0) {
       throw new AppError(ERROR_CODES.NOT_FOUND);
     }
+  }
+
+  private codeProtectedError(code: OptionCode, action: string): AppError {
+    return new AppError(ERROR_CODES.OPTION_CODE_PROTECTED, {
+      params: { code, action },
+    });
   }
 
   private resolveQuantityBounds(
@@ -500,6 +545,7 @@ export class OptionsService {
   private toOptionAdmin(option: OptionWithRelations): OptionAdmin {
     return {
       id: option.id,
+      code: option.code,
       kind: option.kind,
       name: toLocalizedText(option.name),
       description: toLocalizedText(option.description),

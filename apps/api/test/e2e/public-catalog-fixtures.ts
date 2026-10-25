@@ -1,5 +1,6 @@
 import type { PrismaService } from '../../src/common/prisma/prisma.service';
 import {
+  OptionCode,
   OptionKind,
   OptionUnit,
   ProductUnit,
@@ -727,6 +728,7 @@ export async function createPublicCatalogFixtures(
 
   const optionRoomSqmRestricted = await prisma.option.create({
     data: {
+      code: OptionCode.HEATED_FLOOR,
       kind: OptionKind.ENGINEERING,
       name: data.engineering.optionRoomSqmRestricted,
       description: localized(

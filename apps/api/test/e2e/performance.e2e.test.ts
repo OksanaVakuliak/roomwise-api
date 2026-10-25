@@ -27,6 +27,9 @@ const PUBLIC_MUTATING_ROUTES = new Set([
   'POST /api/v1/admin/auth/login',
   'POST /api/v1/admin/auth/logout',
   'POST /api/v1/public/estimates',
+  'POST /api/v1/public/calculations',
+  'POST /api/v1/public/calculations/{publicId}/versions',
+  'POST /api/v1/public/leads',
 ]);
 
 vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });
@@ -229,6 +232,9 @@ function resolveRouteId(path: string): string {
       path.startsWith(`/api/v1/admin/pricing/${resource}/`),
     )
   ) {
+    return UNSEEDED_PRICING_ID;
+  }
+  if (path.startsWith('/api/v1/admin/leads/')) {
     return UNSEEDED_PRICING_ID;
   }
   throw new Error(`No seeded id resolver for path: ${path}`);
