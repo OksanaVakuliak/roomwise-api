@@ -21,6 +21,7 @@ export const LOGGER_REDACTION = {
     'req.headers.authorization',
     'req.headers.cookie',
     "req.headers['x-maintenance-token']",
+    "req.headers['x-roomwise-proxy-secret']",
     "res.headers['set-cookie']",
   ],
   censor: '[Redacted]',
