@@ -1,12 +1,9 @@
 import type { ExecutionContext } from '@nestjs/common';
-import {
-  ThrottlerGuard,
-  type ThrottlerLimitDetail,
-  type ThrottlerOptions,
-} from '@nestjs/throttler';
+import type { ThrottlerLimitDetail, ThrottlerOptions } from '@nestjs/throttler';
 import type { Response } from 'express';
+import { ClientIpThrottlerGuard } from './client-ip-throttler.guard';
 
-export abstract class NamedThrottlerGuard extends ThrottlerGuard {
+export abstract class NamedThrottlerGuard extends ClientIpThrottlerGuard {
   protected useThrottlers(throttlers: ThrottlerOptions[]): void {
     this.throttlers = throttlers;
     this.commonOptions = {

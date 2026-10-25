@@ -28,6 +28,7 @@ const createRequest = (url: string, query: Record<string, string>) => ({
     authorization: 'Bearer secret-token',
     cookie: 'rw_session=secret-cookie',
     'x-maintenance-token': 'maintenance-secret',
+    'x-roomwise-proxy-secret': 'proxy-secret-value',
   },
   socket: { remoteAddress: '127.0.0.1', remotePort: 12345 },
 });
@@ -52,6 +53,7 @@ describe('logger config', () => {
     expect(output).not.toContain('secret-token');
     expect(output).not.toContain('secret-cookie');
     expect(output).not.toContain('maintenance-secret');
+    expect(output).not.toContain('proxy-secret-value');
     expect(logged.req.url).toBe('/api/leads');
     expect(logged.req.query).toEqual({
       email: '[Redacted]',
@@ -60,6 +62,7 @@ describe('logger config', () => {
     expect(logged.req.headers.authorization).toBe('[Redacted]');
     expect(logged.req.headers.cookie).toBe('[Redacted]');
     expect(logged.req.headers['x-maintenance-token']).toBe('[Redacted]');
+    expect(logged.req.headers['x-roomwise-proxy-secret']).toBe('[Redacted]');
   });
 
   it('keeps non-sensitive query params untouched', () => {

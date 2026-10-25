@@ -2,6 +2,10 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Clock } from '../../src/common/clock/clock';
 import { ERROR_CODES } from '../../src/common/http/error-codes';
+import {
+  PROXY_SECRET_HEADER,
+  VERCEL_FORWARDED_FOR_HEADER,
+} from '../../src/common/throttling/client-ip';
 import { PUBLIC_WRITE_LIMITS_PER_HOUR } from '../../src/common/throttling/public-write-throttle.constants';
 import { LeadStatus, Locale } from '../../src/generated/prisma/enums';
 import { createTestApp, type TestApp } from './app-factory';
@@ -383,6 +387,36 @@ describe('leads e2e', () => {
       expect(replay.status).toBe(201);
       expect(replay.body.leadNumber).toEqual(expect.any(Number));
       expect(blocked.status).toBe(429);
+    });
+
+    it('tracks the Vercel client address only with the proxy secret', async () => {
+      const egressIp = freshIp();
+      const blockedClient = freshIp();
+      const secret = process.env.API_PROXY_SECRET as string;
+      const viaVercel = (clientIp: string, proxySecret?: string) => {
+        const req = request(testApp.http)
+          .post(LEADS)
+          .set(FORWARDED_FOR_HEADER, egressIp)
+          .set(VERCEL_FORWARDED_FOR_HEADER, clientIp)
+          .set(IDEMPOTENCY_HEADER, newIdempotencyKey());
+
+        return (
+          proxySecret ? req.set(PROXY_SECRET_HEADER, proxySecret) : req
+        ).send(leadBody());
+      };
+
+      for (let i = 0; i < LEADS_LIMIT; i++) {
+        expect((await viaVercel(blockedClient, secret)).status).toBe(201);
+      }
+
+      expect((await viaVercel(blockedClient, secret)).status).toBe(429);
+      expect((await viaVercel(freshIp(), secret)).status).toBe(201);
+
+      for (let i = 0; i < LEADS_LIMIT; i++) {
+        expect((await viaVercel(freshIp())).status).toBe(201);
+      }
+
+      expect((await viaVercel(freshIp())).status).toBe(429);
     });
 
     it('keeps the budget per client IP', async () => {

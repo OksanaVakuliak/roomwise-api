@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
@@ -9,6 +9,7 @@ import { ClockModule } from './common/clock/clock.module';
 import { HttpExceptionFilter } from './common/http/http-exception.filter';
 import { MaintenanceModule } from './common/maintenance/maintenance.module';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { ClientIpThrottlerGuard } from './common/throttling/client-ip-throttler.guard';
 import { DemoWriteThrottlerGuard } from './common/throttling/demo-write-throttler.guard';
 import { PublicWriteThrottlerGuard } from './common/throttling/public-write-throttler.guard';
 import { validateEnv } from './config/env';
@@ -63,7 +64,7 @@ const RATE_LIMIT_MAX_REQUESTS = 100;
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: ClientIpThrottlerGuard,
     },
     {
       provide: APP_GUARD,

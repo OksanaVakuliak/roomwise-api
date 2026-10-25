@@ -84,6 +84,7 @@ describe('validateEnv', () => {
       ...validEnv,
       NODE_ENV: 'production',
       PORT: '8080',
+      API_PROXY_SECRET: 'p'.repeat(32),
     });
 
     expect(env.NODE_ENV).toBe('production');
@@ -142,6 +143,31 @@ describe('validateEnv', () => {
     expect(() =>
       validateEnv({ ...validEnv, TRUST_PROXY_HOPS: '6' }),
     ).toThrowError(EnvValidationError);
+  });
+
+  it('leaves API_PROXY_SECRET undefined when absent or empty', () => {
+    expect(validateEnv(validEnv).API_PROXY_SECRET).toBeUndefined();
+    expect(
+      validateEnv({ ...validEnv, API_PROXY_SECRET: '' }).API_PROXY_SECRET,
+    ).toBeUndefined();
+  });
+
+  it('parses an explicit API_PROXY_SECRET', () => {
+    const env = validateEnv({ ...validEnv, API_PROXY_SECRET: 'p'.repeat(32) });
+
+    expect(env.API_PROXY_SECRET).toBe('p'.repeat(32));
+  });
+
+  it('rejects an API_PROXY_SECRET shorter than 32 characters', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, API_PROXY_SECRET: 'short' }),
+    ).toThrowError(EnvValidationError);
+  });
+
+  it('requires API_PROXY_SECRET in production', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, NODE_ENV: 'production' }),
+    ).toThrowError(/API_PROXY_SECRET/);
   });
 
   it('rejects a CLOUDINARY_URL without a cloud name', () => {

@@ -114,7 +114,8 @@ lists every key without values.
 | `SANDBOX_RESET_TIME` | Yes | — | Daily sandbox reset time, `HH:mm` |
 | `SANDBOX_TIMEZONE` | Yes | — | IANA timezone the reset time is interpreted in |
 | `PORT` | No | `3000` | Port the HTTP server listens on |
-| `TRUST_PROXY_HOPS` | No | `1` | Number of trusted reverse-proxy hops in front of the app (affects `X-Forwarded-For` parsing) |
+| `TRUST_PROXY_HOPS` | No | `1` | Number of trusted reverse-proxy hops in front of the app (affects `X-Forwarded-For` parsing); `3` on Render, see [Client IP behind proxies](#client-ip-behind-proxies) |
+| `API_PROXY_SECRET` | No | — (disabled) | Shared secret the web app sends in `x-roomwise-proxy-secret` so `x-vercel-forwarded-for` is trusted; at least 32 characters, must equal the web app's `API_PROXY_SECRET` on Vercel |
 | `NBU_API_URL` | No | `https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange` | Base URL of the National Bank of Ukraine exchange-rate API |
 
 ## Local setup
@@ -217,11 +218,33 @@ enable` to the build command — Render's Node image ships pnpm at a fixed,
 read-only path, and `corepack enable` trying to replace it is a known
 source of build failures on Render.
 
-`TRUST_PROXY_HOPS` is set to `1` in `render.yaml` while clients call Render
-directly. Once the web app proxies the API through a Vercel rewrite, the chain
-becomes browser → Vercel → Render: raise it to `2` and confirm the hop count
-from the `X-Forwarded-For` header. A value higher than the real chain lets
-clients spoof their IP and bypass the per-IP rate limits.
+#### Client IP behind proxies
+
+Per-IP rate limits (estimates, saves, leads) key on the client address, so
+`req.ip` has to be the visitor and not a proxy. Measured on production
+(2026-10-26), the `X-Forwarded-For` header the app receives is:
+
+- direct to Render: `<client>, <cloudflare>, <render internal 10.x>`
+- through the Vercel rewrite: `<client>, <vercel egress>, <cloudflare>, <render internal 10.x>`
+
+Express counts trusted hops from the right, so `TRUST_PROXY_HOPS=3` in
+`render.yaml` yields `<client>` on the direct path. Entries a caller supplies
+are kept at the left of the header, so 3 is not spoofable, while a higher value
+would let clients pick their own IP and bypass the limits.
+
+On the Vercel path the same value yields the Vercel egress address, shared by
+all visitors. Vercel overwrites `x-vercel-forwarded-for` with the real client
+IP, but a caller reaching Render directly can send any value in that header. The
+app therefore trusts it only when the request also carries
+`x-roomwise-proxy-secret` equal to `API_PROXY_SECRET`, which the web app's
+`proxy.ts` adds to every `/api/*` request before the rewrite. Without a matching
+secret the header is ignored and `req.ip` is used. The secret is required in
+production and redacted from logs.
+
+To re-verify after a hosting change, send a request with an `x-request-id`
+header, find that request in the Render logs and read
+`req.headers.x-forwarded-for`. Count the entries after the client address and
+update `TRUST_PROXY_HOPS` if the number changed.
 
 ### Database: Neon
 

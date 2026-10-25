@@ -14,4 +14,5 @@ Object.assign(process.env, {
   SANDBOX_RESET_TIME: '03:00',
   SANDBOX_TIMEZONE: 'Europe/Kyiv',
   PORT: '4000',
+  API_PROXY_SECRET: 'test-api-proxy-secret-with-32-characters',
 });
