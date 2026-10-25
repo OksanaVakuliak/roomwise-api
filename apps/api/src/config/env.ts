@@ -50,6 +50,11 @@ const trustProxyHopsSchema = z.preprocess(
     .default(DEFAULT_TRUST_PROXY_HOPS),
 );
 
+const apiProxySecretSchema = z.preprocess(
+  emptyStringToUndefined,
+  z.string().min(REQUIRED_SECRET_LENGTH).optional(),
+);
+
 const nbuApiUrlSchema = z.preprocess(
   emptyStringToUndefined,
   z.httpUrl().default(DEFAULT_NBU_API_URL),
@@ -98,6 +103,7 @@ export const envSchema = z.object({
   SANDBOX_TIMEZONE: timezoneSchema,
   PORT: portSchema,
   TRUST_PROXY_HOPS: trustProxyHopsSchema,
+  API_PROXY_SECRET: apiProxySecretSchema,
   NBU_API_URL: nbuApiUrlSchema,
 });
 

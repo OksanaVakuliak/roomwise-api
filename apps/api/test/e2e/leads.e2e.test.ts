@@ -19,6 +19,8 @@ const LEADS = '/api/v1/public/leads';
 const FORM_SETTINGS = `${LEADS}/form-settings`;
 const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 const FORWARDED_FOR_HEADER = 'x-forwarded-for';
+const VERCEL_FORWARDED_FOR_HEADER = 'x-vercel-forwarded-for';
+const PROXY_SECRET_HEADER = 'x-roomwise-proxy-secret';
 const LEADS_LIMIT = PUBLIC_WRITE_LIMITS_PER_HOUR.leads;
 const UNKNOWN_PUBLIC_ID = 'AAAAAAAAAAAAAAAAAAAAAA';
 const UNKNOWN_VERSION_NUMBER = 99;
@@ -383,6 +385,35 @@ describe('leads e2e', () => {
       expect(replay.status).toBe(201);
       expect(replay.body.leadNumber).toEqual(expect.any(Number));
       expect(blocked.status).toBe(429);
+    });
+
+    it('tracks the Vercel client address only with the proxy secret', async () => {
+      const egressIp = freshIp();
+      const secret = process.env.API_PROXY_SECRET as string;
+      const viaVercel = (clientIp: string, proxySecret?: string) => {
+        const req = request(testApp.http)
+          .post(LEADS)
+          .set(FORWARDED_FOR_HEADER, egressIp)
+          .set(VERCEL_FORWARDED_FOR_HEADER, clientIp)
+          .set(IDEMPOTENCY_HEADER, newIdempotencyKey());
+
+        return (
+          proxySecret ? req.set(PROXY_SECRET_HEADER, proxySecret) : req
+        ).send(leadBody());
+      };
+
+      for (let i = 0; i < LEADS_LIMIT; i++) {
+        expect((await viaVercel('198.51.100.10', secret)).status).toBe(201);
+      }
+
+      expect((await viaVercel('198.51.100.10', secret)).status).toBe(429);
+      expect((await viaVercel('198.51.100.11', secret)).status).toBe(201);
+
+      for (let i = 0; i < LEADS_LIMIT; i++) {
+        expect((await viaVercel(`198.51.100.${20 + i}`)).status).toBe(201);
+      }
+
+      expect((await viaVercel('198.51.100.99')).status).toBe(429);
     });
 
     it('keeps the budget per client IP', async () => {

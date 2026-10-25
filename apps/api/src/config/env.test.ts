@@ -144,6 +144,25 @@ describe('validateEnv', () => {
     ).toThrowError(EnvValidationError);
   });
 
+  it('leaves API_PROXY_SECRET undefined when absent or empty', () => {
+    expect(validateEnv(validEnv).API_PROXY_SECRET).toBeUndefined();
+    expect(
+      validateEnv({ ...validEnv, API_PROXY_SECRET: '' }).API_PROXY_SECRET,
+    ).toBeUndefined();
+  });
+
+  it('parses an explicit API_PROXY_SECRET', () => {
+    const env = validateEnv({ ...validEnv, API_PROXY_SECRET: 'p'.repeat(32) });
+
+    expect(env.API_PROXY_SECRET).toBe('p'.repeat(32));
+  });
+
+  it('rejects an API_PROXY_SECRET shorter than 32 characters', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, API_PROXY_SECRET: 'short' }),
+    ).toThrowError(EnvValidationError);
+  });
+
   it('rejects a CLOUDINARY_URL without a cloud name', () => {
     expect(() =>
       validateEnv({ ...validEnv, CLOUDINARY_URL: 'cloudinary://key:secret@' }),
