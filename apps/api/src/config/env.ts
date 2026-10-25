@@ -69,43 +69,53 @@ const timezoneSchema = requiredStringSchema.refine((value) => {
   }
 }, 'Must be an IANA timezone');
 
-export const envSchema = z.object({
-  NODE_ENV: nodeEnvSchema,
-  DATABASE_URL: postgresUrlSchema,
-  DIRECT_URL: postgresUrlSchema,
-  JWT_SECRET: z.string().min(REQUIRED_SECRET_LENGTH),
-  CORS_ORIGIN: requiredStringSchema.transform((value, context) => {
-    const origins = value
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter(Boolean);
+export const envSchema = z
+  .object({
+    NODE_ENV: nodeEnvSchema,
+    DATABASE_URL: postgresUrlSchema,
+    DIRECT_URL: postgresUrlSchema,
+    JWT_SECRET: z.string().min(REQUIRED_SECRET_LENGTH),
+    CORS_ORIGIN: requiredStringSchema.transform((value, context) => {
+      const origins = value
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean);
 
-    for (const origin of origins) {
-      if (!z.url().safeParse(origin).success) {
-        context.addIssue({
-          code: 'custom',
-          message: `Invalid origin: ${origin}`,
-        });
+      for (const origin of origins) {
+        if (!z.url().safeParse(origin).success) {
+          context.addIssue({
+            code: 'custom',
+            message: `Invalid origin: ${origin}`,
+          });
+        }
       }
-    }
 
-    return origins;
-  }),
-  CLOUDINARY_URL: requiredStringSchema.refine(
-    (value) => findCloudinaryCloudName(value) !== null,
-    'Must be a Cloudinary URL with key, secret and cloud name',
-  ),
-  SENTRY_DSN: optionalUrlSchema,
-  MAINTENANCE_TOKEN: z.string().min(REQUIRED_SECRET_LENGTH),
-  DEMO_ADMIN_LOGIN: z.string().regex(/^[a-z0-9._-]{3,40}$/),
-  DEMO_ADMIN_PASSWORD: z.string().min(MIN_PASSWORD_LENGTH),
-  SANDBOX_RESET_TIME: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
-  SANDBOX_TIMEZONE: timezoneSchema,
-  PORT: portSchema,
-  TRUST_PROXY_HOPS: trustProxyHopsSchema,
-  API_PROXY_SECRET: apiProxySecretSchema,
-  NBU_API_URL: nbuApiUrlSchema,
-});
+      return origins;
+    }),
+    CLOUDINARY_URL: requiredStringSchema.refine(
+      (value) => findCloudinaryCloudName(value) !== null,
+      'Must be a Cloudinary URL with key, secret and cloud name',
+    ),
+    SENTRY_DSN: optionalUrlSchema,
+    MAINTENANCE_TOKEN: z.string().min(REQUIRED_SECRET_LENGTH),
+    DEMO_ADMIN_LOGIN: z.string().regex(/^[a-z0-9._-]{3,40}$/),
+    DEMO_ADMIN_PASSWORD: z.string().min(MIN_PASSWORD_LENGTH),
+    SANDBOX_RESET_TIME: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+    SANDBOX_TIMEZONE: timezoneSchema,
+    PORT: portSchema,
+    TRUST_PROXY_HOPS: trustProxyHopsSchema,
+    API_PROXY_SECRET: apiProxySecretSchema,
+    NBU_API_URL: nbuApiUrlSchema,
+  })
+  .superRefine((env, context) => {
+    if (env.NODE_ENV === 'production' && !env.API_PROXY_SECRET) {
+      context.addIssue({
+        code: 'custom',
+        path: ['API_PROXY_SECRET'],
+        message: 'Required in production',
+      });
+    }
+  });
 
 export type AppEnv = z.infer<typeof envSchema>;
 export type AppConfigService = ConfigService<AppEnv, true>;

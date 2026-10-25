@@ -236,9 +236,10 @@ On the Vercel path the same value yields the Vercel egress address, shared by
 all visitors. Vercel overwrites `x-vercel-forwarded-for` with the real client
 IP, but a caller reaching Render directly can send any value in that header. The
 app therefore trusts it only when the request also carries
-`x-roomwise-proxy-secret` equal to `API_PROXY_SECRET`, which the web app adds in
-its rewrite. Without a matching secret the header is ignored and `req.ip` is
-used. The secret is redacted from logs.
+`x-roomwise-proxy-secret` equal to `API_PROXY_SECRET`, which the web app's
+`proxy.ts` adds to every `/api/*` request before the rewrite. Without a matching
+secret the header is ignored and `req.ip` is used. The secret is required in
+production and redacted from logs.
 
 To re-verify after a hosting change, send a request with an `x-request-id`
 header, find that request in the Render logs and read

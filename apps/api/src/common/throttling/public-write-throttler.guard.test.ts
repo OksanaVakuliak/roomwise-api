@@ -7,6 +7,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import type { Request } from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { PROXY_SECRET_HEADER, VERCEL_FORWARDED_FOR_HEADER } from './client-ip';
 import { PublicWriteExemption } from './public-write-exemption';
 import { PublicWriteLimit } from './public-write-limit.decorator';
 import { PUBLIC_WRITE_LIMITS_PER_HOUR } from './public-write-throttle.constants';
@@ -138,8 +139,8 @@ describe('PublicWriteThrottlerGuard behind Vercel', () => {
       '/test/leads',
       `${client}, ${VERCEL_EGRESS}, ${CLOUDFLARE}, ${RENDER_INTERNAL}`,
       {
-        'x-vercel-forwarded-for': client,
-        ...(secret ? { 'x-roomwise-proxy-secret': secret } : {}),
+        [VERCEL_FORWARDED_FOR_HEADER]: client,
+        ...(secret ? { [PROXY_SECRET_HEADER]: secret } : {}),
       },
     );
 

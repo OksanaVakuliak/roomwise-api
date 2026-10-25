@@ -84,6 +84,7 @@ describe('validateEnv', () => {
       ...validEnv,
       NODE_ENV: 'production',
       PORT: '8080',
+      API_PROXY_SECRET: 'p'.repeat(32),
     });
 
     expect(env.NODE_ENV).toBe('production');
@@ -161,6 +162,12 @@ describe('validateEnv', () => {
     expect(() =>
       validateEnv({ ...validEnv, API_PROXY_SECRET: 'short' }),
     ).toThrowError(EnvValidationError);
+  });
+
+  it('requires API_PROXY_SECRET in production', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, NODE_ENV: 'production' }),
+    ).toThrowError(/API_PROXY_SECRET/);
   });
 
   it('rejects a CLOUDINARY_URL without a cloud name', () => {
