@@ -13,7 +13,7 @@ import {
 } from '../../../generated/prisma/enums';
 import {
   CalculationsService,
-  type ClientPrice,
+  clientPriceSchema,
   type PreparedCalculation,
   priceDifferenceOf,
   type StoredVersionRef,
@@ -23,11 +23,10 @@ import { publicIdFromUuid } from '../calculations/public-id';
 import { IdempotencyService } from '../idempotency/idempotency.service';
 import type { IdempotencyContextValue } from '../idempotency/idempotency-request';
 import { ProjectsSettingsService } from '../settings/projects-settings.service';
-import {
-  type CreateLeadRequest,
-  type CreateLeadResponse,
-  type LeadFormSettings,
-  leadDraftSchema,
+import type {
+  CreateLeadRequest,
+  CreateLeadResponse,
+  LeadFormSettings,
 } from './dto/create-lead.schema';
 import { normalizePhone } from './phone.schema';
 
@@ -35,9 +34,7 @@ const FAKE_VERSION_NUMBER = 1;
 const DAYS_PLACEHOLDER = /\{days\}/g;
 
 const replayedDraftPriceSchema = z.object({
-  draft: leadDraftSchema
-    .pick({ clientPricingVersion: true, clientTotalUsdCents: true })
-    .optional(),
+  draft: clientPriceSchema.optional(),
 });
 
 const LOCALE_BY_LANGUAGE: Record<Language, Locale> = {
@@ -47,16 +44,6 @@ const LOCALE_BY_LANGUAGE: Record<Language, Locale> = {
 
 function isExpired(expiresAt: Date, at: Date): boolean {
   return expiresAt.getTime() <= at.getTime();
-}
-
-function draftPriceDifference(
-  client: ClientPrice | undefined,
-  pricingVersion: string,
-  totalUsdCents: number,
-): PriceDifference | null {
-  return client
-    ? priceDifferenceOf(client, pricingVersion, totalUsdCents)
-    : null;
 }
 
 function responseOf(
@@ -108,13 +95,14 @@ export class LeadsService implements OnModuleInit {
     const prepared = input.draft
       ? await this.calculations.prepareNew(input.draft)
       : null;
-    const priceDifference = prepared
-      ? draftPriceDifference(
-          input.draft,
-          prepared.snapshot.pricingVersion,
-          prepared.snapshot.estimate.totals.usdCents,
-        )
-      : null;
+    const priceDifference =
+      input.draft && prepared
+        ? priceDifferenceOf(
+            input.draft,
+            prepared.snapshot.pricingVersion,
+            prepared.snapshot.estimate.totals.usdCents,
+          )
+        : null;
     const existing = input.calculation
       ? await this.calculations.findStoredVersion(
           input.calculation.publicId,
@@ -260,11 +248,13 @@ export class LeadsService implements OnModuleInit {
       lead.number,
       { publicId: version.calculation.publicId, number: version.number },
       lead.expiredAtSubmission,
-      draftPriceDifference(
-        draft,
-        version.pricingVersion,
-        version.totalUsdCents,
-      ),
+      draft
+        ? priceDifferenceOf(
+            draft,
+            version.pricingVersion,
+            version.totalUsdCents,
+          )
+        : null,
     );
   }
 }

@@ -1,8 +1,10 @@
-import { ConfigurationSchema, PricingDataSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { SUPPORTED_LANGUAGES } from '../../../../common/i18n/resolve-lang';
-import { priceDifferenceSchema } from '../../calculations/dto/save-calculation.schema';
+import {
+  priceDifferenceSchema,
+  saveCalculationRequestSchema,
+} from '../../calculations/dto/save-calculation.schema';
 
 const PUBLIC_ID_MAX = 64;
 const NAME_MAX = 100;
@@ -17,12 +19,7 @@ export const leadCalculationRefSchema = z.object({
   versionNumber: z.number().int().min(1),
 });
 
-export const leadDraftSchema = z.object({
-  configuration: ConfigurationSchema,
-  styleId: z.uuid(),
-  clientPricingVersion: PricingDataSchema.shape.version,
-  clientTotalUsdCents: z.number().int().nonnegative(),
-});
+export const leadDraftSchema = saveCalculationRequestSchema;
 
 export const createLeadRequestSchema = z
   .object({
