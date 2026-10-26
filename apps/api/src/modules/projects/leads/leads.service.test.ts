@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../common/http/app-error';
 import { IdempotencyScope, LeadStatus } from '../../../generated/prisma/enums';
+import { publicIdFromUuid } from '../calculations/public-id';
 import { LeadsService } from './leads.service';
 
 const NOW = new Date('2026-10-22T12:00:00.000Z');
@@ -10,6 +12,7 @@ const LEAD_ID = 'lead-1';
 const LEAD_NUMBER = 7;
 const FAKE_NUMBER = 42;
 const RETENTION_DAYS = 30;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CONTEXT = {
   scope: IdempotencyScope.LEAD,
   key: 'key',
@@ -191,7 +194,7 @@ describe('LeadsService.create', () => {
   describe('honeypot', () => {
     const spam = { ...calculationInput, website: ' http://spam ' };
 
-    it('creates no lead and records a fake lead number', async () => {
+    it('records a fake lead number under a generated result id', async () => {
       const { service, tx, idempotency } = createService();
 
       const result = await submit(service, spam);
@@ -199,23 +202,33 @@ describe('LeadsService.create', () => {
       expect(tx.lead.create).not.toHaveBeenCalled();
       expect(idempotency.record).toHaveBeenCalledWith(tx, {
         ...CONTEXT,
-        resultId: VERSION_ID,
+        resultId: expect.stringMatching(UUID),
         fakeLeadNumber: FAKE_NUMBER,
         createdAt: NOW,
       });
+      const { resultId } = idempotency.record.mock.calls[0][1];
       expect(result).toEqual({
         leadNumber: FAKE_NUMBER,
-        calculation: { publicId: 'public', versionNumber: 3 },
+        calculation: {
+          publicId: publicIdFromUuid(resultId),
+          versionNumber: 1,
+        },
         expiredAtSubmission: false,
       });
     });
 
-    it('still saves a draft calculation', async () => {
-      const { service, calculations } = createService();
+    it.each([
+      ['a saved calculation', calculationInput],
+      ['a draft', draftInput],
+    ])('does no calculation work for %s', async (_name, input) => {
+      const { service, tx, calculations } = createService();
 
-      await submit(service, { ...draftInput, website: 'x' });
+      await submit(service, { ...input, website: 'x' });
 
-      expect(calculations.persistNew).toHaveBeenCalled();
+      expect(calculations.prepareNew).not.toHaveBeenCalled();
+      expect(calculations.findStoredVersion).not.toHaveBeenCalled();
+      expect(calculations.persistNew).not.toHaveBeenCalled();
+      expect(tx.lead.create).not.toHaveBeenCalled();
     });
 
     it('treats a blank website as a real lead', async () => {
@@ -258,23 +271,22 @@ describe('LeadsService replay', () => {
     });
   });
 
-  it('rebuilds the response of a honeypot from the fake number', async () => {
+  it('rebuilds the response of a honeypot without touching the database', async () => {
     const ctx = createService();
-    ctx.prisma.calculationVersion.findUniqueOrThrow.mockResolvedValue({
-      number: 3,
-      expiresAt: new Date(NOW.getTime() + DAY_MS),
-      calculation: { publicId: 'public' },
-    });
+    const resultId = randomUUID();
 
     const result = await loader(ctx)(
-      { resultId: VERSION_ID, fakeLeadNumber: FAKE_NUMBER, createdAt: NOW },
+      { resultId, fakeLeadNumber: FAKE_NUMBER, createdAt: NOW },
       {},
     );
 
     expect(ctx.prisma.lead.findUniqueOrThrow).not.toHaveBeenCalled();
+    expect(
+      ctx.prisma.calculationVersion.findUniqueOrThrow,
+    ).not.toHaveBeenCalled();
     expect(result).toEqual({
       leadNumber: FAKE_NUMBER,
-      calculation: { publicId: 'public', versionNumber: 3 },
+      calculation: { publicId: publicIdFromUuid(resultId), versionNumber: 1 },
       expiredAtSubmission: false,
     });
   });

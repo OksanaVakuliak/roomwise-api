@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { Clock } from '../../../common/clock/clock';
 import type { Language } from '../../../common/i18n/resolve-lang';
@@ -13,6 +14,7 @@ import {
   type PreparedCalculation,
   type StoredVersionRef,
 } from '../calculations/calculations.service';
+import { publicIdFromUuid } from '../calculations/public-id';
 import { IdempotencyService } from '../idempotency/idempotency.service';
 import type { IdempotencyContextValue } from '../idempotency/idempotency-request';
 import { ProjectsSettingsService } from '../settings/projects-settings.service';
@@ -23,6 +25,7 @@ import type {
 } from './dto/create-lead.schema';
 import { normalizePhone } from './phone.schema';
 
+const FAKE_VERSION_NUMBER = 1;
 const DAYS_PLACEHOLDER = /\{days\}/g;
 
 const LOCALE_BY_LANGUAGE: Record<Language, Locale> = {
@@ -73,6 +76,11 @@ export class LeadsService implements OnModuleInit {
     idempotency: IdempotencyContextValue,
   ): Promise<CreateLeadResponse> {
     const phone = normalizePhone(input.phone);
+
+    if ((input.website ?? '').trim().length > 0) {
+      return this.createFake(idempotency);
+    }
+
     const prepared = input.draft
       ? await this.calculations.prepareNew(input.draft)
       : null;
@@ -82,24 +90,11 @@ export class LeadsService implements OnModuleInit {
           input.calculation.versionNumber,
         )
       : null;
-    const isSpam = (input.website ?? '').trim().length > 0;
 
     return this.prisma.$transaction(async (tx) => {
       const version = existing ?? (await this.persistDraft(tx, prepared));
       const now = this.clock.now();
       const expiredAtSubmission = isExpired(version.expiresAt, now);
-
-      if (isSpam) {
-        const leadNumber = await this.nextLeadNumber(tx);
-        await this.idempotency.record(tx, {
-          ...idempotency,
-          resultId: version.id,
-          fakeLeadNumber: leadNumber,
-          createdAt: now,
-        });
-
-        return responseOf(leadNumber, version, expiredAtSubmission);
-      }
 
       const lead = await tx.lead.create({
         data: {
@@ -133,6 +128,27 @@ export class LeadsService implements OnModuleInit {
         String(leadRetentionDays),
       ),
     };
+  }
+
+  private createFake(
+    idempotency: IdempotencyContextValue,
+  ): Promise<CreateLeadResponse> {
+    return this.prisma.$transaction(async (tx) => {
+      const leadNumber = await this.nextLeadNumber(tx);
+      const resultId = randomUUID();
+      await this.idempotency.record(tx, {
+        ...idempotency,
+        resultId,
+        fakeLeadNumber: leadNumber,
+        createdAt: this.clock.now(),
+      });
+
+      return responseOf(
+        leadNumber,
+        { publicId: publicIdFromUuid(resultId), number: FAKE_VERSION_NUMBER },
+        false,
+      );
+    });
   }
 
   private async persistDraft(
@@ -170,19 +186,13 @@ export class LeadsService implements OnModuleInit {
 
   private async replay(row: IdempotencyKey): Promise<CreateLeadResponse> {
     if (row.fakeLeadNumber !== null) {
-      const version = await this.prisma.calculationVersion.findUniqueOrThrow({
-        where: { id: row.resultId },
-        select: {
-          number: true,
-          expiresAt: true,
-          calculation: { select: { publicId: true } },
-        },
-      });
-
       return responseOf(
         row.fakeLeadNumber,
-        { publicId: version.calculation.publicId, number: version.number },
-        isExpired(version.expiresAt, row.createdAt),
+        {
+          publicId: publicIdFromUuid(row.resultId),
+          number: FAKE_VERSION_NUMBER,
+        },
+        false,
       );
     }
 
