@@ -130,16 +130,14 @@ describe('findUnknownReferences', () => {
       expect(result).toEqual([]);
     });
 
-    it('still reports a product that belongs to another category', () => {
+    it('accepts a product moved to another category', () => {
       const result = findUnknownReferences(
         roomWith('cat-1', 'prod-2'),
         data,
         'unavailable',
       );
 
-      expect(result).toEqual([
-        { field: 'rooms[0].selections[0].productId', id: 'prod-2' },
-      ]);
+      expect(result).toEqual([]);
     });
 
     it('accepts a category absent from the pricing data', () => {

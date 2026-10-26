@@ -11,7 +11,6 @@ import {
   type SnapshotIds,
   type SnapshotStyle,
 } from '../../catalog/snapshot-read/catalog-snapshot-read.service';
-import type { MissingReferencesPolicy } from '../../pricing/estimate/find-unknown-references';
 import { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.service';
 import { retiredOptionsOf } from './retired-options';
 import {
@@ -24,7 +23,6 @@ export interface SnapshotBuildInput {
   configuration: Configuration;
   styleId: string;
   createdAt: Date;
-  missingReferences?: MissingReferencesPolicy;
   previous?: SnapshotV1;
 }
 
@@ -79,12 +77,11 @@ export class SnapshotBuilder {
   ) {}
 
   async build(input: SnapshotBuildInput): Promise<SnapshotV1> {
-    const { configuration, styleId, createdAt, missingReferences, previous } =
-      input;
+    const { configuration, styleId, createdAt, previous } = input;
     const { estimate, pricingData } = await this.pricingEstimate.estimate(
       configuration,
       {
-        missingReferences,
+        missingReferences: previous ? 'unavailable' : 'reject',
         retiredOptions: previous ? retiredOptionsOf(previous) : undefined,
       },
     );

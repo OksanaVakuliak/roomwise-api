@@ -317,7 +317,6 @@ describe('CalculationsService.recalculate', () => {
       configuration: CONFIGURATION,
       styleId: STYLE_ID,
       createdAt: NOW,
-      missingReferences: 'unavailable',
       previous: base.snapshot,
     });
   });

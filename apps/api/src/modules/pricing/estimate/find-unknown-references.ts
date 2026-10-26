@@ -44,16 +44,15 @@ export function findUnknownReferences(
         );
       }
 
-      if (selection.productId !== null) {
-        const productCategoryId = productCategoryIds.get(selection.productId);
-        const tolerated = tolerateMissing && productCategoryId === undefined;
-
-        if (!tolerated && productCategoryId !== selection.categoryId) {
-          unknown.push({
-            field: `${selectionPath}.productId`,
-            id: selection.productId,
-          });
-        }
+      if (
+        !tolerateMissing &&
+        selection.productId !== null &&
+        productCategoryIds.get(selection.productId) !== selection.categoryId
+      ) {
+        unknown.push({
+          field: `${selectionPath}.productId`,
+          id: selection.productId,
+        });
       }
     });
   });

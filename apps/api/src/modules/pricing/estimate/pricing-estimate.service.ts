@@ -32,10 +32,11 @@ function withRetiredOptions(
   retired: readonly RetiredOption[],
 ): PricingData {
   const known = new Set(data.options.map((option) => option.id));
+  const retiredById = new Map(retired.map((item) => [item.id, item]));
   const placeholders = new Map<string, PricingOption>();
 
   for (const { optionId } of configuration.options) {
-    const entry = retired.find((item) => item.id === optionId);
+    const entry = retiredById.get(optionId);
 
     if (entry !== undefined && !known.has(optionId)) {
       placeholders.set(optionId, {

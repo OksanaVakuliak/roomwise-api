@@ -207,17 +207,13 @@ function createBuilder(
 const input = { configuration, styleId: 'style-1', createdAt };
 
 describe('SnapshotBuilder', () => {
-  it('passes the missing references policy to the estimate', async () => {
+  it('tolerates missing references when re-pricing a previous snapshot', async () => {
     const { builder, pricingEstimate } = createBuilder();
 
     const { builder: source } = createBuilder();
     const previous = await source.build(input);
 
-    await builder.build({
-      ...input,
-      missingReferences: 'unavailable',
-      previous,
-    });
+    await builder.build({ ...input, previous });
 
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration, {
       missingReferences: 'unavailable',
@@ -231,7 +227,7 @@ describe('SnapshotBuilder', () => {
     const snapshot = await builder.build(input);
 
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration, {
-      missingReferences: undefined,
+      missingReferences: 'reject',
       retiredOptions: undefined,
     });
     expect(catalog.read).toHaveBeenCalledWith({
