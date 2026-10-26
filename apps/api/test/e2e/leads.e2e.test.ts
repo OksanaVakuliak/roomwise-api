@@ -273,6 +273,32 @@ describe('leads e2e', () => {
       expect(next.body.leadNumber).toBeGreaterThan(spam.body.leadNumber);
     });
 
+    it('stores nothing for a honeypot with a draft and replays it', async () => {
+      const ip = freshIp();
+      const key = newIdempotencyKey();
+      const body = leadBody({
+        calculation: undefined,
+        draft: draft(),
+        website: 'http://spam',
+      });
+      const counts = () =>
+        Promise.all([
+          testApp.prisma.calculation.count(),
+          testApp.prisma.calculationVersion.count(),
+          testApp.prisma.lead.count(),
+        ]);
+      const before = await counts();
+
+      const first = await submit(body, { ip, key });
+      const replay = await submit(body, { ip, key });
+
+      expect(first.status).toBe(201);
+      expect(replay.status).toBe(201);
+      expect(replay.body).toEqual(first.body);
+      expect(first.body.calculation.versionNumber).toBe(1);
+      await expect(counts()).resolves.toEqual(before);
+    });
+
     it('marks a lead on an expired version', async () => {
       const startedAt = now;
 
