@@ -14970,12 +14970,18 @@
               "clientPricingVersion": {
                 "type": "string",
                 "pattern": "^[0-9a-f]{16}$"
+              },
+              "clientTotalUsdCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               }
             },
             "required": [
               "configuration",
               "styleId",
-              "clientPricingVersion"
+              "clientPricingVersion",
+              "clientTotalUsdCents"
             ]
           },
           "name": {
@@ -15073,12 +15079,46 @@
           },
           "expiredAtSubmission": {
             "type": "boolean"
+          },
+          "priceDifference": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "clientTotalUsdCents": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "savedTotalUsdCents": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "diffCents": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "clientTotalUsdCents",
+                  "savedTotalUsdCents",
+                  "diffCents"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "leadNumber",
           "calculation",
-          "expiredAtSubmission"
+          "expiredAtSubmission",
+          "priceDifference"
         ],
         "additionalProperties": false
       },

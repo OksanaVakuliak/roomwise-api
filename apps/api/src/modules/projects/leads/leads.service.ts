@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import type { Request } from 'express';
+import { z } from 'zod';
 import { Clock } from '../../../common/clock/clock';
 import type { Language } from '../../../common/i18n/resolve-lang';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -11,22 +13,32 @@ import {
 } from '../../../generated/prisma/enums';
 import {
   CalculationsService,
+  type ClientPrice,
   type PreparedCalculation,
+  priceDifferenceOf,
   type StoredVersionRef,
 } from '../calculations/calculations.service';
+import type { PriceDifference } from '../calculations/dto/save-calculation.schema';
 import { publicIdFromUuid } from '../calculations/public-id';
 import { IdempotencyService } from '../idempotency/idempotency.service';
 import type { IdempotencyContextValue } from '../idempotency/idempotency-request';
 import { ProjectsSettingsService } from '../settings/projects-settings.service';
-import type {
-  CreateLeadRequest,
-  CreateLeadResponse,
-  LeadFormSettings,
+import {
+  type CreateLeadRequest,
+  type CreateLeadResponse,
+  type LeadFormSettings,
+  leadDraftSchema,
 } from './dto/create-lead.schema';
 import { normalizePhone } from './phone.schema';
 
 const FAKE_VERSION_NUMBER = 1;
 const DAYS_PLACEHOLDER = /\{days\}/g;
+
+const replayedDraftPriceSchema = z.object({
+  draft: leadDraftSchema
+    .pick({ clientPricingVersion: true, clientTotalUsdCents: true })
+    .optional(),
+});
 
 const LOCALE_BY_LANGUAGE: Record<Language, Locale> = {
   en: Locale.EN,
@@ -37,10 +49,21 @@ function isExpired(expiresAt: Date, at: Date): boolean {
   return expiresAt.getTime() <= at.getTime();
 }
 
+function draftPriceDifference(
+  client: ClientPrice | undefined,
+  pricingVersion: string,
+  totalUsdCents: number,
+): PriceDifference | null {
+  return client
+    ? priceDifferenceOf(client, pricingVersion, totalUsdCents)
+    : null;
+}
+
 function responseOf(
   leadNumber: number,
   version: Pick<StoredVersionRef, 'publicId' | 'number'>,
   expiredAtSubmission: boolean,
+  priceDifference: PriceDifference | null,
 ): CreateLeadResponse {
   return {
     leadNumber,
@@ -49,6 +72,7 @@ function responseOf(
       versionNumber: version.number,
     },
     expiredAtSubmission,
+    priceDifference,
   };
 }
 
@@ -66,8 +90,8 @@ export class LeadsService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.idempotency.registerLoader(IdempotencyScope.LEAD, (row) =>
-      this.replay(row),
+    this.idempotency.registerLoader(IdempotencyScope.LEAD, (row, request) =>
+      this.replay(row, request),
     );
   }
 
@@ -83,6 +107,13 @@ export class LeadsService implements OnModuleInit {
 
     const prepared = input.draft
       ? await this.calculations.prepareNew(input.draft)
+      : null;
+    const priceDifference = prepared
+      ? draftPriceDifference(
+          input.draft,
+          prepared.snapshot.pricingVersion,
+          prepared.snapshot.estimate.totals.usdCents,
+        )
       : null;
     const existing = input.calculation
       ? await this.calculations.findStoredVersion(
@@ -114,7 +145,12 @@ export class LeadsService implements OnModuleInit {
       });
       await this.idempotency.record(tx, { ...idempotency, resultId: lead.id });
 
-      return responseOf(lead.number, version, expiredAtSubmission);
+      return responseOf(
+        lead.number,
+        version,
+        expiredAtSubmission,
+        priceDifference,
+      );
     });
   }
 
@@ -147,6 +183,7 @@ export class LeadsService implements OnModuleInit {
         leadNumber,
         { publicId: publicIdFromUuid(resultId), number: FAKE_VERSION_NUMBER },
         false,
+        null,
       );
     });
   }
@@ -184,7 +221,10 @@ export class LeadsService implements OnModuleInit {
     return row.number;
   }
 
-  private async replay(row: IdempotencyKey): Promise<CreateLeadResponse> {
+  private async replay(
+    row: IdempotencyKey,
+    request: Request,
+  ): Promise<CreateLeadResponse> {
     if (row.fakeLeadNumber !== null) {
       return responseOf(
         row.fakeLeadNumber,
@@ -193,6 +233,7 @@ export class LeadsService implements OnModuleInit {
           number: FAKE_VERSION_NUMBER,
         },
         false,
+        null,
       );
     }
 
@@ -204,19 +245,26 @@ export class LeadsService implements OnModuleInit {
         calculationVersion: {
           select: {
             number: true,
+            pricingVersion: true,
+            totalUsdCents: true,
             calculation: { select: { publicId: true } },
           },
         },
       },
     });
 
+    const { draft } = replayedDraftPriceSchema.parse(request.body);
+    const version = lead.calculationVersion;
+
     return responseOf(
       lead.number,
-      {
-        publicId: lead.calculationVersion.calculation.publicId,
-        number: lead.calculationVersion.number,
-      },
+      { publicId: version.calculation.publicId, number: version.number },
       lead.expiredAtSubmission,
+      draftPriceDifference(
+        draft,
+        version.pricingVersion,
+        version.totalUsdCents,
+      ),
     );
   }
 }

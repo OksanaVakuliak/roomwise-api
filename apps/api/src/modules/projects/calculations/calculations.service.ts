@@ -36,7 +36,7 @@ const clientPriceSchema = saveCalculationRequestSchema.pick({
   clientTotalUsdCents: true,
 });
 
-type ClientPrice = Pick<
+export type ClientPrice = Pick<
   SaveCalculationRequest,
   'clientPricingVersion' | 'clientTotalUsdCents'
 >;
@@ -107,7 +107,7 @@ function versionData(
   };
 }
 
-function priceDifferenceOf(
+export function priceDifferenceOf(
   client: ClientPrice,
   pricingVersion: string,
   savedTotalUsdCents: number,
