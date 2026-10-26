@@ -340,6 +340,7 @@ describe('admin leads e2e', () => {
           configuration: buildNamedBedroomsConfiguration(),
           styleId: projectsStyleId,
           clientPricingVersion: currentPricingVersion,
+          clientTotalUsdCents: 1,
         },
       });
       const body = await card(lead.id);
@@ -797,6 +798,7 @@ describe('admin leads e2e', () => {
           configuration: buildNamedBedroomsConfiguration(),
           styleId: projectsStyleId,
           clientPricingVersion: currentPricingVersion,
+          clientTotalUsdCents: 1,
         },
       });
 

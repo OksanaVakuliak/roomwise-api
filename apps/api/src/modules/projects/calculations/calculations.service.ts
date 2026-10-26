@@ -31,12 +31,12 @@ import { generatePublicId } from './public-id';
 
 const MS_PER_DAY = 86_400_000;
 
-const clientPriceSchema = saveCalculationRequestSchema.pick({
+export const clientPriceSchema = saveCalculationRequestSchema.pick({
   clientPricingVersion: true,
   clientTotalUsdCents: true,
 });
 
-type ClientPrice = Pick<
+export type ClientPrice = Pick<
   SaveCalculationRequest,
   'clientPricingVersion' | 'clientTotalUsdCents'
 >;
@@ -107,7 +107,7 @@ function versionData(
   };
 }
 
-function priceDifferenceOf(
+export function priceDifferenceOf(
   client: ClientPrice,
   pricingVersion: string,
   savedTotalUsdCents: number,

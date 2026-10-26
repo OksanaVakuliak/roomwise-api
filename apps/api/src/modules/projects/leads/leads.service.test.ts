@@ -40,9 +40,29 @@ const calculationInput = {
   calculation: { publicId: 'public', versionNumber: 3 },
 };
 
-const draftInput = {
+const CURRENT_VERSION = 'aaaaaaaaaaaaaaaa';
+const STALE_VERSION = 'bbbbbbbbbbbbbbbb';
+const SAVED_TOTAL = 120_000;
+const CLIENT_TOTAL = 100_000;
+
+const draft = {
+  configuration: { rooms: [] },
+  styleId: 'style',
+  clientPricingVersion: CURRENT_VERSION,
+  clientTotalUsdCents: CLIENT_TOTAL,
+};
+
+const draftInput = { ...base, draft };
+
+const staleDraftInput = {
   ...base,
-  draft: { configuration: { rooms: [] }, styleId: 'style' },
+  draft: { ...draft, clientPricingVersion: STALE_VERSION },
+};
+
+const DIFFERENCE = {
+  clientTotalUsdCents: CLIENT_TOTAL,
+  savedTotalUsdCents: SAVED_TOTAL,
+  diffCents: SAVED_TOTAL - CLIENT_TOTAL,
 };
 
 function createService(storedVersion = stored) {
@@ -58,7 +78,13 @@ function createService(storedVersion = stored) {
     calculationVersion: { findUniqueOrThrow: vi.fn() },
   };
   const calculations = {
-    prepareNew: vi.fn().mockResolvedValue({ prepared: true }),
+    prepareNew: vi.fn().mockResolvedValue({
+      prepared: true,
+      snapshot: {
+        pricingVersion: CURRENT_VERSION,
+        estimate: { totals: { usdCents: SAVED_TOTAL } },
+      },
+    }),
     persistNew: vi.fn().mockResolvedValue({
       version: {
         id: 'draft-version',
@@ -124,6 +150,7 @@ describe('LeadsService.create', () => {
       leadNumber: LEAD_NUMBER,
       calculation: { publicId: 'public', versionNumber: 3 },
       expiredAtSubmission: false,
+      priceDifference: null,
     });
   });
 
@@ -155,9 +182,10 @@ describe('LeadsService.create', () => {
     const result = await submit(service, draftInput);
 
     expect(calculations.findStoredVersion).not.toHaveBeenCalled();
-    expect(calculations.persistNew).toHaveBeenCalledWith(tx, {
-      prepared: true,
-    });
+    expect(calculations.persistNew).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ prepared: true }),
+    );
     expect(prisma.$transaction.mock.invocationCallOrder[0]).toBeLessThan(
       calculations.persistNew.mock.invocationCallOrder[0],
     );
@@ -168,6 +196,30 @@ describe('LeadsService.create', () => {
       publicId: 'draft-public',
       versionNumber: 1,
     });
+  });
+
+  it('reports the price difference of a draft priced under a stale version', async () => {
+    const { service } = createService();
+
+    const result = await submit(service, staleDraftInput);
+
+    expect(result.priceDifference).toEqual(DIFFERENCE);
+  });
+
+  it('reports no price difference for a draft priced under the current version', async () => {
+    const { service } = createService();
+
+    const result = await submit(service, draftInput);
+
+    expect(result.priceDifference).toBeNull();
+  });
+
+  it('reports no price difference for a saved calculation', async () => {
+    const { service } = createService();
+
+    const result = await submit(service, calculationInput);
+
+    expect(result.priceDifference).toBeNull();
   });
 
   it('rejects an invalid phone before any database work', async () => {
@@ -214,6 +266,7 @@ describe('LeadsService.create', () => {
           versionNumber: 1,
         },
         expiredAtSubmission: false,
+        priceDifference: null,
       });
     });
 
@@ -261,15 +314,48 @@ describe('LeadsService replay', () => {
 
     const result = await loader(ctx)(
       { resultId: LEAD_ID, fakeLeadNumber: null, createdAt: NOW },
-      {},
+      { body: calculationInput },
     );
 
     expect(result).toEqual({
       leadNumber: LEAD_NUMBER,
       calculation: { publicId: 'public', versionNumber: 3 },
       expiredAtSubmission: true,
+      priceDifference: null,
     });
   });
+
+  it.each([
+    ['a stale pricing version', STALE_VERSION, DIFFERENCE],
+    ['the current pricing version', CURRENT_VERSION, null],
+  ])(
+    'rebuilds the price difference of a draft lead under %s',
+    async (_name, clientPricingVersion, expected) => {
+      const ctx = createService();
+      ctx.prisma.lead.findUniqueOrThrow.mockResolvedValue({
+        number: LEAD_NUMBER,
+        expiredAtSubmission: false,
+        calculationVersion: {
+          number: 1,
+          pricingVersion: CURRENT_VERSION,
+          totalUsdCents: SAVED_TOTAL,
+          calculation: { publicId: 'draft-public' },
+        },
+      });
+
+      const result = await loader(ctx)(
+        { resultId: LEAD_ID, fakeLeadNumber: null, createdAt: NOW },
+        { body: { ...draftInput, draft: { ...draft, clientPricingVersion } } },
+      );
+
+      expect(result).toEqual({
+        leadNumber: LEAD_NUMBER,
+        calculation: { publicId: 'draft-public', versionNumber: 1 },
+        expiredAtSubmission: false,
+        priceDifference: expected,
+      });
+    },
+  );
 
   it('rebuilds the response of a honeypot without touching the database', async () => {
     const ctx = createService();
@@ -277,7 +363,7 @@ describe('LeadsService replay', () => {
 
     const result = await loader(ctx)(
       { resultId, fakeLeadNumber: FAKE_NUMBER, createdAt: NOW },
-      {},
+      { body: { ...draftInput, website: 'x' } },
     );
 
     expect(ctx.prisma.lead.findUniqueOrThrow).not.toHaveBeenCalled();
@@ -288,6 +374,7 @@ describe('LeadsService replay', () => {
       leadNumber: FAKE_NUMBER,
       calculation: { publicId: publicIdFromUuid(resultId), versionNumber: 1 },
       expiredAtSubmission: false,
+      priceDifference: null,
     });
   });
 });
