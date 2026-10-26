@@ -4,18 +4,58 @@ import {
   checkLimits,
   type Estimate,
   estimate,
+  type OptionKind,
   type PricingData,
+  type PricingOption,
 } from '@roomwise/calc-engine';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { PricingDataService } from '../pricing-data/pricing-data.service';
 import {
   findUnknownReferences,
-  type MissingProductsPolicy,
+  type MissingReferencesPolicy,
 } from './find-unknown-references';
 
+export interface RetiredOption {
+  id: string;
+  kind: OptionKind;
+}
+
 export interface EstimateOptions {
-  missingProducts?: MissingProductsPolicy;
+  missingReferences?: MissingReferencesPolicy;
+  retiredOptions?: readonly RetiredOption[];
+}
+
+function withRetiredOptions(
+  configuration: Configuration,
+  data: PricingData,
+  retired: readonly RetiredOption[],
+): PricingData {
+  const known = new Set(data.options.map((option) => option.id));
+  const retiredById = new Map(retired.map((item) => [item.id, item]));
+  const placeholders = new Map<string, PricingOption>();
+
+  for (const { optionId } of configuration.options) {
+    const entry = retiredById.get(optionId);
+
+    if (entry !== undefined && !known.has(optionId)) {
+      placeholders.set(optionId, {
+        id: entry.id,
+        code: null,
+        kind: entry.kind,
+        priceCents: 0,
+        unit: 'PROJECT',
+        roomTypeCodes: [],
+        minQuantity: null,
+        maxQuantity: null,
+        available: false,
+      });
+    }
+  }
+
+  return placeholders.size === 0
+    ? data
+    : { ...data, options: [...data.options, ...placeholders.values()] };
 }
 
 @Injectable()
@@ -29,12 +69,16 @@ export class PricingEstimateService {
     configuration: Configuration,
     options: EstimateOptions = {},
   ): Promise<{ estimate: Estimate; pricingData: PricingData }> {
-    const data = await this.pricingData.get();
+    const catalogData = await this.pricingData.get();
+    const data =
+      options.missingReferences === 'unavailable' && options.retiredOptions
+        ? withRetiredOptions(configuration, catalogData, options.retiredOptions)
+        : catalogData;
 
     const references = findUnknownReferences(
       configuration,
       data,
-      options.missingProducts,
+      options.missingReferences,
     );
 
     if (references.length > 0) {
@@ -51,6 +95,9 @@ export class PricingEstimateService {
       });
     }
 
-    return { estimate: estimate(configuration, data), pricingData: data };
+    return {
+      estimate: estimate(configuration, data),
+      pricingData: catalogData,
+    };
   }
 }

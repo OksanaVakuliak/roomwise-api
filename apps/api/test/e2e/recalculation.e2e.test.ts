@@ -4,6 +4,7 @@ import { Clock } from '../../src/common/clock/clock';
 import { ERROR_CODES } from '../../src/common/http/error-codes';
 import type { Prisma } from '../../src/generated/prisma/client';
 import { PublicationStatus } from '../../src/generated/prisma/enums';
+import { optionIds } from '../../src/modules/catalog/dataset/data/options';
 import { productIds } from '../../src/modules/catalog/dataset/data/products';
 import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
 import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
@@ -21,6 +22,10 @@ import {
 const SEED_TIMEOUT_MS = 120_000;
 const FORWARDED_FOR_HEADER = 'x-forwarded-for';
 const NAMED_ROOMS_IP = '10.40.0.1';
+const OPTION_IP = '10.40.0.2';
+const CATEGORY_IP = '10.40.0.3';
+const UNPUBLISHED_STYLE_IP = '10.40.0.4';
+const DELETED_STYLE_IP = '10.40.0.5';
 const CALCULATIONS = '/api/v1/public/calculations';
 const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 const UNKNOWN_PUBLIC_ID = 'AAAAAAAAAAAAAAAAAAAAAA';
@@ -31,11 +36,17 @@ const MS_PER_DAY = 86_400_000;
 const VALIDITY_DAYS = 14;
 const CHANGED_VALIDITY_DAYS = 30;
 const PAST_EXPIRY_DAYS = 15;
+const THROWAWAY_SORT_ORDER = 9100;
 
 vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });
 
 interface LineView {
   productId: string | null;
+  categoryId: string | null;
+  optionId: string | null;
+  optionName: string | null;
+  categoryName: string | null;
+  product: { name: string } | null;
   status: string;
 }
 
@@ -50,13 +61,23 @@ describe('recalculation e2e', () => {
     testApp.app.get(ProjectsSettingsService).invalidate();
   }
 
-  async function saveVersion(configuration = buildProjectsConfiguration()) {
+  function clientHeaders(key: string, ip?: string): Record<string, string> {
+    return ip === undefined
+      ? { [IDEMPOTENCY_HEADER]: key }
+      : { [IDEMPOTENCY_HEADER]: key, [FORWARDED_FOR_HEADER]: ip };
+  }
+
+  async function saveVersion(
+    configuration = buildProjectsConfiguration(),
+    styleId: string = projectsStyleId,
+    ip?: string,
+  ) {
     const response = await request(testApp.http)
       .post(CALCULATIONS)
-      .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
+      .set(clientHeaders(newIdempotencyKey(), ip))
       .send({
         configuration,
-        styleId: projectsStyleId,
+        styleId,
         clientPricingVersion: currentPricingVersion,
         clientTotalUsdCents: 1,
       })
@@ -69,10 +90,11 @@ describe('recalculation e2e', () => {
     publicId: string,
     basedOnVersion = 1,
     key = newIdempotencyKey(),
+    ip?: string,
   ) {
     return request(testApp.http)
       .post(`${CALCULATIONS}/${publicId}/versions`)
-      .set(IDEMPOTENCY_HEADER, key)
+      .set(clientHeaders(key, ip))
       .send({ basedOnVersion });
   }
 
@@ -143,7 +165,7 @@ describe('recalculation e2e', () => {
     }
   }
 
-  async function createThrowawayProduct(): Promise<string> {
+  async function createThrowawayProduct(categoryId?: string): Promise<string> {
     const { id, revision, updatedAt, ...template } =
       await testApp.prisma.product.findUniqueOrThrow({
         where: { id: productIds.whiteGlossyWallTile },
@@ -151,6 +173,7 @@ describe('recalculation e2e', () => {
     const created = await testApp.prisma.product.create({
       data: {
         ...template,
+        categoryId: categoryId ?? template.categoryId,
         name: template.name as Prisma.InputJsonValue,
         description: template.description as Prisma.InputJsonValue,
         color: template.color as Prisma.InputJsonValue,
@@ -162,6 +185,79 @@ describe('recalculation e2e', () => {
     invalidateCaches();
 
     return created.id;
+  }
+
+  async function createThrowawayCategory(): Promise<string> {
+    const { id, revision, updatedAt, ...template } =
+      await testApp.prisma.category.findFirstOrThrow({
+        where: { status: PublicationStatus.PUBLISHED },
+      });
+    const created = await testApp.prisma.category.create({
+      data: {
+        ...template,
+        name: template.name as Prisma.InputJsonValue,
+        updatedById: null,
+      },
+    });
+    invalidateCaches();
+
+    return created.id;
+  }
+
+  async function createThrowawayOption(): Promise<string> {
+    const { id, revision, updatedAt, ...template } =
+      await testApp.prisma.option.findUniqueOrThrow({
+        where: { id: optionIds.finalCleaning },
+      });
+    const created = await testApp.prisma.option.create({
+      data: {
+        ...template,
+        code: null,
+        sortOrder: THROWAWAY_SORT_ORDER,
+        name: template.name as Prisma.InputJsonValue,
+        description: template.description as Prisma.InputJsonValue,
+        imageId: null,
+        updatedById: null,
+      },
+    });
+    invalidateCaches();
+
+    return created.id;
+  }
+
+  async function createThrowawayStyle(): Promise<string> {
+    const { id, revision, updatedAt, ...template } =
+      await testApp.prisma.style.findUniqueOrThrow({
+        where: { id: projectsStyleId },
+      });
+    const created = await testApp.prisma.style.create({
+      data: {
+        ...template,
+        sortOrder: THROWAWAY_SORT_ORDER,
+        name: template.name as Prisma.InputJsonValue,
+        description: template.description as Prisma.InputJsonValue,
+        imageId: null,
+        updatedById: null,
+      },
+    });
+    invalidateCaches();
+
+    return created.id;
+  }
+
+  async function deleteOption(optionId: string): Promise<void> {
+    await testApp.prisma.option.deleteMany({ where: { id: optionId } });
+    invalidateCaches();
+  }
+
+  async function deleteCategory(categoryId: string): Promise<void> {
+    await testApp.prisma.category.deleteMany({ where: { id: categoryId } });
+    invalidateCaches();
+  }
+
+  async function deleteStyle(styleId: string): Promise<void> {
+    await testApp.prisma.style.deleteMany({ where: { id: styleId } });
+    invalidateCaches();
   }
 
   async function deleteProduct(productId: string): Promise<void> {
@@ -288,11 +384,161 @@ describe('recalculation e2e', () => {
         expect(findLine(recalculated.body.lines, productId).status).toBe(
           'UNAVAILABLE',
         );
+        expect(findLine(recalculated.body.lines, productId).product?.name).toBe(
+          findLine(first.lines, productId).product?.name,
+        );
         expect(recalculated.body.totals.usdCents).toBeLessThan(
           first.totals.usdCents,
         );
       } finally {
         await deleteProduct(productId);
+      }
+    });
+
+    it('treats a hard-deleted option as unavailable in price status and recalculation', async () => {
+      const optionId = await createThrowawayOption();
+
+      try {
+        const configuration = buildProjectsConfiguration();
+        configuration.options.push({ optionId });
+        const first = await saveVersion(
+          configuration,
+          projectsStyleId,
+          OPTION_IP,
+        );
+        const { publicId } = first;
+        const optionLine = (lines: LineView[]) =>
+          lines.find((line) => line.optionId === optionId);
+        expect(optionLine(first.lines)?.status).toBe('OK');
+
+        await deleteOption(optionId);
+        const status = await latest(publicId);
+        const recalculated = await recalculate(
+          publicId,
+          1,
+          newIdempotencyKey(),
+          OPTION_IP,
+        );
+
+        expect(status.status).toBe(200);
+        expect(status.body.priceStatus.changed).toBe(true);
+        expect(status.body.priceStatus.unavailableItems).toHaveLength(1);
+        expect(status.body.priceStatus.unavailableItems[0]).toMatchObject({
+          optionId,
+        });
+        expect(recalculated.status).toBe(201);
+        expect(optionLine(recalculated.body.lines)?.status).toBe('UNAVAILABLE');
+        expect(optionLine(recalculated.body.lines)?.optionName).toBe(
+          optionLine(first.lines)?.optionName,
+        );
+        expect(optionLine(first.lines)?.optionName).toEqual(expect.any(String));
+        expect(recalculated.body.totals.usdCents).toBeLessThan(
+          first.totals.usdCents,
+        );
+      } finally {
+        await deleteOption(optionId);
+      }
+    });
+
+    it('treats a hard-deleted category as unavailable in price status and recalculation', async () => {
+      const categoryId = await createThrowawayCategory();
+      const productId = await createThrowawayProduct(categoryId);
+
+      try {
+        const configuration = buildProjectsConfiguration();
+        configuration.rooms[0].selections.push({ categoryId, productId });
+        const first = await saveVersion(
+          configuration,
+          projectsStyleId,
+          CATEGORY_IP,
+        );
+        const { publicId } = first;
+        const categoryLine = (lines: LineView[]) =>
+          lines.find((line) => line.categoryId === categoryId);
+        expect(categoryLine(first.lines)?.status).not.toBe('UNAVAILABLE');
+
+        await deleteProduct(productId);
+        await deleteCategory(categoryId);
+        const status = await latest(publicId);
+        const recalculated = await recalculate(
+          publicId,
+          1,
+          newIdempotencyKey(),
+          CATEGORY_IP,
+        );
+
+        expect(status.status).toBe(200);
+        expect(status.body.priceStatus.changed).toBe(true);
+        expect(status.body.priceStatus.unavailableItems).toHaveLength(1);
+        expect(recalculated.status).toBe(201);
+        expect(categoryLine(recalculated.body.lines)?.status).toBe(
+          'UNAVAILABLE',
+        );
+        expect(categoryLine(recalculated.body.lines)?.categoryName).toBe(
+          categoryLine(first.lines)?.categoryName,
+        );
+        expect(categoryLine(first.lines)?.categoryName).toEqual(
+          expect.any(String),
+        );
+      } finally {
+        await deleteProduct(productId);
+        await deleteCategory(categoryId);
+      }
+    });
+
+    it('recalculates a calculation whose style was unpublished', async () => {
+      const styleId = await createThrowawayStyle();
+
+      try {
+        const first = await saveVersion(
+          buildProjectsConfiguration(),
+          styleId,
+          UNPUBLISHED_STYLE_IP,
+        );
+        await testApp.prisma.style.update({
+          where: { id: styleId },
+          data: { status: PublicationStatus.DRAFT },
+        });
+        invalidateCaches();
+
+        const recalculated = await recalculate(
+          first.publicId,
+          1,
+          newIdempotencyKey(),
+          UNPUBLISHED_STYLE_IP,
+        );
+
+        expect(recalculated.status).toBe(201);
+        expect(recalculated.body.style).toEqual(first.style);
+        expect(recalculated.body.totals).toEqual(first.totals);
+      } finally {
+        await deleteStyle(styleId);
+      }
+    });
+
+    it('recalculates a calculation whose style was deleted', async () => {
+      const styleId = await createThrowawayStyle();
+
+      try {
+        const first = await saveVersion(
+          buildProjectsConfiguration(),
+          styleId,
+          DELETED_STYLE_IP,
+        );
+        await deleteStyle(styleId);
+
+        const recalculated = await recalculate(
+          first.publicId,
+          1,
+          newIdempotencyKey(),
+          DELETED_STYLE_IP,
+        );
+
+        expect(recalculated.status).toBe(201);
+        expect(recalculated.body.style).toEqual(first.style);
+        expect(recalculated.body.totals).toEqual(first.totals);
+      } finally {
+        await deleteStyle(styleId);
       }
     });
 

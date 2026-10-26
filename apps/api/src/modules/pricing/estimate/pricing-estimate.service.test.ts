@@ -120,11 +120,54 @@ describe('PricingEstimateService', () => {
     });
 
     const result = await service.estimate(withProduct, {
-      missingProducts: 'unavailable',
+      missingReferences: 'unavailable',
     });
 
     expect(result.estimate.lines).toContainEqual(
       expect.objectContaining({ productId: 'deleted', status: 'UNAVAILABLE' }),
     );
+  });
+
+  describe('retired options', () => {
+    const retiredOptions = [{ id: 'opt-gone', kind: 'ADDITIONAL' as const }];
+    const withOption = configuration({ options: [{ optionId: 'opt-gone' }] });
+
+    it('estimates a deleted option as unavailable without touching catalog data', async () => {
+      const cached = { ...data, options: [] };
+      const service = new PricingEstimateService({
+        get: vi.fn().mockResolvedValue(cached),
+      } as unknown as PricingDataService);
+
+      const result = await service.estimate(withOption, {
+        missingReferences: 'unavailable',
+        retiredOptions,
+      });
+
+      expect(result.estimate.lines).toContainEqual(
+        expect.objectContaining({
+          optionId: 'opt-gone',
+          section: 'ADDITIONAL',
+          status: 'UNAVAILABLE',
+        }),
+      );
+      expect(result.pricingData.options).toEqual([]);
+      expect(cached.options).toEqual([]);
+    });
+
+    it('drops a deleted option that has no retired entry', async () => {
+      const result = await createService().estimate(withOption, {
+        missingReferences: 'unavailable',
+      });
+
+      expect(
+        result.estimate.lines.filter((line) => line.optionId !== null),
+      ).toEqual([]);
+    });
+
+    it('rejects a deleted option under the default policy', async () => {
+      await expect(
+        createService().estimate(withOption, { retiredOptions }),
+      ).rejects.toMatchObject({ code: ERROR_CODES.UNKNOWN_REFERENCE });
+    });
   });
 });
