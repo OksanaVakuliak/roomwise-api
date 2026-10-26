@@ -263,7 +263,8 @@ export class CalculationsService implements OnModuleInit {
         configuration: stored.configuration,
         styleId: stored.style.id,
         createdAt: now,
-        missingProducts: 'unavailable',
+        missingReferences: 'unavailable',
+        previous: stored,
       }),
       this.settings.get(),
     ]);

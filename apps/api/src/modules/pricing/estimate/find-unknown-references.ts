@@ -5,12 +5,12 @@ export interface UnknownReference {
   id: string;
 }
 
-export type MissingProductsPolicy = 'reject' | 'unavailable';
+export type MissingReferencesPolicy = 'reject' | 'unavailable';
 
 export function findUnknownReferences(
   configuration: Configuration,
   data: PricingData,
-  missingProducts: MissingProductsPolicy = 'reject',
+  missingReferences: MissingReferencesPolicy = 'reject',
 ): UnknownReference[] {
   const roomTypeCodes = new Set(data.roomTypes.map((type) => type.code));
   const categoryIds = new Set(data.categories.map((category) => category.id));
@@ -21,6 +21,7 @@ export function findUnknownReferences(
   const roomClientIds = new Set(
     configuration.rooms.map((room) => room.clientId),
   );
+  const tolerateMissing = missingReferences === 'unavailable';
   const unknown: UnknownReference[] = [];
   const expectKnown = (known: Set<string>, field: string, id: string) => {
     if (!known.has(id)) {
@@ -34,16 +35,18 @@ export function findUnknownReferences(
 
     room.selections.forEach((selection, selectionIndex) => {
       const selectionPath = `${roomPath}.selections[${selectionIndex}]`;
-      expectKnown(
-        categoryIds,
-        `${selectionPath}.categoryId`,
-        selection.categoryId,
-      );
+
+      if (!tolerateMissing) {
+        expectKnown(
+          categoryIds,
+          `${selectionPath}.categoryId`,
+          selection.categoryId,
+        );
+      }
 
       if (selection.productId !== null) {
         const productCategoryId = productCategoryIds.get(selection.productId);
-        const tolerated =
-          missingProducts === 'unavailable' && productCategoryId === undefined;
+        const tolerated = tolerateMissing && productCategoryId === undefined;
 
         if (!tolerated && productCategoryId !== selection.categoryId) {
           unknown.push({
@@ -57,7 +60,10 @@ export function findUnknownReferences(
 
   configuration.options.forEach((selection, optionIndex) => {
     const optionPath = `options[${optionIndex}]`;
-    expectKnown(optionIds, `${optionPath}.optionId`, selection.optionId);
+
+    if (!tolerateMissing) {
+      expectKnown(optionIds, `${optionPath}.optionId`, selection.optionId);
+    }
 
     selection.roomClientIds?.forEach((clientId, clientIndex) => {
       expectKnown(

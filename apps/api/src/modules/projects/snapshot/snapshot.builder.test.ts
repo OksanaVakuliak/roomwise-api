@@ -13,7 +13,7 @@ import type {
 } from '../../catalog/snapshot-read/catalog-snapshot-read.service';
 import type { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.service';
 import { SnapshotBuilder } from './snapshot.builder';
-import { SnapshotV1Schema } from './snapshot.schema';
+import { type SnapshotV1, SnapshotV1Schema } from './snapshot.schema';
 
 const text = (value: string) => ({ en: value, uk: `${value} uk` });
 const createdAt = new Date('2026-10-20T12:00:00.000Z');
@@ -207,13 +207,21 @@ function createBuilder(
 const input = { configuration, styleId: 'style-1', createdAt };
 
 describe('SnapshotBuilder', () => {
-  it('passes the missing products policy to the estimate', async () => {
+  it('passes the missing references policy to the estimate', async () => {
     const { builder, pricingEstimate } = createBuilder();
 
-    await builder.build({ ...input, missingProducts: 'unavailable' });
+    const { builder: source } = createBuilder();
+    const previous = await source.build(input);
+
+    await builder.build({
+      ...input,
+      missingReferences: 'unavailable',
+      previous,
+    });
 
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration, {
-      missingProducts: 'unavailable',
+      missingReferences: 'unavailable',
+      retiredOptions: [{ id: 'option-1', kind: 'ENGINEERING' }],
     });
   });
 
@@ -223,7 +231,8 @@ describe('SnapshotBuilder', () => {
     const snapshot = await builder.build(input);
 
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration, {
-      missingProducts: undefined,
+      missingReferences: undefined,
+      retiredOptions: undefined,
     });
     expect(catalog.read).toHaveBeenCalledWith({
       productIds: ['product-1', 'product-gone'],
@@ -363,6 +372,94 @@ describe('SnapshotBuilder', () => {
 
     expect(error).toBeInstanceOf(AppError);
     expect((error as AppError).code).toBe(ERROR_CODES.STYLE_NOT_FOUND);
+  });
+
+  describe('with a stored style', () => {
+    const previous = {
+      lines: [],
+      style: { id: 'style-1', name: text('Stored') },
+    } as unknown as SnapshotV1;
+
+    it('keeps an unpublished style', async () => {
+      const { builder } = createBuilder({
+        catalog: catalogData({
+          style: { id: 'style-1', name: text('Modern'), published: false },
+        }),
+      });
+
+      const snapshot = await builder.build({ ...input, previous });
+
+      expect(snapshot.style).toEqual({ id: 'style-1', name: text('Modern') });
+    });
+
+    it('falls back to the stored style when the row is gone', async () => {
+      const { builder } = createBuilder({
+        catalog: catalogData({ style: null }),
+      });
+
+      const snapshot = await builder.build({ ...input, previous });
+
+      expect(snapshot.style).toEqual(previous.style);
+    });
+  });
+
+  describe('names of deleted catalog entries', () => {
+    const emptyCatalog = () =>
+      catalogData({
+        products: new Map(),
+        categories: new Map(),
+        options: new Map(),
+        packageItems: new Map(),
+      });
+
+    it('takes them from the previous snapshot', async () => {
+      const { builder: source } = createBuilder();
+      const previous = await source.build(input);
+      const { builder } = createBuilder({ catalog: emptyCatalog() });
+
+      const snapshot = await builder.build({ ...input, previous });
+      const byId = (id: string) =>
+        snapshot.lines.find((candidate) => candidate.id === id);
+
+      expect(byId('material')).toMatchObject({
+        categoryName: text('Floor'),
+        product: { name: text('Tile'), brand: 'Brand' },
+      });
+      expect(byId('engineering')).toMatchObject({
+        optionName: text('Option'),
+        packageItemName: text('Item'),
+      });
+    });
+
+    it('leaves them empty without a previous snapshot', async () => {
+      const { builder } = createBuilder({ catalog: emptyCatalog() });
+
+      const snapshot = await builder.build(input);
+      const material = snapshot.lines.find(
+        (candidate) => candidate.id === 'material',
+      );
+
+      expect(material).toMatchObject({ categoryName: null, product: null });
+    });
+
+    it('prefers the current catalog over the previous snapshot', async () => {
+      const { builder: source } = createBuilder({
+        catalog: catalogData({
+          categories: new Map([
+            ['category-1', { id: 'category-1', name: text('Old floor') }],
+          ]),
+        }),
+      });
+      const previous = await source.build(input);
+      const { builder } = createBuilder();
+
+      const snapshot = await builder.build({ ...input, previous });
+      const material = snapshot.lines.find(
+        (candidate) => candidate.id === 'material',
+      );
+
+      expect(material?.categoryName).toEqual(text('Floor'));
+    });
   });
 
   it('throws a plain error when a room type is missing from the catalog', async () => {

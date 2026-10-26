@@ -3,6 +3,7 @@ import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.service';
 import { PricingDataService } from '../../pricing/pricing-data/pricing-data.service';
+import { retiredOptionsOf } from '../snapshot/retired-options';
 import type { SnapshotV1 } from '../snapshot/snapshot.schema';
 import type { PriceStatus } from './price-status.schema';
 
@@ -78,7 +79,10 @@ export class PriceStatusService {
     try {
       const { estimate, pricingData } = await this.pricingEstimate.estimate(
         version.snapshot.configuration,
-        { missingProducts: 'unavailable' },
+        {
+          missingReferences: 'unavailable',
+          retiredOptions: retiredOptionsOf(version.snapshot),
+        },
       );
       const alreadyUnavailable = new Set(
         version.snapshot.lines

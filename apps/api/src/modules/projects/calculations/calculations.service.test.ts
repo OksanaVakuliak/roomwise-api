@@ -240,6 +240,7 @@ describe('CalculationsService.recalculate', () => {
     snapshot: {
       ...snapshot,
       configuration: CONFIGURATION,
+      lines: [],
       style: { id: STYLE_ID, name: { en: 'Style', uk: 'Style' } },
     },
   };
@@ -316,7 +317,8 @@ describe('CalculationsService.recalculate', () => {
       configuration: CONFIGURATION,
       styleId: STYLE_ID,
       createdAt: NOW,
-      missingProducts: 'unavailable',
+      missingReferences: 'unavailable',
+      previous: base.snapshot,
     });
   });
 

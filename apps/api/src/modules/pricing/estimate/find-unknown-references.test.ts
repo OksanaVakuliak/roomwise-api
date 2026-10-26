@@ -142,15 +142,65 @@ describe('findUnknownReferences', () => {
       ]);
     });
 
-    it('still reports an unknown category', () => {
+    it('accepts a category absent from the pricing data', () => {
       const result = findUnknownReferences(
         roomWith('cat-x', 'deleted'),
         data,
         'unavailable',
       );
 
+      expect(result).toEqual([]);
+    });
+
+    it('accepts an option absent from the pricing data', () => {
+      const result = findUnknownReferences(
+        configuration({ options: [{ optionId: 'opt-x' }] }),
+        data,
+        'unavailable',
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it('still reports an unknown room type and room client id', () => {
+      const result = findUnknownReferences(
+        configuration({
+          rooms: [
+            {
+              clientId: 'room-1',
+              roomTypeCode: 'KITCHEN',
+              lengthM: 4,
+              widthM: 3,
+              heightM: 2.7,
+              heatedFloor: false,
+              selections: [],
+            },
+          ],
+          options: [{ optionId: 'opt-x', roomClientIds: ['room-9'] }],
+        }),
+        data,
+        'unavailable',
+      );
+
       expect(result).toEqual([
+        { field: 'rooms[0].roomTypeCode', id: 'KITCHEN' },
+        { field: 'options[0].roomClientIds[0]', id: 'room-9' },
+      ]);
+    });
+
+    it('rejects a missing category and option by default', () => {
+      expect(
+        findUnknownReferences(
+          {
+            ...roomWith('cat-x', 'deleted'),
+            options: [{ optionId: 'opt-x' }],
+          },
+          data,
+        ),
+      ).toEqual([
         { field: 'rooms[0].selections[0].categoryId', id: 'cat-x' },
+        { field: 'rooms[0].selections[0].productId', id: 'deleted' },
+        { field: 'options[0].optionId', id: 'opt-x' },
       ]);
     });
 

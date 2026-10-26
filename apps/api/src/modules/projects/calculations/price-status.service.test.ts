@@ -93,8 +93,38 @@ describe('PriceStatusService', () => {
     });
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(
       { marker: 'configuration' },
-      { missingProducts: 'unavailable' },
+      { missingReferences: 'unavailable', retiredOptions: [] },
     );
+  });
+
+  it('passes options of the stored lines as retired and reports a deleted one', async () => {
+    const { service, resolveEstimate, pricingEstimate } = setup();
+    const optionLine = (status: EstimateLine['status']) =>
+      line({
+        id: 'option-line',
+        section: 'ADDITIONAL',
+        optionId: 'option-1',
+        status,
+      });
+    resolveEstimate(makeEstimate(900, [optionLine('UNAVAILABLE')]));
+
+    const status = await service.current(
+      versionOf('version-1', [optionLine('OK')]),
+    );
+
+    expect(pricingEstimate.estimate).toHaveBeenCalledWith(
+      { marker: 'configuration' },
+      {
+        missingReferences: 'unavailable',
+        retiredOptions: [{ id: 'option-1', kind: 'ADDITIONAL' }],
+      },
+    );
+    expect(status).toMatchObject({
+      changed: true,
+      unavailableItems: [
+        { lineId: 'option-line', productId: null, optionId: 'option-1' },
+      ],
+    });
   });
 
   it('reports the difference when the total changed', async () => {
