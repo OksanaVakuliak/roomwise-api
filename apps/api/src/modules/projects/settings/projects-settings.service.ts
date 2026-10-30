@@ -74,7 +74,7 @@ export class ProjectsSettingsService {
     });
 
     if (!row) {
-      throw new Error('Projects settings are missing; run the seed.');
+      throw new Error('Projects settings are missing; run migrations.');
     }
 
     return {
@@ -150,7 +150,7 @@ export class ProjectsSettingsService {
     });
 
     if (!row) {
-      throw new Error('Projects settings are missing; run the seed.');
+      throw new Error('Projects settings are missing; run migrations.');
     }
 
     const { id: _id, ...settings } = row;
