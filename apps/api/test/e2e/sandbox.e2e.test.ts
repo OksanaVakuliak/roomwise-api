@@ -39,6 +39,12 @@ import {
 } from './admin-catalog-fixtures';
 import { createTestApp, type TestApp } from './app-factory';
 import { createAdmin, login } from './auth-helpers';
+import {
+  buildProjectsConfiguration,
+  newIdempotencyKey,
+  projectsStyleId,
+  seedProjectsData,
+} from './projects-fixtures';
 
 const SEED_TIMEOUT_MS = 120_000;
 const SEED_TRANSACTION_OPTIONS = { timeout: SEED_TIMEOUT_MS, maxWait: 30_000 };
@@ -48,6 +54,16 @@ const DEMO_PASSWORD = process.env.DEMO_ADMIN_PASSWORD as string;
 const MAINTENANCE_TOKEN = process.env.MAINTENANCE_TOKEN as string;
 const PAST_DATE = new Date('2020-01-01T00:00:00.000Z');
 const RANDOM_UUID = '00000000-0000-4000-8000-000000000000';
+const FORWARDED_FOR_HEADER = 'x-forwarded-for';
+const IDEMPOTENCY_HEADER = 'Idempotency-Key';
+const CALCULATIONS = '/api/v1/public/calculations';
+const PROJECTS_SETTINGS = '/api/v1/admin/projects/settings';
+const CUSTOM_VALIDITY_DAYS = 77;
+const CUSTOM_RETENTION_DAYS = 123;
+const CUSTOM_NOTICE = {
+  en: 'Custom notice for {days} days.',
+  uk: 'Власне повідомлення на {days} днів.',
+};
 
 vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });
 
@@ -745,6 +761,140 @@ describe('sandbox e2e (US6)', () => {
 
       expect(publicGet.status).toBe(200);
       expect(publicGet.body.name).toBe(MALICIOUS_TEXT);
+    });
+  });
+
+  describe('projects data survives the reset (FR-021c)', () => {
+    let testApp: TestApp;
+    let cookie: string;
+    let currentPricingVersion: string;
+    let ipCounter = 0;
+
+    function freshIp(): string {
+      ipCounter += 1;
+
+      return `10.40.0.${ipCounter}`;
+    }
+
+    function countProjectsRows() {
+      const { prisma } = testApp;
+
+      return Promise.all([
+        prisma.calculation.count(),
+        prisma.calculationVersion.count(),
+        prisma.lead.count(),
+      ]);
+    }
+
+    function readSettings() {
+      return testApp.prisma.projectsSettings.findUniqueOrThrow({
+        where: { id: 1 },
+        select: {
+          calculationValidityDays: true,
+          leadRetentionDays: true,
+          leadFormNotice: true,
+          revision: true,
+        },
+      });
+    }
+
+    beforeAll(async () => {
+      testApp = await createTestApp({
+        overrides: [
+          {
+            provide: CloudinaryService,
+            useValue: createFakeCloudinaryService(),
+          },
+        ],
+      });
+      await seedProjectsData(testApp);
+      const admin = await createAdmin(testApp.prisma);
+      cookie = await login(testApp.http, admin.login, admin.password);
+      const pricing = await request(testApp.http)
+        .get('/api/v1/public/pricing-data')
+        .expect(200);
+      currentPricingVersion = pricing.body.version as string;
+    });
+
+    afterAll(async () => {
+      await testApp.close();
+    });
+
+    it('keeps calculations, versions, leads and projects settings untouched', async () => {
+      const saved = await request(testApp.http)
+        .post(CALCULATIONS)
+        .set(FORWARDED_FOR_HEADER, freshIp())
+        .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
+        .send({
+          configuration: buildProjectsConfiguration(),
+          styleId: projectsStyleId,
+          clientPricingVersion: currentPricingVersion,
+          clientTotalUsdCents: 1,
+        })
+        .expect(201);
+      const { publicId } = saved.body.version as { publicId: string };
+
+      await request(testApp.http)
+        .post(`${CALCULATIONS}/${publicId}/versions`)
+        .set(FORWARDED_FOR_HEADER, freshIp())
+        .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
+        .send({ basedOnVersion: 1 })
+        .expect(201);
+
+      await request(testApp.http)
+        .post('/api/v1/public/leads')
+        .set(FORWARDED_FOR_HEADER, freshIp())
+        .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
+        .send({
+          calculation: { publicId, versionNumber: 1 },
+          name: 'Oksana Testova',
+          phone: '+380 67 123 45 67',
+          email: 'oksana.testova@example.com',
+          consent: { accepted: true, text: 'I agree' },
+          locale: 'uk',
+        })
+        .expect(201);
+
+      const currentSettings = await readSettings();
+      await request(testApp.http)
+        .patch(PROJECTS_SETTINGS)
+        .set('Cookie', cookie)
+        .send({
+          calculationValidityDays: CUSTOM_VALIDITY_DAYS,
+          leadRetentionDays: CUSTOM_RETENTION_DAYS,
+          leadFormNotice: CUSTOM_NOTICE,
+          revision: currentSettings.revision,
+        })
+        .expect(200);
+
+      const countsBefore = await countProjectsRows();
+      const settingsBefore = await readSettings();
+      const calculationBefore = await request(testApp.http)
+        .get(`${CALCULATIONS}/${publicId}`)
+        .expect(200);
+
+      expect(countsBefore).toEqual([1, 2, 1]);
+      expect(settingsBefore).toMatchObject({
+        calculationValidityDays: CUSTOM_VALIDITY_DAYS,
+        leadRetentionDays: CUSTOM_RETENTION_DAYS,
+        leadFormNotice: CUSTOM_NOTICE,
+      });
+
+      await forceResetDue(testApp.prisma);
+      const maintenanceResult = await runMaintenance(testApp.http);
+
+      expect(maintenanceResult).toEqual({
+        tasks: [{ name: 'sandbox-reset', status: 'SUCCESS' }],
+      });
+      await expect(countProjectsRows()).resolves.toEqual(countsBefore);
+      await expect(readSettings()).resolves.toEqual(settingsBefore);
+      const calculationAfter = await request(testApp.http)
+        .get(`${CALCULATIONS}/${publicId}`)
+        .expect(200);
+      expect(calculationAfter.body.totals).toEqual(
+        calculationBefore.body.totals,
+      );
+      expect(calculationAfter.body.number).toBe(calculationBefore.body.number);
     });
   });
 });
