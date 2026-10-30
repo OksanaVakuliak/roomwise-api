@@ -18,9 +18,7 @@ export interface PriceStatusSource {
 
 function isUnevaluable(error: unknown): boolean {
   return (
-    error instanceof AppError &&
-    (error.code === ERROR_CODES.UNKNOWN_REFERENCE ||
-      error.code === ERROR_CODES.INPUT_OUT_OF_BOUNDS)
+    error instanceof AppError && error.code === ERROR_CODES.UNKNOWN_REFERENCE
   );
 }
 
@@ -81,6 +79,7 @@ export class PriceStatusService {
         version.snapshot.configuration,
         {
           missingReferences: 'unavailable',
+          limits: 'skip',
           retiredOptions: retiredOptionsOf(version.snapshot),
         },
       );

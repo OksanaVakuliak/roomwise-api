@@ -93,7 +93,7 @@ describe('PriceStatusService', () => {
     });
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(
       { marker: 'configuration' },
-      { missingReferences: 'unavailable', retiredOptions: [] },
+      { missingReferences: 'unavailable', limits: 'skip', retiredOptions: [] },
     );
   });
 
@@ -116,6 +116,7 @@ describe('PriceStatusService', () => {
       { marker: 'configuration' },
       {
         missingReferences: 'unavailable',
+        limits: 'skip',
         retiredOptions: [{ id: 'option-1', kind: 'ADDITIONAL' }],
       },
     );
@@ -272,18 +273,17 @@ describe('PriceStatusService', () => {
     expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1002);
   });
 
-  it.each([ERROR_CODES.UNKNOWN_REFERENCE, ERROR_CODES.INPUT_OUT_OF_BOUNDS])(
-    'returns null and caches it on %s',
-    async (code) => {
-      const { service, pricingEstimate } = setup();
-      pricingEstimate.estimate.mockRejectedValue(new AppError(code));
-      const version = versionOf('version-1');
+  it('returns null and caches it on an unknown reference', async () => {
+    const { service, pricingEstimate } = setup();
+    pricingEstimate.estimate.mockRejectedValue(
+      new AppError(ERROR_CODES.UNKNOWN_REFERENCE),
+    );
+    const version = versionOf('version-1');
 
-      expect(await service.current(version)).toBeNull();
-      expect(await service.current(version)).toBeNull();
-      expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1);
-    },
-  );
+    expect(await service.current(version)).toBeNull();
+    expect(await service.current(version)).toBeNull();
+    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1);
+  });
 
   it('rethrows other errors', async () => {
     const { service, pricingEstimate } = setup();

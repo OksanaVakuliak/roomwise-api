@@ -1,3 +1,4 @@
+import type { Configuration } from '@roomwise/calc-engine';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Clock } from '../../src/common/clock/clock';
@@ -26,6 +27,12 @@ const OPTION_IP = '10.40.0.2';
 const CATEGORY_IP = '10.40.0.3';
 const UNPUBLISHED_STYLE_IP = '10.40.0.4';
 const DELETED_STYLE_IP = '10.40.0.5';
+const NARROWED_LIMITS_IP = '10.40.0.6';
+const NARROWED_CREATE_IP = '10.40.0.7';
+const PRICING_SETTINGS_ID = 1;
+const SAVED_QUANTITY = 3;
+const NARROWED_MAX_QUANTITY = 2;
+const NARROWED_ROOMS_MAX = 1;
 const CALCULATIONS = '/api/v1/public/calculations';
 const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 const UNKNOWN_PUBLIC_ID = 'AAAAAAAAAAAAAAAAAAAAAA';
@@ -281,6 +288,42 @@ describe('recalculation e2e', () => {
       await testApp.prisma.projectsSettings.update({
         where: { id: PROJECTS_SETTINGS_ID },
         data: { calculationValidityDays: VALIDITY_DAYS },
+      });
+      invalidateCaches();
+    }
+  }
+
+  async function withNarrowedLimits<T>(
+    optionId: string,
+    action: () => Promise<T>,
+  ): Promise<T> {
+    const option = await testApp.prisma.option.findUniqueOrThrow({
+      where: { id: optionId },
+    });
+    const settings = await testApp.prisma.pricingSettings.findUniqueOrThrow({
+      where: { id: PRICING_SETTINGS_ID },
+    });
+
+    try {
+      await testApp.prisma.option.update({
+        where: { id: optionId },
+        data: { maxQuantity: NARROWED_MAX_QUANTITY },
+      });
+      await testApp.prisma.pricingSettings.update({
+        where: { id: PRICING_SETTINGS_ID },
+        data: { roomsMax: NARROWED_ROOMS_MAX },
+      });
+      invalidateCaches();
+
+      return await action();
+    } finally {
+      await testApp.prisma.option.update({
+        where: { id: optionId },
+        data: { maxQuantity: option.maxQuantity },
+      });
+      await testApp.prisma.pricingSettings.update({
+        where: { id: PRICING_SETTINGS_ID },
+        data: { roomsMax: settings.roomsMax },
       });
       invalidateCaches();
     }
@@ -674,6 +717,72 @@ describe('recalculation e2e', () => {
 
       expect(responses.map((response) => response.status)).toEqual([201, 201]);
       expect(numbers).toEqual([2, 3]);
+    });
+  });
+
+  describe('narrowed limits', () => {
+    function configurationWithQuantity(): Configuration {
+      const configuration = buildProjectsConfiguration();
+      configuration.options.push({
+        optionId: optionIds.airConditioning,
+        quantity: SAVED_QUANTITY,
+      });
+
+      return configuration;
+    }
+
+    it('recalculates and reports price status although the saved configuration violates the narrowed limits', async () => {
+      const configuration = configurationWithQuantity();
+      const first = await saveVersion(
+        configuration,
+        projectsStyleId,
+        NARROWED_LIMITS_IP,
+      );
+
+      await withNarrowedLimits(optionIds.airConditioning, async () => {
+        const saved = await latest(first.publicId);
+        const recalculated = await recalculate(
+          first.publicId,
+          1,
+          newIdempotencyKey(),
+          NARROWED_LIMITS_IP,
+        );
+
+        expect(saved.status).toBe(200);
+        expect(saved.body.number).toBe(1);
+        expect(saved.body.priceStatus).not.toBeNull();
+        expect(recalculated.status).toBe(201);
+        expect(recalculated.body.number).toBe(2);
+        expect(recalculated.body.configuration).toEqual(first.configuration);
+      });
+    });
+
+    it('still rejects a new calculation that violates the narrowed limits', async () => {
+      const configuration = configurationWithQuantity();
+      const optionIndex = configuration.options.length - 1;
+
+      await withNarrowedLimits(optionIds.airConditioning, async () => {
+        const response = await request(testApp.http)
+          .post(CALCULATIONS)
+          .set(clientHeaders(newIdempotencyKey(), NARROWED_CREATE_IP))
+          .send({
+            configuration,
+            styleId: projectsStyleId,
+            clientPricingVersion: currentPricingVersion,
+            clientTotalUsdCents: 1,
+          });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error.code).toBe(ERROR_CODES.INPUT_OUT_OF_BOUNDS);
+        expect(response.body.error.params.violations).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ field: 'rooms' }),
+            expect.objectContaining({
+              field: `options[${optionIndex}].quantity`,
+            }),
+          ]),
+        );
+      });
     });
   });
 
