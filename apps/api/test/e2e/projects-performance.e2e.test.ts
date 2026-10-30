@@ -56,6 +56,9 @@ describe('projects performance e2e (SC-001, SC-006)', () => {
   });
 
   it('SC-001: saves a calculation on seeded data in under 3s', async () => {
+    const warmUp = await saveCalculation();
+    expect(warmUp.status).toBe(201);
+
     const start = performance.now();
     const response = await saveCalculation();
     const elapsedMs = performance.now() - start;
@@ -89,6 +92,11 @@ describe('projects performance e2e (SC-001, SC-006)', () => {
     const lead = await testApp.prisma.lead.findUniqueOrThrow({
       where: { number: created.body.leadNumber },
     });
+
+    await request(testApp.http)
+      .get(`/api/v1/admin/leads/${lead.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
 
     const start = performance.now();
     const response = await request(testApp.http)

@@ -355,6 +355,7 @@ Tasks:
 | Task | Runs when | What it does |
 | --- | --- | --- |
 | Sandbox reset | The daily reset time has passed | Resets the catalog to the seed dataset (see [Sandbox demo access](#sandbox-demo-access)) |
+| `exchange-rate-refresh` | The NBU rate has not been fetched successfully today (Kyiv date) and no attempt was made in the last hour | Fetches the USD/UAH rate from the NBU and stores it |
 | `lead-retention` | Never run, or last run more than 20 hours ago | Deletes leads older than `leadRetentionDays`, with their status history and notes |
 | `idempotency-keys-cleanup` | Every run | Deletes idempotency keys older than 24 hours |
 

@@ -25,6 +25,8 @@ const PERSON_PATH_PREFIXES = [CALCULATIONS, LEADS];
 const CATALOG_NAME_OWNERS = ['style', 'rooms', 'product'];
 const PHONE_LOCAL = '+380 67 123 45 67';
 const PHONE_DIGITS = '380671234567';
+const INVALID_PHONE = '+380 00 000 00 00';
+const INVALID_PHONE_DIGITS = '380000000000';
 const EMAIL = 'privacy.probe@example.com';
 const PERSON_NAME = 'Privacy Probe';
 const COMMENT = 'Call me after six in the evening';
@@ -314,15 +316,45 @@ describe('privacy: logs redact lead contact data', () => {
     expectNoSensitiveValues(lines.join('\n'));
   });
 
+  it('keeps contact data out of the log for a rejected lead submission', async () => {
+    const requestId = `privacy-rejected-${newIdempotencyKey()}`;
+
+    const response = await request(testApp.http)
+      .post(LEADS)
+      .set(FORWARDED_FOR_HEADER, '10.77.0.4')
+      .set(REQUEST_ID_HEADER, requestId)
+      .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
+      .send({
+        calculation: { publicId: saved.publicId, versionNumber: saved.number },
+        name: PERSON_NAME,
+        email: EMAIL,
+        phone: INVALID_PHONE,
+        comment: COMMENT,
+        consent: { accepted: true, text: CONSENT_TEXT },
+        locale: 'uk',
+      });
+
+    expect(response.status).toBe(422);
+    expect(response.body.error.code).toBe('PHONE_INVALID');
+
+    const output = (await logLinesFor(requestId)).join('\n');
+
+    expectNoSensitiveValues(output);
+    expect(output).not.toContain(INVALID_PHONE);
+    expect(output).not.toContain(INVALID_PHONE_DIGITS);
+  });
+
   it('censors phone and email passed as query parameters', async () => {
     const requestId = `privacy-query-${newIdempotencyKey()}`;
 
-    await request(testApp.http)
+    const response = await request(testApp.http)
       .get(
         `${LEADS}/form-settings?lang=uk&email=${encodeURIComponent(EMAIL)}&phone=${encodeURIComponent(PHONE_LOCAL)}`,
       )
       .set(FORWARDED_FOR_HEADER, '10.77.0.2')
       .set(REQUEST_ID_HEADER, requestId);
+
+    expect(response.status).toBe(200);
 
     const requestLines = await logLinesFor(requestId);
     const output = requestLines.join('\n');
@@ -331,14 +363,15 @@ describe('privacy: logs redact lead contact data', () => {
     expect(output).not.toContain(encodeURIComponent(EMAIL));
     expect(output).not.toContain(encodeURIComponent(PHONE_LOCAL));
 
-    for (const line of requestLines) {
-      const query = (JSON.parse(line) as { req?: { query?: JsonObject } }).req
-        ?.query;
+    const queries = requestLines
+      .map((line) => (JSON.parse(line) as { req?: { query?: JsonObject } }).req)
+      .flatMap((req) => (req?.query ? [req.query] : []));
 
-      if (query) {
-        expect(query.email).toBe('[Redacted]');
-        expect(query.phone).toBe('[Redacted]');
-      }
+    expect(queries.length).toBeGreaterThan(0);
+
+    for (const query of queries) {
+      expect(query.email).toBe('[Redacted]');
+      expect(query.phone).toBe('[Redacted]');
     }
   });
 });
