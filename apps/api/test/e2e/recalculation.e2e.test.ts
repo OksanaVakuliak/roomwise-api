@@ -1,9 +1,11 @@
+import type { Configuration } from '@roomwise/calc-engine';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Clock } from '../../src/common/clock/clock';
 import { ERROR_CODES } from '../../src/common/http/error-codes';
 import type { Prisma } from '../../src/generated/prisma/client';
 import { PublicationStatus } from '../../src/generated/prisma/enums';
+import { optionIds } from '../../src/modules/catalog/dataset/data/options';
 import { productIds } from '../../src/modules/catalog/dataset/data/products';
 import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
 import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
@@ -21,6 +23,18 @@ import {
 const SEED_TIMEOUT_MS = 120_000;
 const FORWARDED_FOR_HEADER = 'x-forwarded-for';
 const NAMED_ROOMS_IP = '10.40.0.1';
+const OPTION_IP = '10.40.0.2';
+const CATEGORY_IP = '10.40.0.3';
+const UNPUBLISHED_STYLE_IP = '10.40.0.4';
+const DELETED_STYLE_IP = '10.40.0.5';
+const NARROWED_LIMITS_IP = '10.40.0.6';
+const NARROWED_CREATE_IP = '10.40.0.7';
+const REPLAY_LANG_IP = '10.40.0.8';
+const REUSED_KEY_IP = '10.40.0.9';
+const PRICING_SETTINGS_ID = 1;
+const SAVED_QUANTITY = 3;
+const NARROWED_MAX_QUANTITY = 2;
+const NARROWED_ROOMS_MAX = 1;
 const CALCULATIONS = '/api/v1/public/calculations';
 const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 const UNKNOWN_PUBLIC_ID = 'AAAAAAAAAAAAAAAAAAAAAA';
@@ -31,11 +45,17 @@ const MS_PER_DAY = 86_400_000;
 const VALIDITY_DAYS = 14;
 const CHANGED_VALIDITY_DAYS = 30;
 const PAST_EXPIRY_DAYS = 15;
+const THROWAWAY_SORT_ORDER = 9100;
 
 vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });
 
 interface LineView {
   productId: string | null;
+  categoryId: string | null;
+  optionId: string | null;
+  optionName: string | null;
+  categoryName: string | null;
+  product: { name: string } | null;
   status: string;
 }
 
@@ -50,13 +70,23 @@ describe('recalculation e2e', () => {
     testApp.app.get(ProjectsSettingsService).invalidate();
   }
 
-  async function saveVersion(configuration = buildProjectsConfiguration()) {
+  function clientHeaders(key: string, ip?: string): Record<string, string> {
+    return ip === undefined
+      ? { [IDEMPOTENCY_HEADER]: key }
+      : { [IDEMPOTENCY_HEADER]: key, [FORWARDED_FOR_HEADER]: ip };
+  }
+
+  async function saveVersion(
+    configuration = buildProjectsConfiguration(),
+    styleId: string = projectsStyleId,
+    ip?: string,
+  ) {
     const response = await request(testApp.http)
       .post(CALCULATIONS)
-      .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
+      .set(clientHeaders(newIdempotencyKey(), ip))
       .send({
         configuration,
-        styleId: projectsStyleId,
+        styleId,
         clientPricingVersion: currentPricingVersion,
         clientTotalUsdCents: 1,
       })
@@ -69,10 +99,11 @@ describe('recalculation e2e', () => {
     publicId: string,
     basedOnVersion = 1,
     key = newIdempotencyKey(),
+    ip?: string,
   ) {
     return request(testApp.http)
       .post(`${CALCULATIONS}/${publicId}/versions`)
-      .set(IDEMPOTENCY_HEADER, key)
+      .set(clientHeaders(key, ip))
       .send({ basedOnVersion });
   }
 
@@ -143,7 +174,7 @@ describe('recalculation e2e', () => {
     }
   }
 
-  async function createThrowawayProduct(): Promise<string> {
+  async function createThrowawayProduct(categoryId?: string): Promise<string> {
     const { id, revision, updatedAt, ...template } =
       await testApp.prisma.product.findUniqueOrThrow({
         where: { id: productIds.whiteGlossyWallTile },
@@ -151,6 +182,7 @@ describe('recalculation e2e', () => {
     const created = await testApp.prisma.product.create({
       data: {
         ...template,
+        categoryId: categoryId ?? template.categoryId,
         name: template.name as Prisma.InputJsonValue,
         description: template.description as Prisma.InputJsonValue,
         color: template.color as Prisma.InputJsonValue,
@@ -162,6 +194,79 @@ describe('recalculation e2e', () => {
     invalidateCaches();
 
     return created.id;
+  }
+
+  async function createThrowawayCategory(): Promise<string> {
+    const { id, revision, updatedAt, ...template } =
+      await testApp.prisma.category.findFirstOrThrow({
+        where: { status: PublicationStatus.PUBLISHED },
+      });
+    const created = await testApp.prisma.category.create({
+      data: {
+        ...template,
+        name: template.name as Prisma.InputJsonValue,
+        updatedById: null,
+      },
+    });
+    invalidateCaches();
+
+    return created.id;
+  }
+
+  async function createThrowawayOption(): Promise<string> {
+    const { id, revision, updatedAt, ...template } =
+      await testApp.prisma.option.findUniqueOrThrow({
+        where: { id: optionIds.finalCleaning },
+      });
+    const created = await testApp.prisma.option.create({
+      data: {
+        ...template,
+        code: null,
+        sortOrder: THROWAWAY_SORT_ORDER,
+        name: template.name as Prisma.InputJsonValue,
+        description: template.description as Prisma.InputJsonValue,
+        imageId: null,
+        updatedById: null,
+      },
+    });
+    invalidateCaches();
+
+    return created.id;
+  }
+
+  async function createThrowawayStyle(): Promise<string> {
+    const { id, revision, updatedAt, ...template } =
+      await testApp.prisma.style.findUniqueOrThrow({
+        where: { id: projectsStyleId },
+      });
+    const created = await testApp.prisma.style.create({
+      data: {
+        ...template,
+        sortOrder: THROWAWAY_SORT_ORDER,
+        name: template.name as Prisma.InputJsonValue,
+        description: template.description as Prisma.InputJsonValue,
+        imageId: null,
+        updatedById: null,
+      },
+    });
+    invalidateCaches();
+
+    return created.id;
+  }
+
+  async function deleteOption(optionId: string): Promise<void> {
+    await testApp.prisma.option.deleteMany({ where: { id: optionId } });
+    invalidateCaches();
+  }
+
+  async function deleteCategory(categoryId: string): Promise<void> {
+    await testApp.prisma.category.deleteMany({ where: { id: categoryId } });
+    invalidateCaches();
+  }
+
+  async function deleteStyle(styleId: string): Promise<void> {
+    await testApp.prisma.style.deleteMany({ where: { id: styleId } });
+    invalidateCaches();
   }
 
   async function deleteProduct(productId: string): Promise<void> {
@@ -185,6 +290,42 @@ describe('recalculation e2e', () => {
       await testApp.prisma.projectsSettings.update({
         where: { id: PROJECTS_SETTINGS_ID },
         data: { calculationValidityDays: VALIDITY_DAYS },
+      });
+      invalidateCaches();
+    }
+  }
+
+  async function withNarrowedLimits<T>(
+    optionId: string,
+    action: () => Promise<T>,
+  ): Promise<T> {
+    const option = await testApp.prisma.option.findUniqueOrThrow({
+      where: { id: optionId },
+    });
+    const settings = await testApp.prisma.pricingSettings.findUniqueOrThrow({
+      where: { id: PRICING_SETTINGS_ID },
+    });
+
+    try {
+      await testApp.prisma.option.update({
+        where: { id: optionId },
+        data: { maxQuantity: NARROWED_MAX_QUANTITY },
+      });
+      await testApp.prisma.pricingSettings.update({
+        where: { id: PRICING_SETTINGS_ID },
+        data: { roomsMax: NARROWED_ROOMS_MAX },
+      });
+      invalidateCaches();
+
+      return await action();
+    } finally {
+      await testApp.prisma.option.update({
+        where: { id: optionId },
+        data: { maxQuantity: option.maxQuantity },
+      });
+      await testApp.prisma.pricingSettings.update({
+        where: { id: PRICING_SETTINGS_ID },
+        data: { roomsMax: settings.roomsMax },
       });
       invalidateCaches();
     }
@@ -288,11 +429,161 @@ describe('recalculation e2e', () => {
         expect(findLine(recalculated.body.lines, productId).status).toBe(
           'UNAVAILABLE',
         );
+        expect(findLine(recalculated.body.lines, productId).product?.name).toBe(
+          findLine(first.lines, productId).product?.name,
+        );
         expect(recalculated.body.totals.usdCents).toBeLessThan(
           first.totals.usdCents,
         );
       } finally {
         await deleteProduct(productId);
+      }
+    });
+
+    it('treats a hard-deleted option as unavailable in price status and recalculation', async () => {
+      const optionId = await createThrowawayOption();
+
+      try {
+        const configuration = buildProjectsConfiguration();
+        configuration.options.push({ optionId });
+        const first = await saveVersion(
+          configuration,
+          projectsStyleId,
+          OPTION_IP,
+        );
+        const { publicId } = first;
+        const optionLine = (lines: LineView[]) =>
+          lines.find((line) => line.optionId === optionId);
+        expect(optionLine(first.lines)?.status).toBe('OK');
+
+        await deleteOption(optionId);
+        const status = await latest(publicId);
+        const recalculated = await recalculate(
+          publicId,
+          1,
+          newIdempotencyKey(),
+          OPTION_IP,
+        );
+
+        expect(status.status).toBe(200);
+        expect(status.body.priceStatus.changed).toBe(true);
+        expect(status.body.priceStatus.unavailableItems).toHaveLength(1);
+        expect(status.body.priceStatus.unavailableItems[0]).toMatchObject({
+          optionId,
+        });
+        expect(recalculated.status).toBe(201);
+        expect(optionLine(recalculated.body.lines)?.status).toBe('UNAVAILABLE');
+        expect(optionLine(recalculated.body.lines)?.optionName).toBe(
+          optionLine(first.lines)?.optionName,
+        );
+        expect(optionLine(first.lines)?.optionName).toEqual(expect.any(String));
+        expect(recalculated.body.totals.usdCents).toBeLessThan(
+          first.totals.usdCents,
+        );
+      } finally {
+        await deleteOption(optionId);
+      }
+    });
+
+    it('treats a hard-deleted category as unavailable in price status and recalculation', async () => {
+      const categoryId = await createThrowawayCategory();
+      const productId = await createThrowawayProduct(categoryId);
+
+      try {
+        const configuration = buildProjectsConfiguration();
+        configuration.rooms[0].selections.push({ categoryId, productId });
+        const first = await saveVersion(
+          configuration,
+          projectsStyleId,
+          CATEGORY_IP,
+        );
+        const { publicId } = first;
+        const categoryLine = (lines: LineView[]) =>
+          lines.find((line) => line.categoryId === categoryId);
+        expect(categoryLine(first.lines)?.status).not.toBe('UNAVAILABLE');
+
+        await deleteProduct(productId);
+        await deleteCategory(categoryId);
+        const status = await latest(publicId);
+        const recalculated = await recalculate(
+          publicId,
+          1,
+          newIdempotencyKey(),
+          CATEGORY_IP,
+        );
+
+        expect(status.status).toBe(200);
+        expect(status.body.priceStatus.changed).toBe(true);
+        expect(status.body.priceStatus.unavailableItems).toHaveLength(1);
+        expect(recalculated.status).toBe(201);
+        expect(categoryLine(recalculated.body.lines)?.status).toBe(
+          'UNAVAILABLE',
+        );
+        expect(categoryLine(recalculated.body.lines)?.categoryName).toBe(
+          categoryLine(first.lines)?.categoryName,
+        );
+        expect(categoryLine(first.lines)?.categoryName).toEqual(
+          expect.any(String),
+        );
+      } finally {
+        await deleteProduct(productId);
+        await deleteCategory(categoryId);
+      }
+    });
+
+    it('recalculates a calculation whose style was unpublished', async () => {
+      const styleId = await createThrowawayStyle();
+
+      try {
+        const first = await saveVersion(
+          buildProjectsConfiguration(),
+          styleId,
+          UNPUBLISHED_STYLE_IP,
+        );
+        await testApp.prisma.style.update({
+          where: { id: styleId },
+          data: { status: PublicationStatus.DRAFT },
+        });
+        invalidateCaches();
+
+        const recalculated = await recalculate(
+          first.publicId,
+          1,
+          newIdempotencyKey(),
+          UNPUBLISHED_STYLE_IP,
+        );
+
+        expect(recalculated.status).toBe(201);
+        expect(recalculated.body.style).toEqual(first.style);
+        expect(recalculated.body.totals).toEqual(first.totals);
+      } finally {
+        await deleteStyle(styleId);
+      }
+    });
+
+    it('recalculates a calculation whose style was deleted', async () => {
+      const styleId = await createThrowawayStyle();
+
+      try {
+        const first = await saveVersion(
+          buildProjectsConfiguration(),
+          styleId,
+          DELETED_STYLE_IP,
+        );
+        await deleteStyle(styleId);
+
+        const recalculated = await recalculate(
+          first.publicId,
+          1,
+          newIdempotencyKey(),
+          DELETED_STYLE_IP,
+        );
+
+        expect(recalculated.status).toBe(201);
+        expect(recalculated.body.style).toEqual(first.style);
+        expect(recalculated.body.totals).toEqual(first.totals);
+      } finally {
+        await deleteStyle(styleId);
       }
     });
 
@@ -399,6 +690,47 @@ describe('recalculation e2e', () => {
       expect(current.body.versions).toHaveLength(2);
     });
 
+    it('replays the stored result in the language of the repeat', async () => {
+      const { publicId } = await saveVersion(
+        buildProjectsConfiguration(),
+        projectsStyleId,
+        REPLAY_LANG_IP,
+      );
+      const key = newIdempotencyKey();
+      const send = (lang: string) =>
+        request(testApp.http)
+          .post(`${CALCULATIONS}/${publicId}/versions?lang=${lang}`)
+          .set(clientHeaders(key, REPLAY_LANG_IP))
+          .send({ basedOnVersion: 1 });
+
+      const first = await send('uk');
+      const replay = await send('en');
+      const current = await latest(publicId);
+
+      expect(first.status).toBe(201);
+      expect(first.body.style.name).toBe('Скандинавський');
+      expect(replay.status).toBe(201);
+      expect(replay.body.number).toBe(first.body.number);
+      expect(replay.body.style.name).toBe('Scandinavian');
+      expect(current.body.versions).toHaveLength(2);
+    });
+
+    it('answers 422 when the key is reused with another body', async () => {
+      const { publicId } = await saveVersion(
+        buildProjectsConfiguration(),
+        projectsStyleId,
+        REUSED_KEY_IP,
+      );
+      const key = newIdempotencyKey();
+
+      const first = await recalculate(publicId, 1, key, REUSED_KEY_IP);
+      const response = await recalculate(publicId, 2, key, REUSED_KEY_IP);
+
+      expect(first.status).toBe(201);
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.IDEMPOTENCY_KEY_REUSED);
+    });
+
     it('answers 404 for an unknown publicId', async () => {
       const response = await recalculate(UNKNOWN_PUBLIC_ID);
 
@@ -428,6 +760,72 @@ describe('recalculation e2e', () => {
 
       expect(responses.map((response) => response.status)).toEqual([201, 201]);
       expect(numbers).toEqual([2, 3]);
+    });
+  });
+
+  describe('narrowed limits', () => {
+    function configurationWithQuantity(): Configuration {
+      const configuration = buildProjectsConfiguration();
+      configuration.options.push({
+        optionId: optionIds.airConditioning,
+        quantity: SAVED_QUANTITY,
+      });
+
+      return configuration;
+    }
+
+    it('recalculates and reports price status although the saved configuration violates the narrowed limits', async () => {
+      const configuration = configurationWithQuantity();
+      const first = await saveVersion(
+        configuration,
+        projectsStyleId,
+        NARROWED_LIMITS_IP,
+      );
+
+      await withNarrowedLimits(optionIds.airConditioning, async () => {
+        const saved = await latest(first.publicId);
+        const recalculated = await recalculate(
+          first.publicId,
+          1,
+          newIdempotencyKey(),
+          NARROWED_LIMITS_IP,
+        );
+
+        expect(saved.status).toBe(200);
+        expect(saved.body.number).toBe(1);
+        expect(saved.body.priceStatus).not.toBeNull();
+        expect(recalculated.status).toBe(201);
+        expect(recalculated.body.number).toBe(2);
+        expect(recalculated.body.configuration).toEqual(first.configuration);
+      });
+    });
+
+    it('still rejects a new calculation that violates the narrowed limits', async () => {
+      const configuration = configurationWithQuantity();
+      const optionIndex = configuration.options.length - 1;
+
+      await withNarrowedLimits(optionIds.airConditioning, async () => {
+        const response = await request(testApp.http)
+          .post(CALCULATIONS)
+          .set(clientHeaders(newIdempotencyKey(), NARROWED_CREATE_IP))
+          .send({
+            configuration,
+            styleId: projectsStyleId,
+            clientPricingVersion: currentPricingVersion,
+            clientTotalUsdCents: 1,
+          });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error.code).toBe(ERROR_CODES.INPUT_OUT_OF_BOUNDS);
+        expect(response.body.error.params.violations).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ field: 'rooms' }),
+            expect.objectContaining({
+              field: `options[${optionIndex}].quantity`,
+            }),
+          ]),
+        );
+      });
     });
   });
 

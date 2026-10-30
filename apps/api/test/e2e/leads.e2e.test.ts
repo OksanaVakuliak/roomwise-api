@@ -24,6 +24,8 @@ const FORM_SETTINGS = `${LEADS}/form-settings`;
 const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 const FORWARDED_FOR_HEADER = 'x-forwarded-for';
 const LEADS_LIMIT = PUBLIC_WRITE_LIMITS_PER_HOUR.leads;
+const STALE_PRICING_VERSION = '0000000000000000';
+const PRICE_OFFSET_CENTS = 500;
 const UNKNOWN_PUBLIC_ID = 'AAAAAAAAAAAAAAAAAAAAAA';
 const UNKNOWN_VERSION_NUMBER = 99;
 const MS_PER_DAY = 86_400_000;
@@ -69,6 +71,7 @@ describe('leads e2e', () => {
       configuration: buildProjectsConfiguration(),
       styleId: projectsStyleId,
       clientPricingVersion: currentPricingVersion,
+      clientTotalUsdCents: 1,
     };
   }
 
@@ -118,7 +121,7 @@ describe('leads e2e', () => {
       .post(CALCULATIONS)
       .set(FORWARDED_FOR_HEADER, freshIp())
       .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
-      .send({ ...draft(), clientTotalUsdCents: 1 })
+      .send(draft())
       .expect(201);
     saved = {
       publicId: created.body.version.publicId,
@@ -139,6 +142,7 @@ describe('leads e2e', () => {
         leadNumber: expect.any(Number),
         calculation: { publicId: saved.publicId, versionNumber: saved.number },
         expiredAtSubmission: false,
+        priceDifference: null,
       });
 
       const lead = await findLead(response.body.leadNumber);
@@ -180,6 +184,42 @@ describe('leads e2e', () => {
       expect(version.status).toBe(200);
       expect(version.body.number).toBe(1);
       expect(linked.number).toBe(1);
+    });
+
+    it('returns no price difference for a draft with the current pricing version', async () => {
+      const response = await submit(
+        leadBody({ calculation: undefined, draft: draft() }),
+      );
+
+      expect(response.status).toBe(201);
+      expect(response.body.priceDifference).toBeNull();
+    });
+
+    it('returns the price difference for a draft with a stale pricing version', async () => {
+      const staleDraft = {
+        ...draft(),
+        clientPricingVersion: STALE_PRICING_VERSION,
+        clientTotalUsdCents: 1 + PRICE_OFFSET_CENTS,
+      };
+      const key = newIdempotencyKey();
+      const ip = freshIp();
+      const body = leadBody({ calculation: undefined, draft: staleDraft });
+
+      const first = await submit(body, { ip, key });
+      const lead = await findLead(first.body.leadNumber);
+      const linked = await testApp.prisma.calculationVersion.findUniqueOrThrow({
+        where: { id: lead?.calculationVersionId },
+      });
+      const replay = await submit(body, { ip, key });
+
+      expect(first.status).toBe(201);
+      expect(first.body.priceDifference).toEqual({
+        clientTotalUsdCents: staleDraft.clientTotalUsdCents,
+        savedTotalUsdCents: linked.totalUsdCents,
+        diffCents: linked.totalUsdCents - staleDraft.clientTotalUsdCents,
+      });
+      expect(replay.status).toBe(201);
+      expect(replay.body).toEqual(first.body);
     });
 
     it('saves a draft with room names', async () => {
@@ -271,6 +311,32 @@ describe('leads e2e', () => {
       await expect(findLead(spam.body.leadNumber)).resolves.toBeNull();
       expect(spam.body.leadNumber).toBeGreaterThan(first.body.leadNumber);
       expect(next.body.leadNumber).toBeGreaterThan(spam.body.leadNumber);
+    });
+
+    it('stores nothing for a honeypot with a draft and replays it', async () => {
+      const ip = freshIp();
+      const key = newIdempotencyKey();
+      const body = leadBody({
+        calculation: undefined,
+        draft: draft(),
+        website: 'http://spam',
+      });
+      const counts = () =>
+        Promise.all([
+          testApp.prisma.calculation.count(),
+          testApp.prisma.calculationVersion.count(),
+          testApp.prisma.lead.count(),
+        ]);
+      const before = await counts();
+
+      const first = await submit(body, { ip, key });
+      const replay = await submit(body, { ip, key });
+
+      expect(first.status).toBe(201);
+      expect(replay.status).toBe(201);
+      expect(replay.body).toEqual(first.body);
+      expect(first.body.calculation.versionNumber).toBe(1);
+      await expect(counts()).resolves.toEqual(before);
     });
 
     it('marks a lead on an expired version', async () => {

@@ -7,6 +7,12 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-30
+
+### Removed
+
+- The `gas` object parameter: it is no longer part of `Configuration` or the preview input and is no longer a formula variable. Inputs that still send `gas` are accepted and the field is ignored.
+
 ## [0.2.0] - 2026-10-25
 
 ### Added

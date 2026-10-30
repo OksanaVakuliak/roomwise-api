@@ -31,12 +31,12 @@ import { generatePublicId } from './public-id';
 
 const MS_PER_DAY = 86_400_000;
 
-const clientPriceSchema = saveCalculationRequestSchema.pick({
+export const clientPriceSchema = saveCalculationRequestSchema.pick({
   clientPricingVersion: true,
   clientTotalUsdCents: true,
 });
 
-type ClientPrice = Pick<
+export type ClientPrice = Pick<
   SaveCalculationRequest,
   'clientPricingVersion' | 'clientTotalUsdCents'
 >;
@@ -107,7 +107,7 @@ function versionData(
   };
 }
 
-function priceDifferenceOf(
+export function priceDifferenceOf(
   client: ClientPrice,
   pricingVersion: string,
   savedTotalUsdCents: number,
@@ -263,7 +263,7 @@ export class CalculationsService implements OnModuleInit {
         configuration: stored.configuration,
         styleId: stored.style.id,
         createdAt: now,
-        missingProducts: 'unavailable',
+        previous: stored,
       }),
       this.settings.get(),
     ]);
@@ -316,25 +316,18 @@ export class CalculationsService implements OnModuleInit {
       throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
     }
 
-    const calculation = await this.prisma.calculation.findUnique({
-      where: { publicId },
-      select: {
-        id: true,
-        publicId: true,
-        latestVersionNumber: true,
-        versions: { select: VERSION_SUMMARY_SELECT },
-      },
-    });
-
-    if (!calculation) {
-      throw new AppError(ERROR_CODES.CALCULATION_NOT_FOUND);
-    }
-
-    const version = await this.prisma.calculationVersion.findUnique({
+    const version = await this.prisma.calculationVersion.findFirst({
       where: {
-        calculationId_number: {
-          calculationId: calculation.id,
-          number: number ?? calculation.latestVersionNumber,
+        calculation: { publicId },
+        ...(number === null ? {} : { number }),
+      },
+      orderBy: { number: 'desc' },
+      include: {
+        calculation: {
+          select: {
+            publicId: true,
+            versions: { select: VERSION_SUMMARY_SELECT },
+          },
         },
       },
     });
@@ -352,7 +345,7 @@ export class CalculationsService implements OnModuleInit {
     });
 
     return this.view(
-      { ...version, snapshot: stored, calculation },
+      { ...version, snapshot: stored },
       lang,
       this.clock.now(),
       priceStatus,

@@ -15,7 +15,6 @@ const draft = {
     totalAreaSqm: 50,
     balconyAreaSqm: 0,
     balconyTiles: false,
-    gas: true,
     kitchenType: 'SEPARATE',
     rooms: [
       {
@@ -33,6 +32,7 @@ const draft = {
   },
   styleId: '6f1c1f0e-8a4b-4d5e-9c3a-2b7d8e9f0a1b',
   clientPricingVersion: 'a1b2c3d4e5f60718',
+  clientTotalUsdCents: 1_250_000,
 };
 
 function failedPaths(input: unknown): string[] {
@@ -52,6 +52,20 @@ describe('createLeadRequestSchema', () => {
   it('accepts a request with draft', () => {
     const result = createLeadRequestSchema.safeParse({ ...base, draft });
     expect(result.success ? [] : result.error.issues).toEqual([]);
+  });
+
+  it('rejects a draft without a client total', () => {
+    const { clientTotalUsdCents: _total, ...rest } = draft;
+
+    expect(failedPaths({ ...base, draft: rest })).toContain(
+      'draft.clientTotalUsdCents',
+    );
+  });
+
+  it.each([-1, 10.5])('rejects a draft client total of %s', (total) => {
+    expect(
+      failedPaths({ ...base, draft: { ...draft, clientTotalUsdCents: total } }),
+    ).toContain('draft.clientTotalUsdCents');
   });
 
   it('accepts empty website and optional fields', () => {

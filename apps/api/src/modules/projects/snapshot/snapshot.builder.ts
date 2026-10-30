@@ -9,9 +9,10 @@ import { ERROR_CODES } from '../../../common/http/error-codes';
 import {
   CatalogSnapshotReadService,
   type SnapshotIds,
+  type SnapshotStyle,
 } from '../../catalog/snapshot-read/catalog-snapshot-read.service';
-import type { MissingProductsPolicy } from '../../pricing/estimate/find-unknown-references';
 import { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.service';
+import { retiredOptionsOf } from './retired-options';
 import {
   SNAPSHOT_SCHEMA_VERSION,
   type SnapshotV1,
@@ -22,7 +23,28 @@ export interface SnapshotBuildInput {
   configuration: Configuration;
   styleId: string;
   createdAt: Date;
-  missingProducts?: MissingProductsPolicy;
+  previous?: SnapshotV1;
+}
+
+type SnapshotLine = SnapshotV1['lines'][number];
+
+function previousValues<T>(
+  previous: SnapshotV1 | undefined,
+  key: (line: SnapshotLine) => string | null,
+  value: (line: SnapshotLine) => T | null,
+): Map<string, T> {
+  const values = new Map<string, T>();
+
+  for (const line of previous?.lines ?? []) {
+    const id = key(line);
+    const found = value(line);
+
+    if (id !== null && found !== null) {
+      values.set(id, found);
+    }
+  }
+
+  return values;
 }
 
 function distinct(values: Array<string | null>): string[] {
@@ -55,10 +77,14 @@ export class SnapshotBuilder {
   ) {}
 
   async build(input: SnapshotBuildInput): Promise<SnapshotV1> {
-    const { configuration, styleId, createdAt, missingProducts } = input;
+    const { configuration, styleId, createdAt, previous } = input;
     const { estimate, pricingData } = await this.pricingEstimate.estimate(
       configuration,
-      { missingProducts },
+      {
+        missingReferences: previous ? 'unavailable' : 'reject',
+        limits: previous ? 'skip' : 'enforce',
+        retiredOptions: previous ? retiredOptionsOf(previous) : undefined,
+      },
     );
 
     const roomTypeIdByCode = new Map(
@@ -80,7 +106,9 @@ export class SnapshotBuilder {
     };
     const catalog = await this.catalog.read(ids);
 
-    if (catalog.style === null || !catalog.style.published) {
+    const style = this.resolveStyle(catalog.style, previous);
+
+    if (!style) {
       throw new AppError(ERROR_CODES.STYLE_NOT_FOUND);
     }
 
@@ -102,6 +130,27 @@ export class SnapshotBuilder {
     );
     const ruleById = new Map(pricingData.rules.map((rule) => [rule.id, rule]));
 
+    const previousCategoryNames = previousValues(
+      previous,
+      (line) => line.categoryId,
+      (line) => line.categoryName,
+    );
+    const previousProducts = previousValues(
+      previous,
+      (line) => line.productId,
+      (line) => line.product,
+    );
+    const previousOptionNames = previousValues(
+      previous,
+      (line) => line.optionId,
+      (line) => line.optionName,
+    );
+    const previousPackageItemNames = previousValues(
+      previous,
+      (line) => line.packageItemId,
+      (line) => line.packageItemName,
+    );
+
     const lines = estimate.lines.map((line) => {
       const product =
         line.productId === null
@@ -117,10 +166,14 @@ export class SnapshotBuilder {
         categoryName:
           line.categoryId === null
             ? null
-            : (catalog.categories.get(line.categoryId)?.name ?? null),
+            : (catalog.categories.get(line.categoryId)?.name ??
+              previousCategoryNames.get(line.categoryId) ??
+              null),
         product:
           product === undefined
-            ? null
+            ? line.productId === null
+              ? null
+              : (previousProducts.get(line.productId) ?? null)
             : {
                 name: product.name,
                 brand: product.brand,
@@ -132,11 +185,15 @@ export class SnapshotBuilder {
         optionName:
           line.optionId === null
             ? null
-            : (catalog.options.get(line.optionId)?.name ?? null),
+            : (catalog.options.get(line.optionId)?.name ??
+              previousOptionNames.get(line.optionId) ??
+              null),
         packageItemName:
           line.packageItemId === null
             ? null
-            : (catalog.packageItems.get(line.packageItemId)?.name ?? null),
+            : (catalog.packageItems.get(line.packageItemId)?.name ??
+              previousPackageItemNames.get(line.packageItemId) ??
+              null),
         ruleName:
           line.ruleId === null
             ? null
@@ -161,7 +218,7 @@ export class SnapshotBuilder {
       createdAt: createdAt.toISOString(),
       pricingVersion: pricingData.version,
       configuration,
-      style: { id: catalog.style.id, name: catalog.style.name },
+      style: { id: style.id, name: style.name },
       rooms,
       lines,
       estimate: {
@@ -179,5 +236,16 @@ export class SnapshotBuilder {
     });
 
     return snapshot;
+  }
+
+  private resolveStyle(
+    current: SnapshotStyle | null,
+    previous: SnapshotV1 | undefined,
+  ): SnapshotV1['style'] {
+    if (previous) {
+      return current ?? previous.style;
+    }
+
+    return current?.published ? current : null;
   }
 }

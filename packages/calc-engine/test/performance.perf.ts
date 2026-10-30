@@ -21,7 +21,6 @@ const configuration: Configuration = ConfigurationSchema.parse({
   totalAreaSqm: 400,
   balconyAreaSqm: 6,
   balconyTiles: true,
-  gas: true,
   kitchenType: 'SEPARATE',
   rooms: Array.from({ length: ROOM_COUNT }, (_, index) => ({
     clientId: `room-${index + 1}`,

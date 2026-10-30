@@ -9,7 +9,6 @@ export interface ObjectVariables {
   readonly totalArea: number;
   readonly balconyArea: number;
   readonly balconyTiles: boolean;
-  readonly gas: boolean;
   readonly kitchenType: KitchenType;
   readonly finishLevel: FinishLevel;
   readonly roomsCount: number;
@@ -27,7 +26,6 @@ export function objectVariables(configuration: Configuration): ObjectVariables {
     totalArea: configuration.totalAreaSqm,
     balconyArea: configuration.balconyAreaSqm,
     balconyTiles: configuration.balconyTiles,
-    gas: configuration.gas,
     kitchenType: configuration.kitchenType,
     finishLevel: configuration.finishLevel,
     roomsCount: configuration.rooms.filter((room) =>

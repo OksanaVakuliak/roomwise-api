@@ -136,7 +136,6 @@ const preview = previewRule({
       totalAreaSqm: 62,
       balconyAreaSqm: 4,
       balconyTiles: true,
-      gas: false,
       kitchenType: 'SEPARATE',
       finishLevel: 'PRE_FINISH',
       roomsCount: 1,
@@ -202,7 +201,7 @@ roomType == 'KITCHEN' ? ceil(floorArea / 2) : 0
 | product | `waste` | number, a fraction (5% is `0.05`): the product override, else the category value |
 | product | `unit` | `SQM`, `LINEAR_M`, `PIECE` |
 | object | `totalArea`, `balconyArea` | number |
-| object | `balconyTiles`, `gas` | boolean |
+| object | `balconyTiles` | boolean |
 | object | `kitchenType` | `SEPARATE`, `KITCHEN_LIVING` |
 | object | `finishLevel` | `ROUGH`, `PRE_FINISH` |
 | object | `roomsCount`, `bathroomsCount` | number (living rooms, bedrooms and kitchen-living rooms count as rooms) |

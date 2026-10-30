@@ -32,7 +32,7 @@ export class LeadRetentionTask implements MaintenanceTask {
     });
 
     if (!row) {
-      throw new Error('Projects settings are missing; run the seed.');
+      throw new Error('Projects settings are missing; run migrations.');
     }
 
     return (

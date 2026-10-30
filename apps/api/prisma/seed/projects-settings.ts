@@ -1,15 +1,15 @@
 import type { PrismaClient } from '../../src/generated/prisma/client';
-import {
-  PROJECTS_SETTINGS_ID,
-  projectsSettingsDataset,
-} from '../../src/modules/projects/dataset/projects-settings';
+import { PROJECTS_SETTINGS_ID } from '../../src/modules/projects/dataset/projects-settings';
 
 export async function seedProjectsSettings(
   prisma: PrismaClient,
 ): Promise<void> {
-  await prisma.projectsSettings.upsert({
+  const row = await prisma.projectsSettings.findUnique({
     where: { id: PROJECTS_SETTINGS_ID },
-    create: { id: PROJECTS_SETTINGS_ID, ...projectsSettingsDataset },
-    update: {},
+    select: { id: true },
   });
+
+  if (!row) {
+    throw new Error('Projects settings are missing; run migrations.');
+  }
 }

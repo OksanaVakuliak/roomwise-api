@@ -29,7 +29,6 @@ export const RuleSampleSchema = z.object({
     totalAreaSqm: z.number().positive(),
     balconyAreaSqm: z.number().min(0),
     balconyTiles: z.boolean(),
-    gas: z.boolean(),
     kitchenType: KitchenTypeSchema,
     finishLevel: FinishLevelSchema,
     roomsCount: z.int().min(0),

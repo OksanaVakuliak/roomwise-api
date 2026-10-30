@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import type { Estimate, EstimateLine } from '@roomwise/calc-engine';
 import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../common/http/app-error';
@@ -93,8 +94,39 @@ describe('PriceStatusService', () => {
     });
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(
       { marker: 'configuration' },
-      { missingProducts: 'unavailable' },
+      { missingReferences: 'unavailable', limits: 'skip', retiredOptions: [] },
     );
+  });
+
+  it('passes options of the stored lines as retired and reports a deleted one', async () => {
+    const { service, resolveEstimate, pricingEstimate } = setup();
+    const optionLine = (status: EstimateLine['status']) =>
+      line({
+        id: 'option-line',
+        section: 'ADDITIONAL',
+        optionId: 'option-1',
+        status,
+      });
+    resolveEstimate(makeEstimate(900, [optionLine('UNAVAILABLE')]));
+
+    const status = await service.current(
+      versionOf('version-1', [optionLine('OK')]),
+    );
+
+    expect(pricingEstimate.estimate).toHaveBeenCalledWith(
+      { marker: 'configuration' },
+      {
+        missingReferences: 'unavailable',
+        limits: 'skip',
+        retiredOptions: [{ id: 'option-1', kind: 'ADDITIONAL' }],
+      },
+    );
+    expect(status).toMatchObject({
+      changed: true,
+      unavailableItems: [
+        { lineId: 'option-line', productId: null, optionId: 'option-1' },
+      ],
+    });
   });
 
   it('reports the difference when the total changed', async () => {
@@ -242,20 +274,54 @@ describe('PriceStatusService', () => {
     expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1002);
   });
 
-  it.each([ERROR_CODES.UNKNOWN_REFERENCE, ERROR_CODES.INPUT_OUT_OF_BOUNDS])(
-    'returns null and caches it on %s',
-    async (code) => {
-      const { service, pricingEstimate } = setup();
-      pricingEstimate.estimate.mockRejectedValue(new AppError(code));
-      const version = versionOf('version-1');
+  it('returns null and caches it on an unknown reference', async () => {
+    const { service, pricingEstimate } = setup();
+    pricingEstimate.estimate.mockRejectedValue(
+      new AppError(ERROR_CODES.UNKNOWN_REFERENCE),
+    );
+    const version = versionOf('version-1');
 
-      expect(await service.current(version)).toBeNull();
-      expect(await service.current(version)).toBeNull();
-      expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1);
-    },
-  );
+    expect(await service.current(version)).toBeNull();
+    expect(await service.current(version)).toBeNull();
+    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1);
+  });
 
-  it('rethrows other errors', async () => {
+  it('returns null without caching and logs a warning on an unknown domain error', async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => {});
+    const { service, pricingEstimate } = setup();
+    pricingEstimate.estimate.mockRejectedValue(
+      new AppError(ERROR_CODES.UNPROCESSABLE),
+    );
+    const version = versionOf('version-1');
+
+    expect(await service.current(version)).toBeNull();
+    expect(await service.current(version)).toBeNull();
+    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(`version-1: ${ERROR_CODES.UNPROCESSABLE}`),
+    );
+    warn.mockRestore();
+  });
+
+  it('does not log an unknown reference', async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => {});
+    const { service, pricingEstimate } = setup();
+    pricingEstimate.estimate.mockRejectedValue(
+      new AppError(ERROR_CODES.UNKNOWN_REFERENCE),
+    );
+
+    await service.current(versionOf('version-1'));
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('rethrows infrastructure errors', async () => {
     const { service, pricingEstimate } = setup();
     pricingEstimate.estimate.mockRejectedValue(new Error('boom'));
 
