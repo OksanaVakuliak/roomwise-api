@@ -25,7 +25,6 @@ const sample: RuleSample = RuleSampleSchema.parse({
     totalAreaSqm: 62,
     balconyAreaSqm: 4,
     balconyTiles: true,
-    gas: false,
     kitchenType: 'SEPARATE',
     finishLevel: 'PRE_FINISH',
     roomsCount: 1,
@@ -58,11 +57,11 @@ describe('previewRule', () => {
     const preview = previewRule({
       ...floorRule,
       quantityFormula: 'max(wallArea, 1)',
-      costFormula: 'quantity * (1 - -coef.a) + (!gas ? coef.b : 0)',
+      costFormula: 'quantity * (1 - -coef.a) + (!balconyTiles ? coef.b : 0)',
       coefficients: { a: 1, b: 2, unused: 3 },
     });
     expect(Object.keys(preview.variables).sort()).toEqual([
-      'gas',
+      'balconyTiles',
       'quantity',
       'wallArea',
     ]);

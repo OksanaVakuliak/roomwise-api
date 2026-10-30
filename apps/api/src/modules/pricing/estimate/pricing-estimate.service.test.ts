@@ -55,7 +55,6 @@ function configuration(overrides: Partial<Configuration>): Configuration {
     totalAreaSqm: 50,
     balconyAreaSqm: 0,
     balconyTiles: false,
-    gas: false,
     kitchenType: 'SEPARATE',
     rooms: [room],
     options: [],

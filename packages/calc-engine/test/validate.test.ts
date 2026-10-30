@@ -74,7 +74,7 @@ describe('validateFormula valid formulas', () => {
 
   it('accepts object variables, coefficients and functions at object level', () => {
     const result = check(
-      'max(totalArea, 40) * coef.labor + (gas ? 100 : 0)',
+      'max(totalArea, 40) * coef.labor + (balconyTiles ? 100 : 0)',
       'OBJECT',
     );
     expect(result.valid).toBe(true);
@@ -128,6 +128,14 @@ describe('validateFormula errors', () => {
         length: 8,
         params: { name: 'florArea', suggestion: 'floorArea' },
       },
+    ]);
+  });
+
+  it('reports the removed gas variable as unknown', () => {
+    const result = check('gas ? 1 : 0');
+    expect(result.valid).toBe(false);
+    expect(result.errors).toMatchObject([
+      { code: 'UNKNOWN_VARIABLE', position: 0, length: 3 },
     ]);
   });
 
@@ -254,7 +262,6 @@ describe('formula constants stay in sync with variable derivation', () => {
     totalAreaSqm: 60,
     balconyAreaSqm: 4,
     balconyTiles: true,
-    gas: true,
     kitchenType: 'SEPARATE',
     finishLevel: 'ROUGH',
     rooms: [
@@ -347,7 +354,9 @@ describe('validateFormula static typing', () => {
 
   it('rejects logical operators on numbers', () => {
     expect(check('!price').errors).toEqual([mismatch(1, 5, 'boolean')]);
-    expect(check('price && gas').errors).toEqual([mismatch(0, 5, 'boolean')]);
+    expect(check('price && balconyTiles').errors).toEqual([
+      mismatch(0, 5, 'boolean'),
+    ]);
   });
 
   it('requires a boolean condition', () => {
@@ -355,7 +364,9 @@ describe('validateFormula static typing', () => {
   });
 
   it('rejects conditional branches of different types', () => {
-    expect(check('gas ? 1 : true').errors).toEqual([mismatch(10, 4, 'number')]);
+    expect(check('balconyTiles ? 1 : true').errors).toEqual([
+      mismatch(19, 4, 'number'),
+    ]);
   });
 
   it('reports enum values that do not exist', () => {

@@ -76,7 +76,6 @@ const configuration = {
   totalAreaSqm: 60,
   balconyAreaSqm: 0,
   balconyTiles: false,
-  gas: false,
   kitchenType: 'SEPARATE',
   rooms: [
     {
