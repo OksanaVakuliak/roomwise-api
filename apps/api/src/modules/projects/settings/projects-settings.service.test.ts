@@ -131,7 +131,7 @@ describe('ProjectsSettingsService', () => {
       .mockResolvedValueOnce(row);
     const service = createService(findUnique);
 
-    await expect(service.get()).rejects.toThrow('run the seed');
+    await expect(service.get()).rejects.toThrow('run migrations');
     await expect(service.get()).resolves.toMatchObject({
       leadRetentionDays: 30,
     });

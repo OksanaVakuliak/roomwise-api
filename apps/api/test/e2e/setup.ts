@@ -1,7 +1,27 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { Client } from 'pg';
 import { beforeAll } from 'vitest';
 
 const SANDBOX_RESET_NEVER = '9999-12-31T00:00:00.000Z';
+const PROJECTS_MIGRATION = resolve(
+  __dirname,
+  '../../prisma/migrations/20261022210000_projects/migration.sql',
+);
+
+function defaultProjectsSettingsInsert(): string {
+  const sql = readFileSync(PROJECTS_MIGRATION, 'utf8');
+  const insert = /-- InsertDefaultSettings\s+(INSERT[\s\S]*?\);)/.exec(sql);
+
+  if (!insert?.[1]) {
+    throw new Error(
+      `Default projects settings not found in ${PROJECTS_MIGRATION}`,
+    );
+  }
+
+  return insert[1];
+}
+
 const NBU_E2E_URL = 'http://nbu.e2e.invalid/exchange';
 
 process.env.NBU_API_URL = NBU_E2E_URL;
@@ -37,6 +57,7 @@ async function resetDatabase(): Promise<void> {
       'INSERT INTO sandbox_state (id, next_reset_at) VALUES (1, $1)',
       [SANDBOX_RESET_NEVER],
     );
+    await client.query(defaultProjectsSettingsInsert());
   } finally {
     await client.end();
   }
