@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { z } from 'zod';
 import { envSchema, postgresUrlSchema } from '../../src/config/env';
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
@@ -13,9 +14,9 @@ const EXIT_FAILURE = 1;
 const TRANSACTION_TIMEOUT_MS = 120_000;
 const TRANSACTION_MAX_WAIT_MS = 30_000;
 
-const demoAdminEnvSchema = envSchema.pick({
-  DEMO_ADMIN_LOGIN: true,
-  DEMO_ADMIN_PASSWORD: true,
+const demoAdminEnvSchema = z.object({
+  DEMO_ADMIN_LOGIN: envSchema.shape.DEMO_ADMIN_LOGIN,
+  DEMO_ADMIN_PASSWORD: envSchema.shape.DEMO_ADMIN_PASSWORD,
 });
 
 async function countCatalog(prisma: PrismaClient) {
