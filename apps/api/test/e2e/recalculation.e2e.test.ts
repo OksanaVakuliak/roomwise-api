@@ -713,9 +713,10 @@ describe('recalculation e2e', () => {
       const { publicId } = await saveVersion();
       const key = newIdempotencyKey();
 
-      await recalculate(publicId, 1, key);
+      const first = await recalculate(publicId, 1, key);
       const response = await recalculate(publicId, 2, key);
 
+      expect(first.status).toBe(201);
       expect(response.status).toBe(422);
       expect(response.body.error.code).toBe(ERROR_CODES.IDEMPOTENCY_KEY_REUSED);
     });
