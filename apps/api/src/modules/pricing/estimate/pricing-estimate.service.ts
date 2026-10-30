@@ -21,8 +21,11 @@ export interface RetiredOption {
   kind: OptionKind;
 }
 
+export type LimitsPolicy = 'enforce' | 'skip';
+
 export interface EstimateOptions {
   missingReferences?: MissingReferencesPolicy;
+  limits?: LimitsPolicy;
   retiredOptions?: readonly RetiredOption[];
 }
 
@@ -87,12 +90,14 @@ export class PricingEstimateService {
       });
     }
 
-    const violations = checkLimits(configuration, data.limits, data.options);
+    if (options.limits !== 'skip') {
+      const violations = checkLimits(configuration, data.limits, data.options);
 
-    if (violations.length > 0) {
-      throw new AppError(ERROR_CODES.INPUT_OUT_OF_BOUNDS, {
-        params: { violations },
-      });
+      if (violations.length > 0) {
+        throw new AppError(ERROR_CODES.INPUT_OUT_OF_BOUNDS, {
+          params: { violations },
+        });
+      }
     }
 
     return {

@@ -88,6 +88,15 @@ describe('PricingEstimateService', () => {
     await expect(rejection).rejects.toBeInstanceOf(AppError);
   });
 
+  it('estimates values outside the limits when limits are skipped', async () => {
+    const result = await createService().estimate(
+      configuration({ totalAreaSqm: 5 }),
+      { limits: 'skip' },
+    );
+
+    expect(result.estimate).toBeDefined();
+  });
+
   it('rejects unknown references', async () => {
     const rejection = createService().estimate(
       configuration({ options: [{ optionId: 'missing' }] }),

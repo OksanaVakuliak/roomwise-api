@@ -4352,7 +4352,7 @@
             }
           },
           "422": {
-            "description": "INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED",
+            "description": "UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED",
             "content": {
               "application/json": {
                 "schema": {

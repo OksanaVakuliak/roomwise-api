@@ -217,6 +217,7 @@ describe('SnapshotBuilder', () => {
 
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration, {
       missingReferences: 'unavailable',
+      limits: 'skip',
       retiredOptions: [{ id: 'option-1', kind: 'ENGINEERING' }],
     });
   });
@@ -228,6 +229,7 @@ describe('SnapshotBuilder', () => {
 
     expect(pricingEstimate.estimate).toHaveBeenCalledWith(configuration, {
       missingReferences: 'reject',
+      limits: 'enforce',
       retiredOptions: undefined,
     });
     expect(catalog.read).toHaveBeenCalledWith({

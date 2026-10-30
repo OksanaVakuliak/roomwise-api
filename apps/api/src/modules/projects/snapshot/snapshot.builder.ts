@@ -82,6 +82,7 @@ export class SnapshotBuilder {
       configuration,
       {
         missingReferences: previous ? 'unavailable' : 'reject',
+        limits: previous ? 'skip' : 'enforce',
         retiredOptions: previous ? retiredOptionsOf(previous) : undefined,
       },
     );
