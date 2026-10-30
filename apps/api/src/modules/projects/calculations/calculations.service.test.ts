@@ -87,7 +87,11 @@ function createService() {
   const prisma = {
     $transaction: vi.fn((fn: (client: typeof tx) => unknown) => fn(tx)),
     calculation: { findUnique: vi.fn() },
-    calculationVersion: { findUnique: vi.fn(), findMany: vi.fn() },
+    calculationVersion: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+    },
   };
   const builder = { build: vi.fn().mockResolvedValue(snapshot) };
   const settings = {
@@ -499,25 +503,34 @@ describe('CalculationsService.findVersion', () => {
   function setup(numbers = [1, 2]) {
     const ctx = createService();
     const versions = numbers.map(storedVersion);
-    ctx.prisma.calculation.findUnique.mockImplementation(
-      ({ where }: { where: { publicId: string } }) =>
-        Promise.resolve(
-          where.publicId === 'public'
+    ctx.prisma.calculationVersion.findFirst.mockImplementation(
+      ({
+        where,
+      }: {
+        where: { calculation: { publicId: string }; number?: number };
+      }) => {
+        const found =
+          where.calculation.publicId === 'public'
+            ? [...versions]
+                .filter(
+                  (item) =>
+                    where.number === undefined || item.number === where.number,
+                )
+                .sort((left, right) => right.number - left.number)[0]
+            : undefined;
+
+        return Promise.resolve(
+          found
             ? {
-                ...storedCalculation([]),
-                latestVersionNumber: Math.max(...numbers),
-                versions: versions.map(summaryOf),
+                ...found,
+                calculation: {
+                  publicId: 'public',
+                  versions: versions.map(summaryOf),
+                },
               }
             : null,
-        ),
-    );
-    ctx.prisma.calculationVersion.findUnique.mockImplementation(
-      ({ where }: { where: { calculationId_number: { number: number } } }) =>
-        Promise.resolve(
-          versions.find(
-            (item) => item.number === where.calculationId_number.number,
-          ) ?? null,
-        ),
+        );
+      },
     );
 
     return ctx;
@@ -528,9 +541,12 @@ describe('CalculationsService.findVersion', () => {
 
     await ctx.service.findVersion('public', null, 'uk');
 
-    expect(ctx.prisma.calculationVersion.findUnique).toHaveBeenCalledWith({
-      where: { calculationId_number: { calculationId: 'calc-1', number: 2 } },
-    });
+    expect(ctx.prisma.calculationVersion.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { calculation: { publicId: 'public' } },
+        orderBy: { number: 'desc' },
+      }),
+    );
     expect(ctx.presenter.present).toHaveBeenCalledWith(
       expect.objectContaining({
         version: expect.objectContaining({ number: 2 }),
@@ -576,21 +592,41 @@ describe('CalculationsService.findVersion', () => {
 
     await ctx.service.findVersion('public', null, 'uk');
 
-    expect(ctx.prisma.calculation.findUnique).toHaveBeenCalledWith(
+    expect(ctx.prisma.calculationVersion.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        select: expect.objectContaining({
-          versions: {
+        include: {
+          calculation: {
             select: {
-              number: true,
-              createdAt: true,
-              totalUsdCents: true,
-              expiresAt: true,
+              publicId: true,
+              versions: {
+                select: {
+                  number: true,
+                  createdAt: true,
+                  totalUsdCents: true,
+                  expiresAt: true,
+                },
+              },
             },
           },
-        }),
+        },
       }),
     );
   });
+
+  it.each([null, 1])(
+    'makes exactly one database call for number %s',
+    async (number) => {
+      const ctx = setup();
+
+      await ctx.service.findVersion('public', number, 'uk');
+
+      expect(ctx.prisma.calculationVersion.findFirst).toHaveBeenCalledTimes(1);
+      expect(ctx.prisma.calculation.findUnique).not.toHaveBeenCalled();
+      expect(ctx.prisma.calculationVersion.findUnique).not.toHaveBeenCalled();
+      expect(ctx.prisma.calculationVersion.findMany).not.toHaveBeenCalled();
+      expect(ctx.prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
 
   it('answers CALCULATION_NOT_FOUND for a non-positive number without reading the database', async () => {
     const ctx = setup();

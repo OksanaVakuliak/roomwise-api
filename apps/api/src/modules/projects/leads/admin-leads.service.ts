@@ -86,6 +86,7 @@ const DETAIL_SELECT = {
 } satisfies Prisma.LeadSelect;
 
 type ListRow = Prisma.LeadGetPayload<{ select: typeof LIST_SELECT }>;
+type DetailRow = Prisma.LeadGetPayload<{ select: typeof DETAIL_SELECT }>;
 
 function listItemOf(row: ListRow, masked: boolean): LeadListItem {
   return {
@@ -151,6 +152,14 @@ export class AdminLeadsService {
       throw new AppError(ERROR_CODES.NOT_FOUND);
     }
 
+    return this.present(lead, lang, admin);
+  }
+
+  private async present(
+    lead: DetailRow,
+    lang: Language,
+    admin: Pick<AuthenticatedAdmin, 'isDemo'>,
+  ): Promise<LeadAdmin> {
     const masked = admin.isDemo;
     const calculation = await this.calculations.findVersion(
       lead.calculationVersion.calculation.publicId,
@@ -187,7 +196,7 @@ export class AdminLeadsService {
     admin: AuthenticatedAdmin,
     lang: Language = DEFAULT_LANGUAGE,
   ): Promise<LeadAdmin> {
-    await this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const current = await tx.lead.findUnique({
         where: { id },
         select: { status: true, revision: true },
@@ -227,9 +236,14 @@ export class AdminLeadsService {
           changedById: admin.id,
         },
       });
+
+      return tx.lead.findUniqueOrThrow({
+        where: { id },
+        select: DETAIL_SELECT,
+      });
     });
 
-    return this.get(id, lang, admin);
+    return this.present(updated, lang, admin);
   }
 
   async addNote(

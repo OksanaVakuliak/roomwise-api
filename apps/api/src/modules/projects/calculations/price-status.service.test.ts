@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import type { Estimate, EstimateLine } from '@roomwise/calc-engine';
 import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../common/http/app-error';
@@ -285,7 +286,42 @@ describe('PriceStatusService', () => {
     expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1);
   });
 
-  it('rethrows other errors', async () => {
+  it('returns null without caching and logs a warning on an unknown domain error', async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => {});
+    const { service, pricingEstimate } = setup();
+    pricingEstimate.estimate.mockRejectedValue(
+      new AppError(ERROR_CODES.UNPROCESSABLE),
+    );
+    const version = versionOf('version-1');
+
+    expect(await service.current(version)).toBeNull();
+    expect(await service.current(version)).toBeNull();
+    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(`version-1: ${ERROR_CODES.UNPROCESSABLE}`),
+    );
+    warn.mockRestore();
+  });
+
+  it('does not log an unknown reference', async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => {});
+    const { service, pricingEstimate } = setup();
+    pricingEstimate.estimate.mockRejectedValue(
+      new AppError(ERROR_CODES.UNKNOWN_REFERENCE),
+    );
+
+    await service.current(versionOf('version-1'));
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('rethrows infrastructure errors', async () => {
     const { service, pricingEstimate } = setup();
     pricingEstimate.estimate.mockRejectedValue(new Error('boom'));
 
