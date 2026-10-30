@@ -47,9 +47,13 @@ export class IdempotencyService {
   ) {}
 
   hashRequest(request: Request): string {
+    const query = Object.fromEntries(
+      Object.entries(request.query ?? {}).filter(([name]) => name !== 'lang'),
+    );
+
     return canonicalSha256({
       params: request.params ?? {},
-      query: request.query ?? {},
+      query,
       body: request.body ?? null,
     });
   }

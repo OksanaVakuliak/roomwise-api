@@ -688,6 +688,38 @@ describe('recalculation e2e', () => {
       expect(current.body.versions).toHaveLength(2);
     });
 
+    it('replays the stored result in the language of the repeat', async () => {
+      const { publicId } = await saveVersion();
+      const key = newIdempotencyKey();
+      const send = (lang: string) =>
+        request(testApp.http)
+          .post(`${CALCULATIONS}/${publicId}/versions?lang=${lang}`)
+          .set(clientHeaders(key))
+          .send({ basedOnVersion: 1 });
+
+      const first = await send('uk');
+      const replay = await send('en');
+      const current = await latest(publicId);
+
+      expect(first.status).toBe(201);
+      expect(first.body.style.name).toBe('Скандинавський');
+      expect(replay.status).toBe(201);
+      expect(replay.body.number).toBe(first.body.number);
+      expect(replay.body.style.name).toBe('Scandinavian');
+      expect(current.body.versions).toHaveLength(2);
+    });
+
+    it('answers 422 when the key is reused with another body', async () => {
+      const { publicId } = await saveVersion();
+      const key = newIdempotencyKey();
+
+      await recalculate(publicId, 1, key);
+      const response = await recalculate(publicId, 2, key);
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.IDEMPOTENCY_KEY_REUSED);
+    });
+
     it('answers 404 for an unknown publicId', async () => {
       const response = await recalculate(UNKNOWN_PUBLIC_ID);
 
