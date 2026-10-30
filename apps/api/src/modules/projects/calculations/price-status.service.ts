@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.service';
@@ -16,14 +16,9 @@ export interface PriceStatusSource {
   pricingVersion: string;
 }
 
-function isUnevaluable(error: unknown): boolean {
-  return (
-    error instanceof AppError && error.code === ERROR_CODES.UNKNOWN_REFERENCE
-  );
-}
-
 @Injectable()
 export class PriceStatusService {
+  private readonly logger = new Logger(PriceStatusService.name);
   private readonly cache = new Map<string, PriceStatus | null>();
 
   constructor(
@@ -112,10 +107,16 @@ export class PriceStatusService {
         pricingVersion: pricingData.version,
       };
     } catch (error) {
-      if (isUnevaluable(error)) {
-        return { status: null, pricingVersion: null };
+      if (!(error instanceof AppError)) {
+        throw error;
       }
-      throw error;
+      if (error.code !== ERROR_CODES.UNKNOWN_REFERENCE) {
+        this.logger.warn(
+          `Price status unavailable for version ${version.id}: ${error.code}`,
+        );
+      }
+
+      return { status: null, pricingVersion: null };
     }
   }
 

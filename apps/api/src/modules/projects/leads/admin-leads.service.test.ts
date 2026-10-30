@@ -59,7 +59,11 @@ const detailRow = {
 
 function createService() {
   const tx = {
-    lead: { findUnique: vi.fn(), updateMany: vi.fn() },
+    lead: {
+      findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn().mockResolvedValue(detailRow),
+      updateMany: vi.fn(),
+    },
     leadStatusChange: { create: vi.fn() },
   };
   const prisma = {
@@ -268,6 +272,22 @@ describe('AdminLeadsService.changeStatus', () => {
       },
     });
     expect(result.id).toBe(LEAD_ID);
+  });
+
+  it('reads the calculation once and reuses the lead read inside the transaction', async () => {
+    const { service, tx, prisma, calculations } = createService();
+    tx.lead.findUnique.mockResolvedValue({
+      status: LeadStatus.NEW,
+      revision: REVISION,
+    });
+    tx.lead.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.changeStatus(LEAD_ID, input, ADMIN, 'uk');
+
+    expect(calculations.findVersion).toHaveBeenCalledTimes(1);
+    expect(calculations.findVersion).toHaveBeenCalledWith('public', 2, 'uk');
+    expect(tx.lead.findUniqueOrThrow).toHaveBeenCalledTimes(1);
+    expect(prisma.lead.findUnique).not.toHaveBeenCalled();
   });
 
   it('throws NOT_FOUND for a missing lead', async () => {
