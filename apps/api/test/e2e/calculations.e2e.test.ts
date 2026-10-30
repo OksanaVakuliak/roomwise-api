@@ -287,6 +287,20 @@ describe('calculations e2e', () => {
       expect(response.body.error.code).toBe(ERROR_CODES.IDEMPOTENCY_KEY_REUSED);
     });
 
+    it('replays the stored result in the language of the repeat', async () => {
+      const key = newIdempotencyKey();
+
+      const first = await save(savedBody(), key, 'uk');
+      const replay = await save(savedBody(), key, 'en');
+
+      expect(first.status).toBe(201);
+      expect(first.body.version.style.name).toBe('Скандинавський');
+      expect(replay.status).toBe(201);
+      expect(replay.body.version.publicId).toBe(first.body.version.publicId);
+      expect(replay.body.version.number).toBe(first.body.version.number);
+      expect(replay.body.version.style.name).toBe('Scandinavian');
+    });
+
     it('answers 428 without the key', async () => {
       const response = await save(savedBody(), null);
 

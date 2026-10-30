@@ -29,6 +29,8 @@ const UNPUBLISHED_STYLE_IP = '10.40.0.4';
 const DELETED_STYLE_IP = '10.40.0.5';
 const NARROWED_LIMITS_IP = '10.40.0.6';
 const NARROWED_CREATE_IP = '10.40.0.7';
+const REPLAY_LANG_IP = '10.40.0.8';
+const REUSED_KEY_IP = '10.40.0.9';
 const PRICING_SETTINGS_ID = 1;
 const SAVED_QUANTITY = 3;
 const NARROWED_MAX_QUANTITY = 2;
@@ -686,6 +688,47 @@ describe('recalculation e2e', () => {
       expect(replay.status).toBe(201);
       expect(replay.body).toEqual(first.body);
       expect(current.body.versions).toHaveLength(2);
+    });
+
+    it('replays the stored result in the language of the repeat', async () => {
+      const { publicId } = await saveVersion(
+        buildProjectsConfiguration(),
+        projectsStyleId,
+        REPLAY_LANG_IP,
+      );
+      const key = newIdempotencyKey();
+      const send = (lang: string) =>
+        request(testApp.http)
+          .post(`${CALCULATIONS}/${publicId}/versions?lang=${lang}`)
+          .set(clientHeaders(key, REPLAY_LANG_IP))
+          .send({ basedOnVersion: 1 });
+
+      const first = await send('uk');
+      const replay = await send('en');
+      const current = await latest(publicId);
+
+      expect(first.status).toBe(201);
+      expect(first.body.style.name).toBe('Скандинавський');
+      expect(replay.status).toBe(201);
+      expect(replay.body.number).toBe(first.body.number);
+      expect(replay.body.style.name).toBe('Scandinavian');
+      expect(current.body.versions).toHaveLength(2);
+    });
+
+    it('answers 422 when the key is reused with another body', async () => {
+      const { publicId } = await saveVersion(
+        buildProjectsConfiguration(),
+        projectsStyleId,
+        REUSED_KEY_IP,
+      );
+      const key = newIdempotencyKey();
+
+      const first = await recalculate(publicId, 1, key, REUSED_KEY_IP);
+      const response = await recalculate(publicId, 2, key, REUSED_KEY_IP);
+
+      expect(first.status).toBe(201);
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.IDEMPOTENCY_KEY_REUSED);
     });
 
     it('answers 404 for an unknown publicId', async () => {

@@ -80,6 +80,27 @@ describe('IdempotencyService', () => {
     ).not.toBe(service.hashRequest(createRequest({ query: { page: '2' } })));
   });
 
+  it('hashes the same body identically for different lang', () => {
+    const { service } = createService();
+
+    expect(service.hashRequest(createRequest({ query: { lang: 'uk' } }))).toBe(
+      service.hashRequest(createRequest({ query: { lang: 'en' } })),
+    );
+    expect(service.hashRequest(createRequest({ query: { lang: 'uk' } }))).toBe(
+      service.hashRequest(createRequest({ query: {} })),
+    );
+  });
+
+  it('keeps hashing other query params next to lang', () => {
+    const { service } = createService();
+
+    expect(
+      service.hashRequest(createRequest({ query: { lang: 'uk', page: '1' } })),
+    ).not.toBe(
+      service.hashRequest(createRequest({ query: { lang: 'uk', page: '2' } })),
+    );
+  });
+
   it('treats a missing body as null', () => {
     const { service } = createService();
 
