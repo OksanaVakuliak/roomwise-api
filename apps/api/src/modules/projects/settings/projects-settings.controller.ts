@@ -48,6 +48,11 @@ export class ProjectsSettingsController {
     type: ErrorResponseDto,
   })
   @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'DEMO_FORBIDDEN',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
     status: HttpStatus.CONFLICT,
     description: 'STALE_REVISION',
     type: ErrorResponseDto,
