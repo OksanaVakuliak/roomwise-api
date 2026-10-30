@@ -740,29 +740,33 @@ describe('recalculation e2e', () => {
       );
 
       await withNarrowedLimits(optionIds.airConditioning, async () => {
+        const saved = await latest(first.publicId);
         const recalculated = await recalculate(
           first.publicId,
           1,
           newIdempotencyKey(),
           NARROWED_LIMITS_IP,
         );
-        const current = await latest(first.publicId);
 
+        expect(saved.status).toBe(200);
+        expect(saved.body.number).toBe(1);
+        expect(saved.body.priceStatus).not.toBeNull();
         expect(recalculated.status).toBe(201);
         expect(recalculated.body.number).toBe(2);
         expect(recalculated.body.configuration).toEqual(first.configuration);
-        expect(current.status).toBe(200);
-        expect(current.body.priceStatus).not.toBeNull();
       });
     });
 
     it('still rejects a new calculation that violates the narrowed limits', async () => {
+      const configuration = configurationWithQuantity();
+      const optionIndex = configuration.options.length - 1;
+
       await withNarrowedLimits(optionIds.airConditioning, async () => {
         const response = await request(testApp.http)
           .post(CALCULATIONS)
           .set(clientHeaders(newIdempotencyKey(), NARROWED_CREATE_IP))
           .send({
-            configuration: configurationWithQuantity(),
+            configuration,
             styleId: projectsStyleId,
             clientPricingVersion: currentPricingVersion,
             clientTotalUsdCents: 1,
@@ -773,7 +777,9 @@ describe('recalculation e2e', () => {
         expect(response.body.error.params.violations).toEqual(
           expect.arrayContaining([
             expect.objectContaining({ field: 'rooms' }),
-            expect.objectContaining({ field: 'options[2].quantity' }),
+            expect.objectContaining({
+              field: `options[${optionIndex}].quantity`,
+            }),
           ]),
         );
       });
