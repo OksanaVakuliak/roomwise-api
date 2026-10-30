@@ -82,7 +82,7 @@ describe('parse valid formulas', () => {
       type: 'Binary',
       operator: '||',
     });
-    expect(ast('gas == true')).toMatchObject({
+    expect(ast('balconyTiles == true')).toMatchObject({
       type: 'Binary',
       right: { type: 'Literal', value: true },
     });

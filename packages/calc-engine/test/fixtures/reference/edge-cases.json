@@ -10,7 +10,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [
         {
@@ -78,7 +77,6 @@
       "totalAreaSqm": 10,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [
         {
@@ -143,7 +141,6 @@
       "totalAreaSqm": 55,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [],
       "options": [],
@@ -180,7 +177,6 @@
       "totalAreaSqm": 70,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [],
       "options": [],
@@ -217,7 +213,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [],
       "options": [],
@@ -307,7 +302,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [
         {
@@ -424,7 +418,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [
         {
@@ -560,7 +553,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [
         {
@@ -632,7 +624,6 @@
       "totalAreaSqm": 500,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [
         {
@@ -979,7 +970,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [
         {
@@ -1060,7 +1050,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "gas": false,
       "kitchenType": "SEPARATE",
       "rooms": [],
       "options": [],

@@ -52,7 +52,6 @@ export const ConfigurationSchema = z
     totalAreaSqm: z.number().positive(),
     balconyAreaSqm: z.number().min(0),
     balconyTiles: z.boolean(),
-    gas: z.boolean(),
     kitchenType: KitchenTypeSchema,
     rooms: z.array(RoomConfigurationSchema),
     options: z.array(OptionSelectionSchema),

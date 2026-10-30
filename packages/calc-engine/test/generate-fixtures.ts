@@ -126,7 +126,6 @@ export function generateConfigurations(
       balconyAreaSqm:
         random() < 0.3 ? 0 : decimal(random, 0, Math.min(10, totalAreaSqm)),
       balconyTiles: random() < 0.5,
-      gas: random() < 0.5,
       kitchenType: pick(random, ['SEPARATE', 'KITCHEN_LIVING'] as const),
       rooms,
       options: generateOptions(random, pricingData, rooms),

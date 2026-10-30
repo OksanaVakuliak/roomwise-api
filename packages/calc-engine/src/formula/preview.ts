@@ -76,7 +76,6 @@ function objectScope({ object }: RuleSample): Variables {
     totalArea: object.totalAreaSqm,
     balconyArea: object.balconyAreaSqm,
     balconyTiles: object.balconyTiles,
-    gas: object.gas,
     kitchenType: object.kitchenType,
     finishLevel: object.finishLevel,
     roomsCount: object.roomsCount,

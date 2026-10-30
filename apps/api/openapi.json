@@ -10874,9 +10874,6 @@
               "balconyTiles": {
                 "type": "boolean"
               },
-              "gas": {
-                "type": "boolean"
-              },
               "kitchenType": {
                 "type": "string",
                 "enum": [
@@ -10993,7 +10990,6 @@
               "totalAreaSqm",
               "balconyAreaSqm",
               "balconyTiles",
-              "gas",
               "kitchenType",
               "rooms",
               "options",
@@ -11863,9 +11859,6 @@
                   "balconyTiles": {
                     "type": "boolean"
                   },
-                  "gas": {
-                    "type": "boolean"
-                  },
                   "kitchenType": {
                     "type": "string",
                     "enum": [
@@ -11895,7 +11888,6 @@
                   "totalAreaSqm",
                   "balconyAreaSqm",
                   "balconyTiles",
-                  "gas",
                   "kitchenType",
                   "finishLevel",
                   "roomsCount",
@@ -12992,9 +12984,6 @@
               "balconyTiles": {
                 "type": "boolean"
               },
-              "gas": {
-                "type": "boolean"
-              },
               "kitchenType": {
                 "type": "string",
                 "enum": [
@@ -13111,7 +13100,6 @@
               "totalAreaSqm",
               "balconyAreaSqm",
               "balconyTiles",
-              "gas",
               "kitchenType",
               "rooms",
               "options",
@@ -13215,9 +13203,6 @@
                     "minimum": 0
                   },
                   "balconyTiles": {
-                    "type": "boolean"
-                  },
-                  "gas": {
                     "type": "boolean"
                   },
                   "kitchenType": {
@@ -13339,7 +13324,6 @@
                   "totalAreaSqm",
                   "balconyAreaSqm",
                   "balconyTiles",
-                  "gas",
                   "kitchenType",
                   "rooms",
                   "options",
@@ -14067,9 +14051,6 @@
               "balconyTiles": {
                 "type": "boolean"
               },
-              "gas": {
-                "type": "boolean"
-              },
               "kitchenType": {
                 "type": "string",
                 "enum": [
@@ -14189,7 +14170,6 @@
               "totalAreaSqm",
               "balconyAreaSqm",
               "balconyTiles",
-              "gas",
               "kitchenType",
               "rooms",
               "options",
@@ -14836,9 +14816,6 @@
                   "balconyTiles": {
                     "type": "boolean"
                   },
-                  "gas": {
-                    "type": "boolean"
-                  },
                   "kitchenType": {
                     "type": "string",
                     "enum": [
@@ -14955,7 +14932,6 @@
                   "totalAreaSqm",
                   "balconyAreaSqm",
                   "balconyTiles",
-                  "gas",
                   "kitchenType",
                   "rooms",
                   "options",
@@ -15649,9 +15625,6 @@
                   "balconyTiles": {
                     "type": "boolean"
                   },
-                  "gas": {
-                    "type": "boolean"
-                  },
                   "kitchenType": {
                     "type": "string",
                     "enum": [
@@ -15771,7 +15744,6 @@
                   "totalAreaSqm",
                   "balconyAreaSqm",
                   "balconyTiles",
-                  "gas",
                   "kitchenType",
                   "rooms",
                   "options",

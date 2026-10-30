@@ -66,7 +66,9 @@ describe('estimate formula failures', () => {
     const result = estimate(
       request,
       withRules((rule) =>
-        rule.id === 'rule-walls' ? { ...rule, costFormula: 'gas' } : rule,
+        rule.id === 'rule-walls'
+          ? { ...rule, costFormula: 'balconyTiles' }
+          : rule,
       ),
     );
     expect(lineOf(result, 'MATERIALS:living:cat-walls')?.error).toEqual({
@@ -79,7 +81,9 @@ describe('estimate formula failures', () => {
     const result = estimate(
       request,
       withRules((rule) =>
-        rule.level === 'OBJECT' ? { ...rule, costFormula: 'gas' } : rule,
+        rule.level === 'OBJECT'
+          ? { ...rule, costFormula: 'balconyTiles' }
+          : rule,
       ),
     );
     expect(lineOf(result, 'OBJECT:rule-balcony-tile')?.status).toBe('ERROR');
@@ -354,5 +358,16 @@ describe('estimate amount bounds', () => {
     expect(lineOf(result, 'MATERIALS:living:cat-walls')?.amountCents).toBe(
       MAX_LINE_CENTS,
     );
+  });
+});
+
+describe('estimate with the removed gas field', () => {
+  it('ignores gas in the input and gives the same result', () => {
+    const withGas = ConfigurationSchema.parse({
+      ...referenceRequest,
+      gas: true,
+    });
+    expect(withGas).not.toHaveProperty('gas');
+    expect(estimate(withGas, data)).toEqual(estimate(request, data));
   });
 });
