@@ -286,7 +286,7 @@ describe('PriceStatusService', () => {
     expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1);
   });
 
-  it('returns null, caches it and logs a warning on an unknown domain error', async () => {
+  it('returns null without caching and logs a warning on an unknown domain error', async () => {
     const warn = vi
       .spyOn(Logger.prototype, 'warn')
       .mockImplementation(() => {});
@@ -298,8 +298,8 @@ describe('PriceStatusService', () => {
 
     expect(await service.current(version)).toBeNull();
     expect(await service.current(version)).toBeNull();
-    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledTimes(1);
+    expect(pricingEstimate.estimate).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(2);
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining(`version-1: ${ERROR_CODES.UNPROCESSABLE}`),
     );

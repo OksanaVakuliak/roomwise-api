@@ -43,6 +43,11 @@ export class PriceStatusService {
     }
 
     const evaluation = await this.evaluate(version);
+
+    if (!evaluation.cacheable) {
+      return evaluation.status;
+    }
+
     const key =
       evaluation.pricingVersion === null
         ? lookupKey
@@ -66,9 +71,11 @@ export class PriceStatusService {
     };
   }
 
-  private async evaluate(
-    version: PriceStatusSource,
-  ): Promise<{ status: PriceStatus | null; pricingVersion: string | null }> {
+  private async evaluate(version: PriceStatusSource): Promise<{
+    status: PriceStatus | null;
+    pricingVersion: string | null;
+    cacheable: boolean;
+  }> {
     try {
       const { estimate, pricingData } = await this.pricingEstimate.estimate(
         version.snapshot.configuration,
@@ -105,18 +112,21 @@ export class PriceStatusService {
           currentPricingVersion: pricingData.version,
         },
         pricingVersion: pricingData.version,
+        cacheable: true,
       };
     } catch (error) {
       if (!(error instanceof AppError)) {
         throw error;
       }
-      if (error.code !== ERROR_CODES.UNKNOWN_REFERENCE) {
-        this.logger.warn(
-          `Price status unavailable for version ${version.id}: ${error.code}`,
-        );
+      if (error.code === ERROR_CODES.UNKNOWN_REFERENCE) {
+        return { status: null, pricingVersion: null, cacheable: true };
       }
 
-      return { status: null, pricingVersion: null };
+      this.logger.warn(
+        `Price status unavailable for version ${version.id}: ${error.code}`,
+      );
+
+      return { status: null, pricingVersion: null, cacheable: false };
     }
   }
 
