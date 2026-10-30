@@ -14,7 +14,6 @@ import { styleIds } from '../../src/modules/catalog/dataset/data/styles';
 import { pricingDataset } from '../../src/modules/pricing/dataset/data';
 import { PricingDatasetService } from '../../src/modules/pricing/dataset/pricing-dataset.service';
 import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
-import { PROJECTS_SETTINGS_ID } from '../../src/modules/projects/dataset/projects-settings';
 import type { TestApp } from './app-factory';
 
 const SEED_TIMEOUT_MS = 120_000;
@@ -45,17 +44,6 @@ export async function seedProjectsData(testApp: TestApp): Promise<void> {
       rate: EXCHANGE_RATE,
       effectiveDate: new Date('2026-09-14'),
       fetchedAt: new Date('2026-09-14T00:30:00Z'),
-    },
-  });
-  await testApp.prisma.projectsSettings.create({
-    data: {
-      id: PROJECTS_SETTINGS_ID,
-      calculationValidityDays: 14,
-      leadRetentionDays: 30,
-      leadFormNotice: {
-        en: 'We keep your request for {days} days, then delete it automatically.',
-        uk: 'Ми зберігаємо вашу заявку {days} днів, після чого вона автоматично видаляється.',
-      },
     },
   });
   testApp.app.get(PricingDataService).invalidate();

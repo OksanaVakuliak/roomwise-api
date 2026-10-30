@@ -103,6 +103,9 @@ async function main(): Promise<void> {
   const pricingService = new PricingDatasetService();
 
   try {
+    await seedProjectsSettings(prisma);
+    process.stdout.write('Projects settings found.\n');
+
     await prisma.$transaction((tx) => service.upsert(catalogDataset, tx), {
       timeout: TRANSACTION_TIMEOUT_MS,
       maxWait: TRANSACTION_MAX_WAIT_MS,
@@ -127,9 +130,6 @@ async function main(): Promise<void> {
     for (const [table, count] of Object.entries(pricingCounts)) {
       process.stdout.write(`  ${table}: ${count}\n`);
     }
-
-    await seedProjectsSettings(prisma);
-    process.stdout.write('Projects settings ensured.\n');
 
     await seedDemoAdmin(prisma, {
       login: demoAdminEnv.data.DEMO_ADMIN_LOGIN,
