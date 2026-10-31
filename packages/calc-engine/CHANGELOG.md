@@ -7,6 +7,12 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-31
+
+### Removed
+
+- The `kitchenType` object parameter: it is no longer part of `Configuration` or the preview input, is no longer a formula variable, and `KitchenTypeSchema` and the `KitchenType` type are no longer exported. Inputs that still send `kitchenType` are accepted and the field is ignored.
+
 ## [0.3.0] - 2026-10-30
 
 ### Removed

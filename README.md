@@ -62,8 +62,79 @@ directly, only through its exported service.
 - **`modules/sandbox`** — orchestrates the public demo account: computing
   the next reset time, the daily reset transaction across catalog (and
   later pricing) data, and catching up on a missed reset.
+- **`modules/projects`** — saved calculations and leads: immutable calculation
+  snapshots and their versions, the `Idempotency-Key` handling for public
+  writes, the lead inbox for the admin panel (with masking for the demo
+  account), the editable retention settings, and the lead retention task.
+  See [Saved calculations and leads](#saved-calculations-and-leads).
 - **`modules/health`** — `GET /api/v1/health`, always `200`, used as the
   Render health check and to detect whether the database has woken up.
+
+## Saved calculations and leads
+
+A visitor can save an estimate and get a link to it, recalculate it later, and
+leave a request that references it. All public routes live under
+`/api/v1/public`; texts follow `?lang=`.
+
+| Route | Description |
+| --- | --- |
+| `POST /calculations` | Save a configuration as version 1 of a new calculation; returns the version and its `publicId` |
+| `GET /calculations/{publicId}` | Latest version of a calculation |
+| `GET /calculations/{publicId}/versions/{number}` | A specific version (a stable link) |
+| `POST /calculations/{publicId}/versions` | Recalculate: body `{ basedOnVersion }` re-prices that version's configuration as a new version |
+| `GET /leads/form-settings` | Retention period and the localized notice shown on the lead form |
+| `POST /leads` | Submit a request for a saved version, or for an unsaved draft (saved together with the lead) |
+
+**Snapshots.** Saving stores the configuration together with everything that
+was shown: product names, prices, coefficients, the exchange rate, line items
+and totals. A version is never changed afterwards — a database trigger rejects
+updates — so an old link keeps showing the old numbers even if the catalog or
+prices change. A recalculation always creates a new version; the previous one
+is untouched, and every version lists its siblings.
+
+**Price status on read.** Each read re-prices the stored configuration against
+the current data and reports `priceStatus`: whether the total changed, the
+saved and current totals, the difference in cents, and any products that are no
+longer available. Nothing is written back. Saving with a stale
+`clientPricingVersion` also returns a `priceDifference` between the total the
+client displayed and the saved one.
+
+**Expiry.** Every version gets an `expiresAt` of `calculationValidityDays`
+(admin setting, default 14) after it was created. An expired version is still
+readable and is marked `expired`; the client offers a recalculation.
+
+**Idempotency.** `POST /calculations`, `POST /calculations/{publicId}/versions`
+and `POST /leads` require an `Idempotency-Key` header (a UUID per user
+action). A missing key is `428 IDEMPOTENCY_KEY_REQUIRED`; the same key with a
+different body is `422 IDEMPOTENCY_KEY_REUSED`; a repeat with the same key and
+body returns the original result instead of creating a second record. Keys are
+kept for 24 hours.
+
+**Leads.** A lead stores the contact details (a phone number is required and
+validated, email and comment are optional), the consent text with its
+timestamp, the locale, and whether the calculation had already expired when it
+was submitted. Public routes never return lead data back; the response only
+carries a `leadNumber`. A hidden `website` field works as a honeypot: when it
+is filled, the API responds with a normal-looking `201` and a number but stores
+nothing.
+
+**Rate limits.** Per client IP, per hour: 20 saves and recalculations
+together, 5 leads. Exceeding them returns `429 RATE_LIMITED`. See
+[Client IP behind proxies](#client-ip-behind-proxies).
+
+**Admin.** Leads are managed under `/api/v1/admin/leads`: a paginated list
+(newest first, optional `status` filter; spam is hidden unless filtered for),
+a detail view with the full calculation, status changes (`NEW`, `IN_PROGRESS`,
+`DONE`, `REJECTED`, `SPAM`) with a recorded history, internal notes, and
+deletion. Status changes use the shared `revision` check. The retention
+period, the calculation validity period, and the lead form notice are edited
+with `GET`/`PATCH /api/v1/admin/projects/settings`; the notice must contain
+the `{days}` placeholder in both languages.
+
+**Retention.** Leads are deleted automatically once they are older than
+`leadRetentionDays` (default 30), together with their status history and
+notes. The calculation a lead referenced is kept, so its link keeps working.
+See [Scheduled maintenance](#scheduled-maintenance).
 
 ## Scripts
 
@@ -273,12 +344,20 @@ Render's free plan sleeps the service after 15 minutes of inactivity, so an
 in-process scheduler wouldn't fire reliably. Instead,
 `.github/workflows/maintenance.yml` runs on a daily schedule (and can be
 triggered manually) and calls `POST /api/v1/internal/maintenance/run`,
-which wakes the service and runs any due maintenance task (currently, the
-sandbox reset). It needs:
+which wakes the service and runs any due maintenance task. It needs:
 
 - a repository secret `MAINTENANCE_TOKEN`, matching the value configured on
   the Render service;
 - a repository variable `API_URL`, the deployed API's base URL.
+
+Tasks:
+
+| Task | Runs when | What it does |
+| --- | --- | --- |
+| Sandbox reset | The daily reset time has passed | Resets the catalog to the seed dataset (see [Sandbox demo access](#sandbox-demo-access)) |
+| `exchange-rate-refresh` | The NBU rate has not been fetched successfully today (Kyiv date) and no attempt was made in the last hour | Fetches the USD/UAH rate from the NBU and stores it |
+| `lead-retention` | Never run, or last run more than 20 hours ago | Deletes leads older than `leadRetentionDays`, with their status history and notes |
+| `idempotency-keys-cleanup` | Every run | Deletes idempotency keys older than 24 hours |
 
 ## Sandbox demo access
 
@@ -291,10 +370,18 @@ The demo account has full write access to the catalog, but with limits:
 (in the `SANDBOX_TIMEZONE` timezone), the catalog is atomically reset back
 to the seed dataset — any changes made by demo visitors are discarded.
 Administrator accounts and sessions are never touched by a reset, and
-neither are saved calculations or leads (spec `003`).
+neither are saved calculations, leads, or the projects settings.
 
 The demo account cannot change its own password or manage other
-administrators — both are rejected with `403 DEMO_FORBIDDEN`.
+administrators, change the projects settings, or change the lead inbox (set
+a status, add a note, delete a lead) — all of these are rejected with
+`403 DEMO_FORBIDDEN`.
+
+The demo account can read leads, but personal data is masked: the name,
+phone, and email are shown only as a few leading or trailing characters
+(for example `O•••`, `+380•••67`), the comment, consent text, and notes are
+hidden, and the attached calculation hides its public id and custom room
+names. Such responses carry `masked: true`.
 
 Image credits for the seed dataset are listed in
 [`apps/api/prisma/seed/ASSETS.md`](apps/api/prisma/seed/ASSETS.md).

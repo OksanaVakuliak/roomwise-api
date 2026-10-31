@@ -4703,6 +4703,16 @@
               }
             }
           },
+          "403": {
+            "description": "DEMO_FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "STALE_REVISION",
             "content": {
@@ -10874,13 +10884,6 @@
               "balconyTiles": {
                 "type": "boolean"
               },
-              "kitchenType": {
-                "type": "string",
-                "enum": [
-                  "SEPARATE",
-                  "KITCHEN_LIVING"
-                ]
-              },
               "rooms": {
                 "type": "array",
                 "items": {
@@ -10990,7 +10993,6 @@
               "totalAreaSqm",
               "balconyAreaSqm",
               "balconyTiles",
-              "kitchenType",
               "rooms",
               "options",
               "currency"
@@ -11859,13 +11861,6 @@
                   "balconyTiles": {
                     "type": "boolean"
                   },
-                  "kitchenType": {
-                    "type": "string",
-                    "enum": [
-                      "SEPARATE",
-                      "KITCHEN_LIVING"
-                    ]
-                  },
                   "finishLevel": {
                     "type": "string",
                     "enum": [
@@ -11888,7 +11883,6 @@
                   "totalAreaSqm",
                   "balconyAreaSqm",
                   "balconyTiles",
-                  "kitchenType",
                   "finishLevel",
                   "roomsCount",
                   "bathroomsCount"
@@ -12984,13 +12978,6 @@
               "balconyTiles": {
                 "type": "boolean"
               },
-              "kitchenType": {
-                "type": "string",
-                "enum": [
-                  "SEPARATE",
-                  "KITCHEN_LIVING"
-                ]
-              },
               "rooms": {
                 "type": "array",
                 "items": {
@@ -13100,7 +13087,6 @@
               "totalAreaSqm",
               "balconyAreaSqm",
               "balconyTiles",
-              "kitchenType",
               "rooms",
               "options",
               "currency"
@@ -13204,13 +13190,6 @@
                   },
                   "balconyTiles": {
                     "type": "boolean"
-                  },
-                  "kitchenType": {
-                    "type": "string",
-                    "enum": [
-                      "SEPARATE",
-                      "KITCHEN_LIVING"
-                    ]
                   },
                   "rooms": {
                     "type": "array",
@@ -13324,7 +13303,6 @@
                   "totalAreaSqm",
                   "balconyAreaSqm",
                   "balconyTiles",
-                  "kitchenType",
                   "rooms",
                   "options",
                   "currency"
@@ -14051,13 +14029,6 @@
               "balconyTiles": {
                 "type": "boolean"
               },
-              "kitchenType": {
-                "type": "string",
-                "enum": [
-                  "SEPARATE",
-                  "KITCHEN_LIVING"
-                ]
-              },
               "rooms": {
                 "type": "array",
                 "items": {
@@ -14170,7 +14141,6 @@
               "totalAreaSqm",
               "balconyAreaSqm",
               "balconyTiles",
-              "kitchenType",
               "rooms",
               "options",
               "currency"
@@ -14816,13 +14786,6 @@
                   "balconyTiles": {
                     "type": "boolean"
                   },
-                  "kitchenType": {
-                    "type": "string",
-                    "enum": [
-                      "SEPARATE",
-                      "KITCHEN_LIVING"
-                    ]
-                  },
                   "rooms": {
                     "type": "array",
                     "items": {
@@ -14932,7 +14895,6 @@
                   "totalAreaSqm",
                   "balconyAreaSqm",
                   "balconyTiles",
-                  "kitchenType",
                   "rooms",
                   "options",
                   "currency"
@@ -15625,13 +15587,6 @@
                   "balconyTiles": {
                     "type": "boolean"
                   },
-                  "kitchenType": {
-                    "type": "string",
-                    "enum": [
-                      "SEPARATE",
-                      "KITCHEN_LIVING"
-                    ]
-                  },
                   "rooms": {
                     "type": "array",
                     "items": {
@@ -15744,7 +15699,6 @@
                   "totalAreaSqm",
                   "balconyAreaSqm",
                   "balconyTiles",
-                  "kitchenType",
                   "rooms",
                   "options",
                   "currency"

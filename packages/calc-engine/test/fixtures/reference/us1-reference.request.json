@@ -3,7 +3,6 @@
   "totalAreaSqm": 62,
   "balconyAreaSqm": 4,
   "balconyTiles": true,
-  "kitchenType": "SEPARATE",
   "rooms": [
     {
       "clientId": "living",

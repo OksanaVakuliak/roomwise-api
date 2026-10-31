@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   CentsSchema,
   FinishLevelSchema,
-  KitchenTypeSchema,
   ProductUnitSchema,
   RoomTypeCodeSchema,
 } from './common';
@@ -29,7 +28,6 @@ export const RuleSampleSchema = z.object({
     totalAreaSqm: z.number().positive(),
     balconyAreaSqm: z.number().min(0),
     balconyTiles: z.boolean(),
-    kitchenType: KitchenTypeSchema,
     finishLevel: FinishLevelSchema,
     roomsCount: z.int().min(0),
     bathroomsCount: z.int().min(0),

@@ -184,7 +184,6 @@ describe('admin base rates and coefficients e2e', () => {
           totalAreaSqm: ESTIMATE_AREA_SQM,
           balconyAreaSqm: 0,
           balconyTiles: false,
-          kitchenType: 'SEPARATE',
           currency: 'USD',
           options: [],
           rooms: [

@@ -25,7 +25,6 @@ const sample: RuleSample = RuleSampleSchema.parse({
     totalAreaSqm: 62,
     balconyAreaSqm: 4,
     balconyTiles: true,
-    kitchenType: 'SEPARATE',
     finishLevel: 'PRE_FINISH',
     roomsCount: 1,
     bathroomsCount: 1,

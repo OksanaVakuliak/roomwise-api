@@ -10,7 +10,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "living",
@@ -77,7 +76,6 @@
       "totalAreaSqm": 10,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "living",
@@ -141,7 +139,6 @@
       "totalAreaSqm": 55,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [],
       "options": [],
       "currency": "USD"
@@ -177,7 +174,6 @@
       "totalAreaSqm": 70,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [],
       "options": [],
       "currency": "USD"
@@ -213,7 +209,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [],
       "options": [],
       "currency": "USD"
@@ -302,7 +297,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "bath",
@@ -418,7 +412,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "living",
@@ -553,7 +546,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "living",
@@ -624,7 +616,6 @@
       "totalAreaSqm": 500,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "r1",
@@ -970,7 +961,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "living",
@@ -1050,7 +1040,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [],
       "options": [],
       "currency": "UAH"

@@ -26,7 +26,6 @@ const buildSnapshot = (): SnapshotV1 => ({
     totalAreaSqm: 50,
     balconyAreaSqm: 0,
     balconyTiles: false,
-    kitchenType: 'SEPARATE',
     rooms: [
       {
         clientId: 'r1',
