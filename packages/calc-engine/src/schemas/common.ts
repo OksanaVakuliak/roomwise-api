@@ -44,9 +44,6 @@ export const RoomTypeCodeSchema = z.enum([
 ]);
 export type RoomTypeCode = z.infer<typeof RoomTypeCodeSchema>;
 
-export const KitchenTypeSchema = z.enum(['SEPARATE', 'KITCHEN_LIVING']);
-export type KitchenType = z.infer<typeof KitchenTypeSchema>;
-
 export const CurrencySchema = z.enum(['USD', 'UAH']);
 export type Currency = z.infer<typeof CurrencySchema>;
 

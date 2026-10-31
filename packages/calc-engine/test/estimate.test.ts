@@ -371,3 +371,14 @@ describe('estimate with the removed gas field', () => {
     expect(estimate(withGas, data)).toEqual(estimate(request, data));
   });
 });
+
+describe('estimate with the removed kitchenType field', () => {
+  it('ignores kitchenType in the input and gives the same result', () => {
+    const withKitchenType = ConfigurationSchema.parse({
+      ...referenceRequest,
+      kitchenType: 'KITCHEN_LIVING',
+    });
+    expect(withKitchenType).not.toHaveProperty('kitchenType');
+    expect(estimate(withKitchenType, data)).toEqual(estimate(request, data));
+  });
+});

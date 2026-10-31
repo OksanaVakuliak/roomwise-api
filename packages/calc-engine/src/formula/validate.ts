@@ -1,6 +1,5 @@
 import {
   FinishLevelSchema,
-  KitchenTypeSchema,
   ProductUnitSchema,
   RoomTypeCodeSchema,
   type RuleLevel,
@@ -74,7 +73,6 @@ export const FORMULA_SCOPE_VARIABLES: Record<
     number('totalArea'),
     number('balconyArea'),
     boolean('balconyTiles'),
-    enumeration('kitchenType', KitchenTypeSchema.options),
     enumeration('finishLevel', FinishLevelSchema.options),
     number('roomsCount'),
     number('bathroomsCount'),

@@ -18,7 +18,6 @@ const buildSnapshot = (): SnapshotV1 => ({
     totalAreaSqm: 50,
     balconyAreaSqm: 0,
     balconyTiles: false,
-    kitchenType: 'SEPARATE',
     rooms: [
       {
         clientId: 'r1',
@@ -154,6 +153,17 @@ describe('SnapshotV1Schema', () => {
     const result = SnapshotV1Schema.safeParse({
       ...snapshot,
       configuration: { ...snapshot.configuration, gas: true },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a stored snapshot whose configuration still has kitchenType', () => {
+    const snapshot = buildSnapshot();
+
+    const result = SnapshotV1Schema.safeParse({
+      ...snapshot,
+      configuration: { ...snapshot.configuration, kitchenType: 'SEPARATE' },
     });
 
     expect(result.success).toBe(true);

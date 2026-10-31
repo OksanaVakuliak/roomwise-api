@@ -689,7 +689,6 @@ describe('RulesService.preview', () => {
           totalAreaSqm: 60,
           balconyAreaSqm: 0,
           balconyTiles: false,
-          kitchenType: 'SEPARATE',
           finishLevel: 'ROUGH',
           roomsCount: 2,
           bathroomsCount: 1,

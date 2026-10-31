@@ -10,7 +10,7 @@ const scope: EvaluationScope = {
     huge: 1e308,
     heatedFloor: true,
     roomType: 'BATHROOM',
-    kitchenType: 'ISLAND',
+    finishLevel: 'ROUGH',
   },
   coefficients: { markup: 1.2, zero: 0 },
 };
@@ -105,7 +105,7 @@ describe('evaluate logic', () => {
     expect(value('length == 5')).toBe(true);
     expect(value('length != 5')).toBe(false);
     expect(value('heatedFloor == true')).toBe(true);
-    expect(value('roomType != kitchenType')).toBe(true);
+    expect(value('roomType != finishLevel')).toBe(true);
     expect(value('roomType == roomType')).toBe(true);
   });
 
