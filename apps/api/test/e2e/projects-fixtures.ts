@@ -78,7 +78,6 @@ export function buildProjectsConfiguration(): Configuration {
     totalAreaSqm: 60,
     balconyAreaSqm: 0,
     balconyTiles: false,
-    kitchenType: 'SEPARATE',
     currency: 'USD',
     rooms: [
       {

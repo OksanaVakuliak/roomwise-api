@@ -139,6 +139,14 @@ describe('validateFormula errors', () => {
     ]);
   });
 
+  it('reports the removed kitchenType variable as unknown', () => {
+    const result = check("kitchenType == 'SEPARATE' ? 1 : 0");
+    expect(result.valid).toBe(false);
+    expect(result.errors).toMatchObject([
+      { code: 'UNKNOWN_VARIABLE', position: 0, length: 11 },
+    ]);
+  });
+
   it('gives no suggestion when nothing is near', () => {
     const [error] = check('banana').errors;
     expect(error).toEqual({
@@ -262,7 +270,6 @@ describe('formula constants stay in sync with variable derivation', () => {
     totalAreaSqm: 60,
     balconyAreaSqm: 4,
     balconyTiles: true,
-    kitchenType: 'SEPARATE',
     finishLevel: 'ROUGH',
     rooms: [
       {

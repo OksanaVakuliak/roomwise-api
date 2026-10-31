@@ -136,7 +136,6 @@ const preview = previewRule({
       totalAreaSqm: 62,
       balconyAreaSqm: 4,
       balconyTiles: true,
-      kitchenType: 'SEPARATE',
       finishLevel: 'PRE_FINISH',
       roomsCount: 1,
       bathroomsCount: 1,
@@ -175,7 +174,7 @@ Every schema is a zod schema with an inferred type of the same name without the 
 - Pricing data: `PricingDataSchema`, `PricingLimitsSchema`, `BaseRateSchema`, `PricingRuleSchema`, `PricingRoomTypeSchema`, `PricingCategorySchema`, `PricingMaterialTypeSchema`, `PricingProductSchema`, `PricingPackageItemSchema`, `PricingOptionSchema`, `ExchangeRateSchema`.
 - Result: `EstimateSchema`, `EstimateLineSchema`, `EstimateTotalsSchema`, `SectionTotalSchema`, `EstimateWarningSchema`, `EstimateMessageSchema`.
 - Preview: `RuleSampleSchema`, `RulePreviewSchema`.
-- Enums and primitives: `FinishLevelSchema`, `RuleLevelSchema`, `RateSourceSchema`, `SurfaceKindSchema`, `ProductUnitSchema`, `OptionUnitSchema`, `OptionKindSchema`, `RoomTypeCodeSchema`, `KitchenTypeSchema`, `CurrencySchema`, `SectionSchema`, `LineStatusSchema`, `LocalizedTextSchema`, `CentsSchema`, `RangeSchema`.
+- Enums and primitives: `FinishLevelSchema`, `RuleLevelSchema`, `RateSourceSchema`, `SurfaceKindSchema`, `ProductUnitSchema`, `OptionUnitSchema`, `OptionKindSchema`, `RoomTypeCodeSchema`, `CurrencySchema`, `SectionSchema`, `LineStatusSchema`, `LocalizedTextSchema`, `CentsSchema`, `RangeSchema`.
 
 ## Formula language
 
@@ -202,7 +201,6 @@ roomType == 'KITCHEN' ? ceil(floorArea / 2) : 0
 | product | `unit` | `SQM`, `LINEAR_M`, `PIECE` |
 | object | `totalArea`, `balconyArea` | number |
 | object | `balconyTiles` | boolean |
-| object | `kitchenType` | `SEPARATE`, `KITCHEN_LIVING` |
 | object | `finishLevel` | `ROUGH`, `PRE_FINISH` |
 | object | `roomsCount`, `bathroomsCount` | number (living rooms, bedrooms and kitchen-living rooms count as rooms) |
 | cost formulas only | `quantity` | the result of the quantity formula |

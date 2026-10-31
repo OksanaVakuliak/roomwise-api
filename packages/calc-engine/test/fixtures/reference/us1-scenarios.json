@@ -11,7 +11,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [],
       "options": [],
       "currency": "USD"
@@ -46,7 +45,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "living",
@@ -115,7 +113,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "living",
@@ -195,7 +192,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "living",
@@ -269,7 +265,6 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "kitchenType": "SEPARATE",
       "rooms": [
         {
           "clientId": "living",

@@ -1,15 +1,9 @@
-import type {
-  Configuration,
-  FinishLevel,
-  KitchenType,
-  RoomTypeCode,
-} from '../schemas';
+import type { Configuration, FinishLevel, RoomTypeCode } from '../schemas';
 
 export interface ObjectVariables {
   readonly totalArea: number;
   readonly balconyArea: number;
   readonly balconyTiles: boolean;
-  readonly kitchenType: KitchenType;
   readonly finishLevel: FinishLevel;
   readonly roomsCount: number;
   readonly bathroomsCount: number;
@@ -26,7 +20,6 @@ export function objectVariables(configuration: Configuration): ObjectVariables {
     totalArea: configuration.totalAreaSqm,
     balconyArea: configuration.balconyAreaSqm,
     balconyTiles: configuration.balconyTiles,
-    kitchenType: configuration.kitchenType,
     finishLevel: configuration.finishLevel,
     roomsCount: configuration.rooms.filter((room) =>
       COUNTED_AS_ROOMS.includes(room.roomTypeCode),

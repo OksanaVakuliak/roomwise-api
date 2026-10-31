@@ -69,7 +69,6 @@ const livingRoomSample = {
     totalAreaSqm: 60,
     balconyAreaSqm: 0,
     balconyTiles: false,
-    kitchenType: 'SEPARATE',
     finishLevel: 'ROUGH',
     roomsCount: 2,
     bathroomsCount: 1,
@@ -158,7 +157,6 @@ describe('admin pricing rules e2e', () => {
           totalAreaSqm: 60,
           balconyAreaSqm: 0,
           balconyTiles: false,
-          kitchenType: 'SEPARATE',
           currency: 'USD',
           options: [],
           rooms: [

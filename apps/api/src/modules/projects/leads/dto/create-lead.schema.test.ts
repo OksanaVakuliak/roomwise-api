@@ -15,7 +15,6 @@ const draft = {
     totalAreaSqm: 50,
     balconyAreaSqm: 0,
     balconyTiles: false,
-    kitchenType: 'SEPARATE',
     rooms: [
       {
         clientId: 'r1',
