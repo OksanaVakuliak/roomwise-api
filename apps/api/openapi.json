@@ -4703,6 +4703,16 @@
               }
             }
           },
+          "403": {
+            "description": "DEMO_FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "STALE_REVISION",
             "content": {

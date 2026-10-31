@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { envSchema, postgresUrlSchema } from '../../src/config/env';
+import { envObjectSchema, postgresUrlSchema } from '../../src/config/env';
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
@@ -13,7 +13,7 @@ const EXIT_FAILURE = 1;
 const TRANSACTION_TIMEOUT_MS = 120_000;
 const TRANSACTION_MAX_WAIT_MS = 30_000;
 
-const demoAdminEnvSchema = envSchema.pick({
+const demoAdminEnvSchema = envObjectSchema.pick({
   DEMO_ADMIN_LOGIN: true,
   DEMO_ADMIN_PASSWORD: true,
 });
