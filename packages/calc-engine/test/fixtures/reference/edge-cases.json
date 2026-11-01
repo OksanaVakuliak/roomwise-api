@@ -249,7 +249,10 @@
           },
           "quantityFormula": "floorArea * (1 + waste)",
           "costFormula": "quantity * (price + coef.laminate_underlay)",
-          "sortOrder": 0
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
         },
         {
           "id": "rule-floor-tile",
@@ -262,7 +265,10 @@
           },
           "quantityFormula": "floorArea * (1 + waste)",
           "costFormula": "quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))",
-          "sortOrder": 0
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
         },
         {
           "id": "rule-walls",
@@ -275,7 +281,10 @@
           },
           "quantityFormula": "wallArea * (1 + waste)",
           "costFormula": "quantity * price",
-          "sortOrder": 0
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
         },
         {
           "id": "rule-balcony-tile",
@@ -288,7 +297,10 @@
           },
           "quantityFormula": null,
           "costFormula": "balconyTiles ? balconyArea * coef.balcony_tile : 0",
-          "sortOrder": 0
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
         }
       ]
     },
@@ -485,7 +497,10 @@
           },
           "quantityFormula": "floorArea * (1 + waste)",
           "costFormula": "quantity / (length - 5)",
-          "sortOrder": 0
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
         },
         {
           "id": "rule-floor-tile",
@@ -498,7 +513,10 @@
           },
           "quantityFormula": "floorArea * (1 + waste)",
           "costFormula": "quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))",
-          "sortOrder": 0
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
         },
         {
           "id": "rule-walls",
@@ -511,7 +529,10 @@
           },
           "quantityFormula": "wallArea * (1 + waste)",
           "costFormula": "quantity * price",
-          "sortOrder": 0
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
         },
         {
           "id": "rule-ceiling",
@@ -524,7 +545,10 @@
           },
           "quantityFormula": "floorArea * (1 + waste)",
           "costFormula": "quantity * price",
-          "sortOrder": 0
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
         },
         {
           "id": "rule-balcony-tile",
@@ -537,7 +561,10 @@
           },
           "quantityFormula": null,
           "costFormula": "balconyTiles ? balconyArea * coef.balcony_tile : 0",
-          "sortOrder": 0
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
         }
       ]
     },

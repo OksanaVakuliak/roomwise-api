@@ -254,6 +254,8 @@ describe('estimate references and options', () => {
           priceCents: 1000,
           unit,
           roomTypeCodes,
+          priceCoefficientKeys: [],
+          scopes: ['FULL', 'PARTIAL'],
           minQuantity: null,
           maxQuantity: null,
           available: true,

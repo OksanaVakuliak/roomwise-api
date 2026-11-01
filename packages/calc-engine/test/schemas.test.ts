@@ -16,6 +16,7 @@ const pricingData = {
     rooms: { min: 1, max: 15 },
     roomSideM: { min: 1, max: 30 },
     roomHeightM: { min: 2.2, max: 5 },
+    missingAreaHintSqm: 5,
   },
   baseRates: [
     {
@@ -33,8 +34,11 @@ const pricingData = {
       categoryId: null,
       materialTypeId: null,
       name,
+      surface: null,
+      baseComponent: false,
       quantityFormula: null,
       costFormula: 'totalArea * 2',
+      laborFormula: null,
       sortOrder: 0,
     },
   ],
@@ -64,6 +68,8 @@ const pricingData = {
       priceCents: 5000,
       unit: 'PIECE',
       roomTypeCodes: ['BEDROOM'],
+      priceCoefficientKeys: [],
+      scopes: ['FULL', 'PARTIAL'],
       minQuantity: 1,
       maxQuantity: 10,
       available: true,
@@ -335,6 +341,46 @@ describe('schemas', () => {
     );
     expect(parse({ ...option, scopes: [] }).success).toBe(false);
     expect(parse({ ...option, scopes: ['HALF'] }).success).toBe(false);
+  });
+
+  it('parses line components and rejects malformed ones', () => {
+    const ruleId = '3f1c2b4e-5a6d-4e7f-8a9b-0c1d2e3f4a5b';
+    const categoryId = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
+    const parse = (components: unknown) =>
+      EstimateSchema.safeParse({
+        ...estimate,
+        lines: [{ ...estimate.lines[0], components }],
+      });
+    const component = { kind: 'MATERIAL', ruleId, amountCents: 100 };
+    expect(parse(undefined).success).toBe(true);
+    expect(parse([]).success).toBe(true);
+    expect(
+      parse([
+        component,
+        { kind: 'LABOR', ruleId, amountCents: 0 },
+        { ...component, kind: 'PREP', sharedWithCategoryId: categoryId },
+      ]).success,
+    ).toBe(true);
+    expect(parse([{ ...component, kind: 'OTHER' }]).success).toBe(false);
+    expect(parse([{ ...component, ruleId: 'r1' }]).success).toBe(false);
+    expect(parse([{ ...component, amountCents: -1 }]).success).toBe(false);
+    expect(parse([{ ...component, amountCents: 1.5 }]).success).toBe(false);
+    expect(parse([{ ...component, sharedWithCategoryId: 'c1' }]).success).toBe(
+      false,
+    );
+  });
+
+  it('accepts the renovation scope message codes with params', () => {
+    const messages = [
+      { code: 'LABOR_RATE_MISSING' },
+      { code: 'OPTION_SCOPE_NOT_ALLOWED' },
+      { code: 'ROOMS_AREA_BELOW_TOTAL', params: { missingSqm: 12.5 } },
+    ];
+    const lines = [{ ...estimate.lines[0], warnings: [messages[0]] }];
+    expect(
+      EstimateSchema.safeParse({ ...estimate, lines, warnings: messages })
+        .success,
+    ).toBe(true);
   });
 
   it('parses a valid Estimate and rejects non-integer cents or a missing section', () => {

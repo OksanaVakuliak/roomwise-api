@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   CentsSchema,
   CurrencySchema,
+  LineComponentKindSchema,
   LineStatusSchema,
   SectionSchema,
 } from './common';
@@ -12,6 +13,14 @@ export const EstimateMessageSchema = z.object({
   params: z.record(z.string(), z.unknown()).optional(),
 });
 export type EstimateMessage = z.infer<typeof EstimateMessageSchema>;
+
+export const LineComponentSchema = z.object({
+  kind: LineComponentKindSchema,
+  ruleId: z.uuid(),
+  amountCents: z.number().int().min(0),
+  sharedWithCategoryId: z.uuid().optional(),
+});
+export type LineComponent = z.infer<typeof LineComponentSchema>;
 
 export const EstimateLineSchema = z.object({
   id: z.string(),
@@ -28,6 +37,7 @@ export const EstimateLineSchema = z.object({
   unitPriceCents: CentsSchema.nullable(),
   amountCents: CentsSchema,
   amountUahKopecks: CentsSchema.nullable(),
+  components: z.array(LineComponentSchema).optional(),
   warnings: z.array(EstimateMessageSchema),
   error: EstimateMessageSchema.nullable(),
 });

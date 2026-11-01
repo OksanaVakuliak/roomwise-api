@@ -43,7 +43,8 @@
       "roomHeightM": {
         "min": 2.2,
         "max": 5
-      }
+      },
+      "missingAreaHintSqm": 5
     },
     "baseRates": [
       {
@@ -101,7 +102,10 @@
         },
         "quantityFormula": "floorArea * (1 + waste)",
         "costFormula": "quantity * (price + coef.laminate_underlay)",
-        "sortOrder": 0
+        "sortOrder": 0,
+        "surface": null,
+        "baseComponent": false,
+        "laborFormula": null
       },
       {
         "id": "rule-floor-tile",
@@ -114,7 +118,10 @@
         },
         "quantityFormula": "floorArea * (1 + waste)",
         "costFormula": "quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))",
-        "sortOrder": 0
+        "sortOrder": 0,
+        "surface": null,
+        "baseComponent": false,
+        "laborFormula": null
       },
       {
         "id": "rule-walls",
@@ -127,7 +134,10 @@
         },
         "quantityFormula": "wallArea * (1 + waste)",
         "costFormula": "quantity * price",
-        "sortOrder": 0
+        "sortOrder": 0,
+        "surface": null,
+        "baseComponent": false,
+        "laborFormula": null
       },
       {
         "id": "rule-ceiling",
@@ -140,7 +150,10 @@
         },
         "quantityFormula": "floorArea * (1 + waste)",
         "costFormula": "quantity * price",
-        "sortOrder": 0
+        "sortOrder": 0,
+        "surface": null,
+        "baseComponent": false,
+        "laborFormula": null
       },
       {
         "id": "rule-balcony-tile",
@@ -153,7 +166,10 @@
         },
         "quantityFormula": null,
         "costFormula": "balconyTiles ? balconyArea * coef.balcony_tile : 0",
-        "sortOrder": 0
+        "sortOrder": 0,
+        "surface": null,
+        "baseComponent": false,
+        "laborFormula": null
       }
     ],
     "roomTypes": [
@@ -301,7 +317,9 @@
         "roomTypeCodes": ["LIVING_ROOM", "BEDROOM", "KITCHEN"],
         "minQuantity": 1,
         "maxQuantity": 10,
-        "available": true
+        "available": true,
+        "priceCoefficientKeys": [],
+        "scopes": ["FULL", "PARTIAL"]
       },
       {
         "id": "opt-heated-floor",
@@ -312,7 +330,9 @@
         "roomTypeCodes": ["BATHROOM", "KITCHEN"],
         "minQuantity": null,
         "maxQuantity": null,
-        "available": true
+        "available": true,
+        "priceCoefficientKeys": [],
+        "scopes": ["FULL", "PARTIAL"]
       },
       {
         "id": "opt-design",
@@ -323,7 +343,9 @@
         "roomTypeCodes": [],
         "minQuantity": null,
         "maxQuantity": null,
-        "available": true
+        "available": true,
+        "priceCoefficientKeys": [],
+        "scopes": ["FULL", "PARTIAL"]
       },
       {
         "id": "opt-smart-switches",
@@ -340,7 +362,9 @@
         ],
         "minQuantity": null,
         "maxQuantity": null,
-        "available": true
+        "available": true,
+        "priceCoefficientKeys": [],
+        "scopes": ["FULL", "PARTIAL"]
       }
     ]
   },

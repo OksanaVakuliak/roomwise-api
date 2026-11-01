@@ -12,6 +12,7 @@ const limits: PricingData['limits'] = {
   rooms: { min: 1, max: 15 },
   roomSideM: { min: 1, max: 30 },
   roomHeightM: { min: 2.2, max: 5 },
+  missingAreaHintSqm: 5,
 };
 
 const room = (
@@ -50,6 +51,8 @@ const pieceOption = (
   priceCents: 1000,
   unit: 'PIECE',
   roomTypeCodes: [],
+  priceCoefficientKeys: [],
+  scopes: ['FULL', 'PARTIAL'],
   minQuantity: 1,
   maxQuantity: 10,
   available: true,
