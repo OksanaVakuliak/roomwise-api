@@ -42,12 +42,12 @@ result.incomplete; // true if any line failed or could not be calculated
 
 Computes the estimate. It does not validate its input; parse with the schemas and call `checkLimits` first.
 
-Lines are produced in this order: base cost, object rules (by `sortOrder`), materials (per room, per selected product), engineering (package items, then selected options), additional options.
+Lines are produced in this order: base cost, object rules (by `sortOrder`), materials (per room, per selected product), engineering (package items, then selected options), additional options. What each part produces depends on the renovation [scope](#renovation-scope).
 
-- Base cost: the base rate matching the finish level with `areaFromSqm <= totalAreaSqm < areaToSqm`, times the total area. No matching rate gives a `NOT_CALCULATED` line with code `BASE_RATE_NOT_FOUND`.
-- Object rules: `OBJECT` level rules, one line each.
-- Materials: for every room selection with a product, the `MATERIAL_TYPE` rule for the category and the product's material type is used if one exists, otherwise the `CATEGORY` rule. Without either, the line is `NOT_CALCULATED` (`RULE_NOT_FOUND`). Unknown or unavailable products give `UNAVAILABLE`.
-- Engineering and additional: package items marked `includedInBase` become `INCLUDED` lines with a zero amount. Options are priced by unit (`PIECE`, `ROOM_SQM`, `ROOM`, `PROJECT`).
+- Base cost: `OBJECT` rules with `baseComponent: true`, one `BASE` line each. Only in `FULL`; a line that is `OK` with a zero amount is left out.
+- Object rules: the other `OBJECT` level rules, one line each.
+- Materials: for every room selection with a product, the `MATERIAL_TYPE` rule for the category and the product's material type is used if one exists, otherwise the `CATEGORY` rule. Without either, the line is `NOT_CALCULATED` (`RULE_NOT_FOUND`). Unknown or unavailable products give `UNAVAILABLE`. Each line carries [components](#line-components).
+- Engineering and additional: package items marked `includedInBase` become `INCLUDED` lines with a zero amount, and are skipped in `PARTIAL`. Options are priced by unit (`PIECE`, `ROOM_SQM`, `ROOM`, `PROJECT`). An option with `priceCoefficientKeys` is priced by the sum of those coefficients in dollars instead of `priceCents`; a missing coefficient gives an `ERROR` line (`UNKNOWN_COEFFICIENT`). An option whose `scopes` do not include the configuration scope is `UNAVAILABLE` with `OPTION_SCOPE_NOT_ALLOWED`.
 
 Result fields:
 
@@ -56,7 +56,7 @@ Result fields:
 | `pricingVersion` | `data.version` |
 | `currency` | the currency requested in the configuration |
 | `exchangeRate` | `data.exchangeRate` as given |
-| `lines` | `EstimateLine[]` with `id`, `section`, `status`, quantity, unit price, `amountCents`, `amountUahKopecks`, `warnings`, `error` |
+| `lines` | `EstimateLine[]` with `id`, `section`, `status`, quantity, unit price, `amountCents`, `amountUahKopecks`, `components`, `warnings`, `error` |
 | `totals` | `{ usdCents, uahKopecks, sections }`, sums of the line amounts |
 | `warnings` | all line warnings (with `lineId`) plus estimate-level ones |
 | `incomplete` | `true` if any line has status `ERROR` or `NOT_CALCULATED` |
@@ -67,12 +67,14 @@ Warning codes:
 
 - `HEATED_FLOOR_INCOMPATIBLE`: a floor product that does not suit a heated floor.
 - `OPTION_ROOM_TYPE_NOT_ALLOWED`: an option applied to a room type it does not support; that room is left out of the quantity.
-- `ROOMS_AREA_EXCEEDS_TOTAL`: the rooms add up to more than the total area.
+- `ROOMS_AREA_EXCEEDS_TOTAL`: the rooms add up to more than the total area. `FULL` only.
+- `ROOMS_AREA_BELOW_TOTAL`: the rooms add up to less than the total area by more than `limits.missingAreaHintSqm`; `params: { missingSqm }`. `FULL` only.
+- `LABOR_RATE_MISSING`: a `PARTIAL` material line whose rule has no `laborFormula`; the labor component is 0.
 - `EXCHANGE_RATE_UNAVAILABLE`: UAH requested but the pricing data has no rate.
 
 ### `checkLimits(configuration, limits, options?): LimitViolation[]`
 
-Returns `{ field, min, max }` for every value outside its range. Checked fields: `totalAreaSqm`, `balconyAreaSqm` (0 to the total area), `rooms` (count), `rooms[i].lengthM`, `rooms[i].widthM`, `rooms[i].heightM`, and `options[i].quantity` for `PIECE` options (`minQuantity` defaults to 1, `maxQuantity` to unbounded). Pass `data.options` to enable the last check.
+Returns `{ field, min, max }` for every value outside its range. Checked fields: `totalAreaSqm` (`FULL` only), `balconyAreaSqm` (0 to the total area, or to `limits.totalAreaSqm.max` in `PARTIAL`), `rooms` (count), `rooms[i].lengthM`, `rooms[i].widthM`, `rooms[i].heightM`, and `options[i].quantity` for `PIECE` options (`minQuantity` defaults to 1, `maxQuantity` to unbounded). Pass `data.options` to enable the last check.
 
 ```ts
 const violations = checkLimits(configuration, data.limits, data.options);
@@ -104,8 +106,8 @@ validateFormula({
 //            params: { name: 'totlArea', suggestion: 'totalArea' } }]
 ```
 
-- `level`: `'OBJECT' | 'CATEGORY' | 'MATERIAL_TYPE'`.
-- `kind`: `'quantity'` or `'cost'`. Only cost formulas of non-object rules may use `quantity`.
+- `level`: `'OBJECT' | 'CATEGORY' | 'MATERIAL_TYPE' | 'SURFACE'`.
+- `kind`: `'quantity'`, `'cost'` or `'labor'`. Only cost and labor formulas of `CATEGORY` and `MATERIAL_TYPE` rules may use `quantity`.
 - `coefficientKeys`: the coefficient keys that exist; `coef.x` with another key is an error.
 - The result's `coefficientKeys` lists the coefficients the formula references.
 - Errors carry `code`, `position`, `length` (a span in the source) and optional `params`.
@@ -133,12 +135,17 @@ const preview = previewRule({
     },
     product: { priceCents: 1800, unit: 'SQM', wastePercent: 5 },
     object: {
+      scope: 'FULL',
       totalAreaSqm: 62,
       balconyAreaSqm: 4,
       balconyTiles: true,
       finishLevel: 'PRE_FINISH',
       roomsCount: 1,
       bathroomsCount: 1,
+      roomsFloorArea: 20,
+      roomsWallArea: 48.6,
+      roomsPerimeter: 18,
+      wetRoomsCount: 0,
     },
   },
 });
@@ -151,7 +158,7 @@ const preview = previewRule({
 // }
 ```
 
-`variables` and `coefficients` in the result contain only what the formulas reference. For `OBJECT` rules `quantityFormula` must be `null` and `room`/`product` may be omitted. For the other levels `quantityFormula`, `room` and `product` are required; otherwise `error.code` is `QUANTITY_FORMULA_MISMATCH` or `SAMPLE_INCOMPLETE`.
+`variables` and `coefficients` in the result contain only what the formulas reference. For `OBJECT` rules `quantityFormula` must be `null` and `room`/`product` may be omitted. For `SURFACE` rules `quantityFormula` must be `null`, and `sample.room` and `sample.surfaceArea` are required. For `CATEGORY` and `MATERIAL_TYPE` rules `quantityFormula`, `room` and `product` are required. Otherwise `error.code` is `QUANTITY_FORMULA_MISMATCH` or `SAMPLE_INCOMPLETE` (`params.missing` names the absent part, for example `surfaceArea`). `previewRule` evaluates the cost formula only, not `laborFormula`.
 
 ### Lower-level formula API
 
@@ -170,15 +177,46 @@ const preview = previewRule({
 
 Every schema is a zod schema with an inferred type of the same name without the `Schema` suffix.
 
-- Configuration: `ConfigurationSchema`, `RoomConfigurationSchema`, `RoomSelectionSchema`, `OptionSelectionSchema`. Duplicate room `clientId`s, category ids within a room and option ids are rejected.
-- Pricing data: `PricingDataSchema`, `PricingLimitsSchema`, `BaseRateSchema`, `PricingRuleSchema`, `PricingRoomTypeSchema`, `PricingCategorySchema`, `PricingMaterialTypeSchema`, `PricingProductSchema`, `PricingPackageItemSchema`, `PricingOptionSchema`, `ExchangeRateSchema`.
-- Result: `EstimateSchema`, `EstimateLineSchema`, `EstimateTotalsSchema`, `SectionTotalSchema`, `EstimateWarningSchema`, `EstimateMessageSchema`.
+- Configuration: `ConfigurationSchema`, `RoomConfigurationSchema`, `RoomSelectionSchema`, `OptionSelectionSchema`. `totalAreaSqm` is required in `FULL` and must be `null` in `PARTIAL`. Duplicate room `clientId`s, category ids within a room and option ids are rejected.
+- Pricing data: `PricingDataSchema`, `PricingLimitsSchema`, `PricingRuleSchema`, `PricingRoomTypeSchema`, `PricingCategorySchema`, `PricingMaterialTypeSchema`, `PricingProductSchema`, `PricingPackageItemSchema`, `PricingOptionSchema`, `ExchangeRateSchema`.
+- Result: `EstimateSchema`, `EstimateLineSchema`, `LineComponentSchema`, `EstimateTotalsSchema`, `SectionTotalSchema`, `EstimateWarningSchema`, `EstimateMessageSchema`.
 - Preview: `RuleSampleSchema`, `RulePreviewSchema`.
-- Enums and primitives: `FinishLevelSchema`, `RuleLevelSchema`, `RateSourceSchema`, `SurfaceKindSchema`, `ProductUnitSchema`, `OptionUnitSchema`, `OptionKindSchema`, `RoomTypeCodeSchema`, `CurrencySchema`, `SectionSchema`, `LineStatusSchema`, `LocalizedTextSchema`, `CentsSchema`, `RangeSchema`.
+- Enums and primitives: `ScopeSchema`, `LineComponentKindSchema`, `FinishLevelSchema`, `RuleLevelSchema`, `RateSourceSchema`, `SurfaceKindSchema`, `ProductUnitSchema`, `OptionUnitSchema`, `OptionKindSchema`, `RoomTypeCodeSchema`, `CurrencySchema`, `SectionSchema`, `LineStatusSchema`, `LocalizedTextSchema`, `CentsSchema`, `RangeSchema`.
+
+## Renovation scope
+
+`Configuration.scope` selects what is estimated. It defaults to `FULL`, so configurations saved before the field existed still parse.
+
+| | `FULL` | `PARTIAL` |
+| --- | --- | --- |
+| `totalAreaSqm` | required | `null` |
+| `BASE` section | `OBJECT` rules with `baseComponent: true`, one line each | none |
+| Material lines | `MATERIAL` component only | `MATERIAL`, `LABOR` and `PREP` components |
+| Package items with `includedInBase` | `INCLUDED` lines | skipped |
+| `totalArea` variable | `totalAreaSqm` | `roomsFloorArea` |
+| Area warnings | `ROOMS_AREA_EXCEEDS_TOTAL`, `ROOMS_AREA_BELOW_TOTAL` | none |
+
+The base cost has no per-area rate table. It is built from rules whose formulas use the volumes of the rooms (`roomsFloorArea`, `roomsWallArea`, `roomsPerimeter`, `wetRoomsCount`) together with `finishLevel`, `scope` and coefficients.
+
+### Line components
+
+A material line is the sum of its components:
+
+- `MATERIAL`: the rule's `costFormula`.
+- `LABOR`: the rule's `laborFormula`, which only `CATEGORY` and `MATERIAL_TYPE` rules can have. It is evaluated in `PARTIAL` only. Without a formula the component is 0 and the line gets `LABOR_RATE_MISSING`.
+- `PREP`: surface preparation, from a `SURFACE` rule.
+
+Every component is rounded to whole cents on its own and `amountCents` is the sum of the rounded components. A `FULL` line has a single `MATERIAL` component. Each component carries the `ruleId` of the rule that produced it; ids are plain strings.
+
+### Surface preparation
+
+A `SURFACE` rule prices the preparation of one surface: `FLOOR`, `WALLS` or `CEILING`. It has a `surface` and no `categoryId` or quantity formula. A category belongs to a surface through `PricingCategory.surface`.
+
+In `PARTIAL`, for every room the engine collects the surfaces of the categories with a selected product and evaluates the surface rule once per room and surface, with `surfaceArea` equal to `floorArea` for floor and ceiling and `wallArea` for walls. The result becomes the `PREP` component of the first category on that surface, in the order of the room's `selections`. The other categories on the same surface get a `PREP` component of 0 with `sharedWithCategoryId` pointing at that first category, so the preparation is never counted twice. A surface without a rule gets no `PREP`. If the surface formula fails, every line on that surface fails with that error.
 
 ## Formula language
 
-A formula is a single expression that produces a non-negative number. Each rule has a cost formula; material rules (`CATEGORY`, `MATERIAL_TYPE`) also have a quantity formula, evaluated first. Formulas are written in dollars; the engine converts the result to cents.
+A formula is a single expression that produces a non-negative number. Each rule has a cost formula; material rules (`CATEGORY`, `MATERIAL_TYPE`) also have a quantity formula, evaluated first, and an optional labor formula. Formulas are written in dollars; the engine converts the result to cents.
 
 ```
 floorArea * (1 + waste)
@@ -195,22 +233,27 @@ roomType == 'KITCHEN' ? ceil(floorArea / 2) : 0
 | room | `length`, `width`, `height` | number, meters |
 | room | `floorArea`, `perimeter`, `wallArea` | number: `length * width`, `2 * (length + width)`, `perimeter * height` |
 | room | `heatedFloor` | boolean |
-| room | `roomType` | `LIVING_ROOM`, `BEDROOM`, `KITCHEN`, `KITCHEN_LIVING`, `BATHROOM` |
+| room | `roomType` | `LIVING_ROOM`, `BEDROOM`, `KITCHEN`, `KITCHEN_LIVING`, `BATHROOM`, `HALLWAY`, `STORAGE` |
 | product | `price` | number, dollars per unit |
 | product | `waste` | number, a fraction (5% is `0.05`): the product override, else the category value |
 | product | `unit` | `SQM`, `LINEAR_M`, `PIECE` |
-| object | `totalArea`, `balconyArea` | number |
+| object | `totalArea`, `balconyArea` | number; `totalArea` is `roomsFloorArea` in `PARTIAL` |
+| object | `scope` | `FULL`, `PARTIAL` |
+| object | `roomsFloorArea`, `roomsWallArea`, `roomsPerimeter` | number: sums over all rooms of `floorArea`, `wallArea` and `perimeter` |
+| object | `wetRoomsCount` | number (bathrooms, kitchens and kitchen-living rooms) |
 | object | `balconyTiles` | boolean |
-| object | `finishLevel` | `ROUGH`, `PRE_FINISH` |
+| object | `finishLevel` | `ROUGH`, `PRE_FINISH`, `LIVED_IN` |
 | object | `roomsCount`, `bathroomsCount` | number (living rooms, bedrooms and kitchen-living rooms count as rooms) |
-| cost formulas only | `quantity` | the result of the quantity formula |
+| `SURFACE` rules only | `surfaceArea` | number: the area of the surface being prepared |
+| cost and labor formulas of `CATEGORY` and `MATERIAL_TYPE` rules | `quantity` | the result of the quantity formula |
 
 Availability by rule level:
 
 - `OBJECT`: object variables only. `quantity` is not available.
-- `CATEGORY` and `MATERIAL_TYPE`: room, product and object variables. `quantity` is available in cost formulas only.
+- `CATEGORY` and `MATERIAL_TYPE`: room, product and object variables. `quantity` is available in cost and labor formulas, not in the quantity formula. `laborFormula` sees the same variables as `costFormula`.
+- `SURFACE`: room and object variables plus `surfaceArea`. `quantity` and the product variables are not available.
 
-Coefficients are read as `coef.<key>`; keys come from the pricing data. The cost formula receives `quantity` unrounded, while the line shows it rounded to 3 decimals.
+Coefficients are read as `coef.<key>`; keys come from the pricing data. The cost and labor formulas receive `quantity` unrounded, while the line shows it rounded to 3 decimals.
 
 ### Syntax
 
@@ -238,7 +281,7 @@ Coefficients are read as `coef.<key>`; keys come from the pricing data. The cost
 | `VARIABLE_NOT_ALLOWED_AT_LEVEL` | A real variable used on a level that does not provide it, such as `price` in an `OBJECT` rule; `params: { variable, level }` |
 | `UNKNOWN_COEFFICIENT` | `coef.x` with `x` not in `coefficientKeys`; `params: { key }` |
 | `UNKNOWN_FUNCTION` | Unknown function name; `params: { name }` |
-| `QUANTITY_NOT_ALLOWED` | `quantity` in a quantity formula or in an `OBJECT` rule |
+| `QUANTITY_NOT_ALLOWED` | `quantity` in a quantity formula or in an `OBJECT` or `SURFACE` rule |
 
 Rejected examples:
 

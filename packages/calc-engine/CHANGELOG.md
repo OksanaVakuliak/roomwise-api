@@ -7,6 +7,39 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-02
+
+### Added
+
+- `Configuration.scope`: `FULL` or `PARTIAL` (`ScopeSchema`, `Scope`), default `FULL`, so configurations and snapshots without it still parse as a full renovation. The `scope` object variable is available to rules of every level.
+- `LIVED_IN` finish level and `HALLWAY`, `STORAGE` room types. `roomsCount` is unchanged by the new room types.
+- `SURFACE` rule level with a `surface` field (`FLOOR`, `WALLS`, `CEILING`). A surface rule is evaluated once per room and surface in `PARTIAL` estimates. It has no `categoryId` and no quantity formula, and sees the room and object variables plus `surfaceArea`.
+- `PricingRule.laborFormula`: an optional labor cost formula on `CATEGORY` and `MATERIAL_TYPE` rules, evaluated in `PARTIAL` estimates only. A missing formula gives a zero labor component and the `LABOR_RATE_MISSING` warning.
+- `PricingRule.baseComponent`: marks an `OBJECT` rule as part of the base cost.
+- `EstimateLine.components` (`LineComponentSchema`, `LineComponentKindSchema`): `MATERIAL`, `LABOR` and `PREP` components with `ruleId`, `amountCents` and an optional `sharedWithCategoryId`. Both ids are plain strings like other ids, not uuids.
+- Object variables `scope`, `roomsFloorArea`, `roomsWallArea`, `roomsPerimeter` and `wetRoomsCount` (bathrooms, kitchens and kitchen-living rooms), and the `surfaceArea` variable for `SURFACE` rules (`FORMULA_SURFACE_AREA_VARIABLE`).
+- `FormulaKind` value `labor` for `validateFormula`, and `SURFACE` as a rule level there and in `previewRule`. `RuleSample.surfaceArea` is required for `SURFACE` previews.
+- `PricingLimits.missingAreaHintSqm`: the threshold for the new `ROOMS_AREA_BELOW_TOTAL` warning.
+- `PricingOption.priceCoefficientKeys`: when not empty, the unit price is the sum of those coefficients in dollars instead of `priceCents`. A missing coefficient gives an `ERROR` line with `UNKNOWN_COEFFICIENT`.
+- `PricingOption.scopes`: the renovation scopes an option is available in. An option outside the configuration scope is `UNAVAILABLE` with `OPTION_SCOPE_NOT_ALLOWED`.
+- Codes `LABOR_RATE_MISSING`, `OPTION_SCOPE_NOT_ALLOWED` and `ROOMS_AREA_BELOW_TOTAL` (`{ missingSqm }`).
+
+### Removed
+
+- `PricingData.baseRates`, `BaseRateSchema` and the `BaseRate` type. The base cost now comes from rules.
+- The `BASE_RATE_NOT_FOUND` code.
+
+### Changed
+
+- **Breaking:** `Configuration.totalAreaSqm` is nullable. It is required in `FULL` and must be `null` in `PARTIAL`.
+- The `BASE` section is built from `OBJECT` rules with `baseComponent: true`, one line per rule. It is omitted in `PARTIAL`, and `OK` lines with a zero amount are left out. Other `OBJECT` rules stay in the `OBJECT` section.
+- A material line amount is the sum of its components, each rounded to whole cents. `FULL` lines have a single `MATERIAL` component.
+- In `PARTIAL`, package items with `includedInBase` are skipped, and `totalArea` equals `roomsFloorArea`.
+- `checkLimits` checks `totalAreaSqm` in `FULL` only. In `PARTIAL` the balcony area is limited by `limits.totalAreaSqm.max`.
+- `ROOMS_AREA_EXCEEDS_TOTAL` and `ROOMS_AREA_BELOW_TOTAL` are produced in `FULL` only.
+- `RuleSampleSchema` requires the new object variables in `object`.
+- `quantity` is available in `labor` formulas of `CATEGORY` and `MATERIAL_TYPE` rules, and is not allowed in `SURFACE` formulas.
+
 ## [0.4.0] - 2026-10-31
 
 ### Removed
