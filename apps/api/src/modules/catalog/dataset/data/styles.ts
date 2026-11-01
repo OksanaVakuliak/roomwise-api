@@ -31,6 +31,12 @@ const scandinavianRoomTypeOverrides: Record<string, Record<string, string>> = {
   [roomTypeIds.kitchen]: {
     [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
   },
+  [roomTypeIds.kitchenLiving]: {
+    [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
+  },
+  [roomTypeIds.bathroom]: {
+    [categoryIds.lighting]: productIds.minimalistLedCeilingLamp,
+  },
 };
 
 function buildScandinavianDefaultMaterials(): SeedStyleDefaultMaterial[] {
@@ -72,6 +78,11 @@ const loftDefaultMaterials: SeedStyleDefaultMaterial[] = [
     productId: productIds.industrialBlackWallSconce,
   },
   {
+    roomTypeId: roomTypeIds.livingRoom,
+    categoryId: categoryIds.skirtingBoards,
+    productId: productIds.graphiteSkirting,
+  },
+  {
     roomTypeId: roomTypeIds.bedroom,
     categoryId: categoryIds.floorCovering,
     productId: productIds.greySpcVinylPlank,
@@ -80,6 +91,26 @@ const loftDefaultMaterials: SeedStyleDefaultMaterial[] = [
     roomTypeId: roomTypeIds.bedroom,
     categoryId: categoryIds.wallPaint,
     productId: productIds.deepGraphiteWallPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.bedroom,
+    categoryId: categoryIds.ceilingFinish,
+    productId: productIds.greySuspendedCeilingPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.bedroom,
+    categoryId: categoryIds.skirtingBoards,
+    productId: productIds.graphiteSkirting,
+  },
+  {
+    roomTypeId: roomTypeIds.bedroom,
+    categoryId: categoryIds.doors,
+    productId: productIds.greyMatteInteriorDoor,
+  },
+  {
+    roomTypeId: roomTypeIds.bedroom,
+    categoryId: categoryIds.lighting,
+    productId: productIds.matteBlackPendantLamp,
   },
   {
     roomTypeId: roomTypeIds.kitchen,
@@ -95,6 +126,26 @@ const loftDefaultMaterials: SeedStyleDefaultMaterial[] = [
     roomTypeId: roomTypeIds.kitchen,
     categoryId: categoryIds.wallPaint,
     productId: productIds.deepGraphiteWallPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchen,
+    categoryId: categoryIds.ceilingFinish,
+    productId: productIds.greySuspendedCeilingPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchen,
+    categoryId: categoryIds.doors,
+    productId: productIds.greyMatteInteriorDoor,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchen,
+    categoryId: categoryIds.lighting,
+    productId: productIds.hangingIndustrialPendant,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchen,
+    categoryId: categoryIds.plumbingFixtures,
+    productId: productIds.stainlessKitchenSink,
   },
   {
     roomTypeId: roomTypeIds.kitchenLiving,
@@ -117,6 +168,26 @@ const loftDefaultMaterials: SeedStyleDefaultMaterial[] = [
     productId: productIds.hangingIndustrialPendant,
   },
   {
+    roomTypeId: roomTypeIds.kitchenLiving,
+    categoryId: categoryIds.ceilingFinish,
+    productId: productIds.darkSlatMdfCeilingPanel,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchenLiving,
+    categoryId: categoryIds.skirtingBoards,
+    productId: productIds.graphiteSkirting,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchenLiving,
+    categoryId: categoryIds.doors,
+    productId: productIds.greyMatteInteriorDoor,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchenLiving,
+    categoryId: categoryIds.plumbingFixtures,
+    productId: productIds.stainlessKitchenSink,
+  },
+  {
     roomTypeId: roomTypeIds.bathroom,
     categoryId: categoryIds.floorTile,
     productId: productIds.rawConcreteEffectFloorTile,
@@ -125,6 +196,31 @@ const loftDefaultMaterials: SeedStyleDefaultMaterial[] = [
     roomTypeId: roomTypeIds.bathroom,
     categoryId: categoryIds.wallTile,
     productId: productIds.terrazzoEffectWallTile,
+  },
+  {
+    roomTypeId: roomTypeIds.bathroom,
+    categoryId: categoryIds.wallPaint,
+    productId: productIds.deepGraphiteWallPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.bathroom,
+    categoryId: categoryIds.ceilingFinish,
+    productId: productIds.greySuspendedCeilingPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.bathroom,
+    categoryId: categoryIds.doors,
+    productId: productIds.greyMatteInteriorDoor,
+  },
+  {
+    roomTypeId: roomTypeIds.bathroom,
+    categoryId: categoryIds.lighting,
+    productId: productIds.industrialBlackWallSconce,
+  },
+  {
+    roomTypeId: roomTypeIds.bathroom,
+    categoryId: categoryIds.plumbingFixtures,
+    productId: productIds.matteBlackBathroomFaucet,
   },
 ];
 
@@ -150,6 +246,21 @@ const classicDefaultMaterials: SeedStyleDefaultMaterial[] = [
     productId: productIds.texturedPlasterCeilingFinish,
   },
   {
+    roomTypeId: roomTypeIds.livingRoom,
+    categoryId: categoryIds.skirtingBoards,
+    productId: productIds.classicWhiteSkirting,
+  },
+  {
+    roomTypeId: roomTypeIds.livingRoom,
+    categoryId: categoryIds.doors,
+    productId: productIds.naturalOakVeneerDoor,
+  },
+  {
+    roomTypeId: roomTypeIds.livingRoom,
+    categoryId: categoryIds.lighting,
+    productId: productIds.brassWallSconce,
+  },
+  {
     roomTypeId: roomTypeIds.bedroom,
     categoryId: categoryIds.floorCovering,
     productId: productIds.herringboneOakParquet,
@@ -165,6 +276,21 @@ const classicDefaultMaterials: SeedStyleDefaultMaterial[] = [
     productId: productIds.classicWhiteSkirting,
   },
   {
+    roomTypeId: roomTypeIds.bedroom,
+    categoryId: categoryIds.ceilingFinish,
+    productId: productIds.texturedPlasterCeilingFinish,
+  },
+  {
+    roomTypeId: roomTypeIds.bedroom,
+    categoryId: categoryIds.doors,
+    productId: productIds.naturalOakVeneerDoor,
+  },
+  {
+    roomTypeId: roomTypeIds.bedroom,
+    categoryId: categoryIds.lighting,
+    productId: productIds.brassWallSconce,
+  },
+  {
     roomTypeId: roomTypeIds.kitchen,
     categoryId: categoryIds.wallTile,
     productId: productIds.beigeMarbleWallTile,
@@ -178,6 +304,26 @@ const classicDefaultMaterials: SeedStyleDefaultMaterial[] = [
     roomTypeId: roomTypeIds.kitchen,
     categoryId: categoryIds.wallPaint,
     productId: productIds.warmBeigeWallPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchen,
+    categoryId: categoryIds.ceilingFinish,
+    productId: productIds.warmWhiteCeilingPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchen,
+    categoryId: categoryIds.doors,
+    productId: productIds.naturalOakVeneerDoor,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchen,
+    categoryId: categoryIds.lighting,
+    productId: productIds.brassWallSconce,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchen,
+    categoryId: categoryIds.plumbingFixtures,
+    productId: productIds.stainlessKitchenSink,
   },
   {
     roomTypeId: roomTypeIds.kitchenLiving,
@@ -200,6 +346,26 @@ const classicDefaultMaterials: SeedStyleDefaultMaterial[] = [
     productId: productIds.brassWallSconce,
   },
   {
+    roomTypeId: roomTypeIds.kitchenLiving,
+    categoryId: categoryIds.ceilingFinish,
+    productId: productIds.texturedPlasterCeilingFinish,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchenLiving,
+    categoryId: categoryIds.skirtingBoards,
+    productId: productIds.classicWhiteSkirting,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchenLiving,
+    categoryId: categoryIds.doors,
+    productId: productIds.naturalOakVeneerDoor,
+  },
+  {
+    roomTypeId: roomTypeIds.kitchenLiving,
+    categoryId: categoryIds.plumbingFixtures,
+    productId: productIds.stainlessKitchenSink,
+  },
+  {
     roomTypeId: roomTypeIds.bathroom,
     categoryId: categoryIds.floorTile,
     productId: productIds.beigeMarbleFloorTile,
@@ -213,6 +379,26 @@ const classicDefaultMaterials: SeedStyleDefaultMaterial[] = [
     roomTypeId: roomTypeIds.bathroom,
     categoryId: categoryIds.doors,
     productId: productIds.naturalOakVeneerDoor,
+  },
+  {
+    roomTypeId: roomTypeIds.bathroom,
+    categoryId: categoryIds.wallPaint,
+    productId: productIds.warmBeigeWallPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.bathroom,
+    categoryId: categoryIds.ceilingFinish,
+    productId: productIds.warmWhiteCeilingPaint,
+  },
+  {
+    roomTypeId: roomTypeIds.bathroom,
+    categoryId: categoryIds.lighting,
+    productId: productIds.brassWallSconce,
+  },
+  {
+    roomTypeId: roomTypeIds.bathroom,
+    categoryId: categoryIds.plumbingFixtures,
+    productId: productIds.whiteCeramicWashbasin,
   },
 ];
 
