@@ -5,7 +5,6 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import {
-  type BaseRate,
   type PricingData,
   PricingDataSchema,
   type PricingLimits,
@@ -15,12 +14,18 @@ import type { Subscription } from 'rxjs';
 import { canonicalHash } from '../../../common/hashing/canonical-hash';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { Prisma } from '../../../generated/prisma/client';
+import { SurfaceKind } from '../../../generated/prisma/enums';
 import { CatalogChangeNotifier } from '../../catalog/common/catalog-change.notifier';
 import { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
 import { ExchangeRateService } from '../exchange-rate/exchange-rate.service';
 
 const SETTINGS_ID = 1;
-const RULE_LEVEL_ORDER = { OBJECT: 0, CATEGORY: 1, MATERIAL_TYPE: 2 } as const;
+const RULE_LEVEL_ORDER = {
+  OBJECT: 0,
+  SURFACE: 1,
+  CATEGORY: 2,
+  MATERIAL_TYPE: 3,
+} as const;
 
 type PricingDataBody = Omit<PricingData, 'version'>;
 type SettingsRow = Prisma.PricingSettingsGetPayload<object>;
@@ -40,6 +45,7 @@ function toLimits(settings: SettingsRow): PricingLimits {
       min: settings.roomHeightMinM.toNumber(),
       max: settings.roomHeightMaxM.toNumber(),
     },
+    missingAreaHintSqm: settings.missingAreaHintSqm.toNumber(),
   };
 }
 
@@ -116,7 +122,6 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       packageItems,
       options,
       settings,
-      baseRates,
       coefficients,
       ruleRows,
       exchangeRate,
@@ -128,7 +133,6 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       this.catalog.packageItems(),
       this.catalog.options(),
       this.readSettings(),
-      this.readBaseRates(),
       this.coefficients(),
       this.readRules(),
       this.exchangeRates.activeRate(),
@@ -144,13 +148,13 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
         (rule.categoryId === null || categoryIds.has(rule.categoryId)) &&
         (rule.materialTypeId === null ||
           materialTypeIds.has(rule.materialTypeId)) &&
-        (rule.level === 'OBJECT') === (rule.quantityFormula === null),
+        (rule.level === 'OBJECT' || rule.level === 'SURFACE') ===
+          (rule.quantityFormula === null),
     );
 
     const body: PricingDataBody = {
       exchangeRate,
       limits,
-      baseRates,
       coefficients,
       rules,
       roomTypes,
@@ -176,19 +180,6 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
     return settings;
   }
 
-  private async readBaseRates(): Promise<BaseRate[]> {
-    const rows = await this.prisma.baseRate.findMany({
-      orderBy: [{ finishLevel: 'asc' }, { areaFromSqm: 'asc' }],
-    });
-
-    return rows.map((row) => ({
-      finishLevel: row.finishLevel,
-      areaFromSqm: row.areaFromSqm.toNumber(),
-      areaToSqm: row.areaToSqm.toNumber(),
-      rateCentsPerSqm: row.rateCentsPerSqm,
-    }));
-  }
-
   async coefficients(): Promise<Record<string, number>> {
     const rows = await this.prisma.coefficient.findMany({
       orderBy: { key: 'asc' },
@@ -210,7 +201,10 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
         materialTypeId: row.materialTypeId,
         name: row.name as PricingRule['name'],
         quantityFormula: row.quantityFormula,
+        surface: row.surface === SurfaceKind.NONE ? null : row.surface,
+        baseComponent: row.baseComponent,
         costFormula: row.costFormula,
+        laborFormula: row.laborFormula,
         sortOrder: row.sortOrder,
       }))
       .sort(

@@ -85,6 +85,8 @@ describe('estimates e2e', () => {
       expect(response.headers['cache-control']).toBe(CACHE_CONTROL_HEADER);
       expect(data.version).toMatch(/^[0-9a-f]{16}$/);
       expect(data.exchangeRate?.rate).toBe(RATE);
+      expect(data).not.toHaveProperty('baseRates');
+      expect(data.limits.missingAreaHintSqm).toBeGreaterThanOrEqual(0);
     });
 
     it('marks only the heated floor option with its code', async () => {

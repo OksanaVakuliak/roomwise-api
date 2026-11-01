@@ -120,6 +120,8 @@ export class CatalogPricingReadService {
         unit: true,
         minQuantity: true,
         maxQuantity: true,
+        priceCoefficientKeys: true,
+        scopes: true,
         status: true,
         optionRoomTypes: { select: { roomType: { select: { code: true } } } },
       },
@@ -135,9 +137,39 @@ export class CatalogPricingReadService {
       roomTypeCodes: row.optionRoomTypes
         .map((link) => link.roomType.code)
         .sort(),
+      priceCoefficientKeys: [...row.priceCoefficientKeys].sort(),
+      scopes: [...row.scopes].sort(),
       minQuantity: row.minQuantity,
       maxQuantity: row.maxQuantity,
       available: row.status === PublicationStatus.PUBLISHED,
+    }));
+  }
+
+  async optionsUsingCoefficient(
+    key: string,
+  ): Promise<Array<{ id: string; name: LocalizedText }>> {
+    const rows = await this.prisma.option.findMany({
+      where: { priceCoefficientKeys: { has: key } },
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+
+    return rows.map((row) => ({ id: row.id, name: toLocalizedText(row.name) }));
+  }
+
+  async optionsUsingCoefficients(): Promise<
+    Array<{ id: string; name: LocalizedText; keys: string[] }>
+  > {
+    const rows = await this.prisma.option.findMany({
+      where: { priceCoefficientKeys: { isEmpty: false } },
+      select: { id: true, name: true, priceCoefficientKeys: true },
+      orderBy: { id: 'asc' },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: toLocalizedText(row.name),
+      keys: row.priceCoefficientKeys,
     }));
   }
 
