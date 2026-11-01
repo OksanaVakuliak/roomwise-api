@@ -11,12 +11,16 @@ import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { isPrismaError } from '../../../common/prisma/prisma-error';
 import type { Prisma } from '../../../generated/prisma/client';
-import { RuleLevel } from '../../../generated/prisma/enums';
+import { RuleLevel, SurfaceKind } from '../../../generated/prisma/enums';
 import { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
 import { PricingDataService } from '../pricing-data/pricing-data.service';
 import type { PreviewRuleInput } from './dto/preview-rule.schema';
 import type { RuleAdmin, RuleListResponse } from './dto/rule-admin.schema';
-import { findRuleShapeIssues, type RuleInput } from './dto/rule-input.schema';
+import {
+  findRuleShapeIssues,
+  type RuleInput,
+  type RuleSurface,
+} from './dto/rule-input.schema';
 import type { RuleOrderInput } from './dto/rule-order.schema';
 import type { UpdateRuleInput } from './dto/update-rule.schema';
 import type {
@@ -35,8 +39,9 @@ type RuleWithRelations = Prisma.PricingRuleGetPayload<{
 
 const LEVEL_ORDER: Record<RuleLevel, number> = {
   OBJECT: 0,
-  CATEGORY: 1,
-  MATERIAL_TYPE: 2,
+  SURFACE: 1,
+  CATEGORY: 2,
+  MATERIAL_TYPE: 3,
 };
 
 function compareRules(
@@ -48,6 +53,13 @@ function compareRules(
     left.sortOrder - right.sortOrder ||
     (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
   );
+}
+
+interface RuleFormulas {
+  level: RuleLevel;
+  quantityFormula: string | null;
+  costFormula: string;
+  laborFormula: string | null;
 }
 
 function uniqueSorted(values: string[]): string[] {
@@ -91,16 +103,25 @@ export class RulesService {
   async create(input: RuleInput, adminId: string): Promise<RuleAdmin> {
     const categoryId = input.categoryId ?? null;
     const materialTypeId = input.materialTypeId ?? null;
-    const quantityFormula = input.quantityFormula ?? null;
+    const surface = input.surface ?? null;
+    const formulas: RuleFormulas = {
+      level: input.level,
+      quantityFormula: input.quantityFormula ?? null,
+      costFormula: input.costFormula,
+      laborFormula: input.laborFormula ?? null,
+    };
 
     await this.assertReferencesExist(categoryId, materialTypeId);
     const coefficientKeys = this.assertFormulasValid(
-      input.level,
-      quantityFormula,
-      input.costFormula,
+      formulas,
       await this.pricingData.coefficients(),
     );
-    await this.assertNotDuplicate(input.level, categoryId, materialTypeId);
+    await this.assertNotDuplicate(
+      input.level,
+      categoryId,
+      materialTypeId,
+      surface,
+    );
 
     const sortOrder =
       input.level === RuleLevel.OBJECT ? await this.nextObjectSortOrder() : 0;
@@ -109,22 +130,19 @@ export class RulesService {
 
     try {
       created = await this.prisma.$transaction(async (tx) => {
-        await this.lockCoefficients(
-          tx,
-          coefficientKeys,
-          input.level,
-          quantityFormula,
-          input.costFormula,
-        );
+        await this.lockCoefficients(tx, coefficientKeys, formulas);
 
         return tx.pricingRule.create({
           data: {
             level: input.level,
             categoryId,
             materialTypeId,
+            surface,
+            baseComponent: input.baseComponent,
             name: input.name,
-            quantityFormula,
-            costFormula: input.costFormula,
+            quantityFormula: formulas.quantityFormula,
+            costFormula: formulas.costFormula,
+            laborFormula: formulas.laborFormula,
             coefficientKeys,
             sortOrder,
             updatedById: adminId,
@@ -135,7 +153,7 @@ export class RulesService {
     } catch (error) {
       if (isPrismaError(error, 'P2002')) {
         throw new AppError(ERROR_CODES.RULE_EXISTS, {
-          params: { categoryId, materialTypeId },
+          params: { categoryId, materialTypeId, surface },
         });
       }
 
@@ -166,12 +184,26 @@ export class RulesService {
         ? input.quantityFormula
         : existing.quantityFormula;
     const costFormula = input.costFormula ?? existing.costFormula;
+    const laborFormula =
+      input.laborFormula !== undefined
+        ? input.laborFormula
+        : existing.laborFormula;
+    const baseComponent = input.baseComponent ?? existing.baseComponent;
+    const formulas: RuleFormulas = {
+      level: existing.level,
+      quantityFormula,
+      costFormula,
+      laborFormula,
+    };
 
     const shapeIssues = findRuleShapeIssues({
       level: existing.level,
       categoryId: existing.categoryId,
       materialTypeId: existing.materialTypeId,
+      surface: existing.surface === SurfaceKind.NONE ? null : existing.surface,
+      baseComponent,
       quantityFormula,
+      laborFormula,
     });
 
     if (shapeIssues.length > 0) {
@@ -185,20 +217,12 @@ export class RulesService {
     }
 
     const coefficientKeys = this.assertFormulasValid(
-      existing.level,
-      quantityFormula,
-      costFormula,
+      formulas,
       await this.pricingData.coefficients(),
     );
 
     await this.prisma.$transaction(async (tx) => {
-      await this.lockCoefficients(
-        tx,
-        coefficientKeys,
-        existing.level,
-        quantityFormula,
-        costFormula,
-      );
+      await this.lockCoefficients(tx, coefficientKeys, formulas);
 
       await updateWithRevision({
         id,
@@ -211,6 +235,8 @@ export class RulesService {
               name,
               quantityFormula,
               costFormula,
+              laborFormula,
+              baseComponent,
               coefficientKeys,
               revision: mutation.revision,
               updatedAt: mutation.updatedAt,
@@ -290,45 +316,45 @@ export class RulesService {
     input: ValidateFormulasInput,
   ): Promise<ValidateFormulasResponse> {
     return this.checkFormulas(
-      input.level,
-      input.quantityFormula ?? null,
-      input.costFormula,
+      {
+        level: input.level,
+        quantityFormula: input.quantityFormula ?? null,
+        costFormula: input.costFormula,
+        laborFormula: input.laborFormula ?? null,
+      },
       await this.pricingData.coefficients(),
     );
   }
 
   async preview(input: PreviewRuleInput): Promise<RulePreview> {
-    const quantityFormula = input.quantityFormula ?? null;
+    const formulas: RuleFormulas = {
+      level: input.level,
+      quantityFormula: input.quantityFormula ?? null,
+      costFormula: input.costFormula,
+      laborFormula: input.laborFormula ?? null,
+    };
     const coefficients = await this.pricingData.coefficients();
 
-    this.assertFormulasValid(
-      input.level,
-      quantityFormula,
-      input.costFormula,
-      coefficients,
-    );
+    this.assertFormulasValid(formulas, coefficients);
 
     return previewRule({
-      level: input.level,
-      quantityFormula,
-      costFormula: input.costFormula,
+      ...formulas,
       coefficients,
       sample: input.sample,
     });
   }
 
   private checkFormulas(
-    level: RuleLevel,
-    quantityFormula: string | null,
-    costFormula: string,
+    { level, quantityFormula, costFormula, laborFormula }: RuleFormulas,
     coefficients: Record<string, number>,
   ): ValidateFormulasResponse {
     const known = Object.keys(coefficients);
     const errors: FormulaIssue[] = [];
     const used: string[] = [];
-    const formulas: Array<['quantity' | 'cost', string | null]> = [
+    const formulas: Array<['quantity' | 'cost' | 'labor', string | null]> = [
       ['quantity', quantityFormula],
       ['cost', costFormula],
+      ['labor', laborFormula],
     ];
 
     for (const [formula, source] of formulas) {
@@ -355,17 +381,10 @@ export class RulesService {
   }
 
   private assertFormulasValid(
-    level: RuleLevel,
-    quantityFormula: string | null,
-    costFormula: string,
+    formulas: RuleFormulas,
     coefficients: Record<string, number>,
   ): string[] {
-    const result = this.checkFormulas(
-      level,
-      quantityFormula,
-      costFormula,
-      coefficients,
-    );
+    const result = this.checkFormulas(formulas, coefficients);
 
     if (!result.valid) {
       throw new AppError(ERROR_CODES.FORMULA_INVALID, {
@@ -379,9 +398,7 @@ export class RulesService {
   private async lockCoefficients(
     tx: Prisma.TransactionClient,
     keys: string[],
-    level: RuleLevel,
-    quantityFormula: string | null,
-    costFormula: string,
+    formulas: RuleFormulas,
   ): Promise<void> {
     if (keys.length === 0) {
       return;
@@ -393,9 +410,7 @@ export class RulesService {
 
     if (rows.length < keys.length) {
       this.assertFormulasValid(
-        level,
-        quantityFormula,
-        costFormula,
+        formulas,
         Object.fromEntries(rows.map((row) => [row.key, 0])),
       );
     }
@@ -430,19 +445,23 @@ export class RulesService {
     level: RuleLevel,
     categoryId: string | null,
     materialTypeId: string | null,
+    surface: RuleSurface | null,
   ): Promise<void> {
     if (level === RuleLevel.OBJECT) {
       return;
     }
 
     const duplicate = await this.prisma.pricingRule.findFirst({
-      where: { level, categoryId, materialTypeId },
+      where:
+        level === RuleLevel.SURFACE
+          ? { level, surface }
+          : { level, categoryId, materialTypeId },
       select: { id: true },
     });
 
     if (duplicate) {
       throw new AppError(ERROR_CODES.RULE_EXISTS, {
-        params: { categoryId, materialTypeId },
+        params: { categoryId, materialTypeId, surface },
       });
     }
   }
@@ -471,9 +490,12 @@ export class RulesService {
       level: row.level,
       categoryId: row.categoryId,
       materialTypeId: row.materialTypeId,
+      surface: row.surface === SurfaceKind.NONE ? null : row.surface,
+      baseComponent: row.baseComponent,
       name: toLocalizedText(row.name),
       quantityFormula: row.quantityFormula,
       costFormula: row.costFormula,
+      laborFormula: row.laborFormula,
       coefficientKeys: row.coefficientKeys,
       sortOrder: row.sortOrder,
       orphaned:

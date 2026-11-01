@@ -25,9 +25,12 @@ function ruleRow(overrides: Record<string, unknown> = {}) {
     level: RuleLevel.CATEGORY,
     categoryId: CATEGORY_ID,
     materialTypeId: null,
+    surface: null,
+    baseComponent: false,
     name: localized('Floor', 'Підлога'),
     quantityFormula: QUANTITY,
     costFormula: COST,
+    laborFormula: null,
     coefficientKeys: ['tile_glue'],
     sortOrder: 0,
     revision: CURRENT_REVISION,
@@ -109,6 +112,7 @@ function setup(
 
 const categoryInput = {
   level: RuleLevel.CATEGORY,
+  baseComponent: false,
   categoryId: CATEGORY_ID,
   name: localized('Floor', 'Підлога'),
   quantityFormula: QUANTITY,
@@ -152,9 +156,12 @@ describe('RulesService.list', () => {
         level: RuleLevel.CATEGORY,
         categoryId: CATEGORY_ID,
         materialTypeId: null,
+        surface: null,
+        baseComponent: false,
         name: localized('Floor', 'Підлога'),
         quantityFormula: QUANTITY,
         costFormula: COST,
+        laborFormula: null,
         coefficientKeys: ['tile_glue'],
         sortOrder: 0,
         orphaned: false,
@@ -272,6 +279,7 @@ describe('RulesService.create', () => {
     await service.create(
       {
         level: RuleLevel.OBJECT,
+        baseComponent: false,
         name: localized('Balcony', 'Балкон'),
         costFormula: 'balconyTiles ? balconyArea * coef.tile_glue : 0',
       },
@@ -296,6 +304,7 @@ describe('RulesService.create', () => {
     await service.create(
       {
         level: RuleLevel.OBJECT,
+        baseComponent: false,
         name: localized('Balcony', 'Балкон'),
         costFormula: '1',
       },
@@ -391,6 +400,147 @@ describe('RulesService.create', () => {
           { field: 'materialTypeId', id: MATERIAL_TYPE_ID },
         ],
       },
+    });
+  });
+
+  it('stores sorted coefficient keys referenced by the labor formula', async () => {
+    const { service, rule, pricingData } = setup();
+    pricingData.coefficients.mockResolvedValue({
+      tile_glue: 1,
+      labor_tile: 2,
+    });
+
+    await service.create(
+      {
+        ...categoryInput,
+        laborFormula: 'quantity * coef.labor_tile',
+      },
+      ADMIN_ID,
+    );
+
+    expect(rule.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          laborFormula: 'quantity * coef.labor_tile',
+          coefficientKeys: ['labor_tile', 'tile_glue'],
+        }),
+      }),
+    );
+  });
+
+  it('tags labor formula errors as labor', async () => {
+    const { service, rule } = setup();
+
+    await expect(
+      service.create(
+        { ...categoryInput, laborFormula: 'quantity * coef.missing' },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.FORMULA_INVALID,
+      params: {
+        errors: [
+          expect.objectContaining({
+            formula: 'labor',
+            code: 'UNKNOWN_COEFFICIENT',
+          }),
+        ],
+      },
+    });
+    expect(rule.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a surface rule with its surface and no references', async () => {
+    const { service, rule, catalog } = setup();
+
+    await service.create(
+      {
+        level: RuleLevel.SURFACE,
+        surface: 'FLOOR',
+        baseComponent: false,
+        name: localized('Floor surface', 'Поверхня підлоги'),
+        costFormula: 'surfaceArea * coef.tile_glue',
+      },
+      ADMIN_ID,
+    );
+
+    expect(catalog.existingCategoryIds).toHaveBeenCalledWith([]);
+    expect(rule.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          level: RuleLevel.SURFACE,
+          surface: 'FLOOR',
+          categoryId: null,
+          quantityFormula: null,
+          laborFormula: null,
+          sortOrder: 0,
+        }),
+      }),
+    );
+  });
+
+  it('stores the base component flag of an object rule', async () => {
+    const { service, rule } = setup();
+
+    await service.create(
+      {
+        level: RuleLevel.OBJECT,
+        baseComponent: true,
+        name: localized('Base', 'База'),
+        costFormula: 'totalArea * coef.tile_glue',
+      },
+      ADMIN_ID,
+    );
+
+    expect(rule.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ baseComponent: true }),
+      }),
+    );
+  });
+
+  it('rejects a duplicate surface rule found by the pre-check', async () => {
+    const { service, rule, pricingData } = setup();
+    rule.findFirst.mockResolvedValue({ id: 'other' });
+
+    await expect(
+      service.create(
+        {
+          level: RuleLevel.SURFACE,
+          surface: 'WALLS',
+          baseComponent: false,
+          name: localized('Walls', 'Стіни'),
+          costFormula: 'surfaceArea',
+        },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.RULE_EXISTS });
+    expect(rule.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { level: RuleLevel.SURFACE, surface: 'WALLS' },
+      }),
+    );
+    expect(pricingData.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('maps a surface unique violation from a race to RULE_EXISTS', async () => {
+    const { service, rule } = setup();
+    rule.create.mockRejectedValue(p2002());
+
+    await expect(
+      service.create(
+        {
+          level: RuleLevel.SURFACE,
+          surface: 'CEILING',
+          baseComponent: false,
+          name: localized('Ceiling', 'Стеля'),
+          costFormula: 'surfaceArea',
+        },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.RULE_EXISTS,
+      params: expect.objectContaining({ surface: 'CEILING' }),
     });
   });
 
@@ -506,6 +656,102 @@ describe('RulesService.update', () => {
       service.update(
         RULE_ID,
         { quantityFormula: null, revision: CURRENT_REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.VALIDATION_FAILED });
+  });
+
+  it('stores a patched labor formula with its coefficient keys', async () => {
+    const { service, rule, pricingData } = setup();
+    pricingData.coefficients.mockResolvedValue({
+      tile_glue: 1,
+      labor_tile: 2,
+    });
+
+    await service.update(
+      RULE_ID,
+      {
+        laborFormula: 'quantity * coef.labor_tile',
+        revision: CURRENT_REVISION,
+      },
+      ADMIN_ID,
+    );
+
+    expect(rule.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          laborFormula: 'quantity * coef.labor_tile',
+          coefficientKeys: ['labor_tile', 'tile_glue'],
+        }),
+      }),
+    );
+  });
+
+  it('clears the labor formula with null', async () => {
+    const { service, rule } = setup();
+    rule.findUnique.mockResolvedValue(
+      ruleRow({ laborFormula: 'quantity * 2' }),
+    );
+
+    await service.update(
+      RULE_ID,
+      { laborFormula: null, revision: CURRENT_REVISION },
+      ADMIN_ID,
+    );
+
+    expect(rule.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ laborFormula: null }),
+      }),
+    );
+  });
+
+  it('rejects a labor formula on an object rule', async () => {
+    const { service, rule } = setup();
+    rule.findUnique.mockResolvedValue(
+      ruleRow({
+        level: RuleLevel.OBJECT,
+        categoryId: null,
+        quantityFormula: null,
+      }),
+    );
+
+    await expect(
+      service.update(
+        RULE_ID,
+        { laborFormula: '1', revision: CURRENT_REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.VALIDATION_FAILED });
+  });
+
+  it('rejects a labor formula on a surface rule', async () => {
+    const { service, rule } = setup();
+    rule.findUnique.mockResolvedValue(
+      ruleRow({
+        level: RuleLevel.SURFACE,
+        surface: 'FLOOR',
+        categoryId: null,
+        quantityFormula: null,
+      }),
+    );
+
+    await expect(
+      service.update(
+        RULE_ID,
+        { laborFormula: '1', revision: CURRENT_REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.VALIDATION_FAILED });
+  });
+
+  it('rejects the base component flag on a category rule', async () => {
+    const { service } = setup();
+
+    await expect(
+      service.update(
+        RULE_ID,
+        { baseComponent: true, revision: CURRENT_REVISION },
         ADMIN_ID,
       ),
     ).rejects.toMatchObject({ code: ERROR_CODES.VALIDATION_FAILED });
@@ -663,6 +909,35 @@ describe('RulesService.validate', () => {
     ]);
   });
 
+  it('validates the labor formula with its own tag', async () => {
+    const { service } = setup();
+
+    const result = await service.validate({
+      level: RuleLevel.CATEGORY,
+      quantityFormula: QUANTITY,
+      costFormula: COST,
+      laborFormula: 'quantity * coef.missing',
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((error) => error.formula)).toEqual(['labor']);
+  });
+
+  it('accepts surface formulas using the surface area', async () => {
+    const { service } = setup();
+
+    const result = await service.validate({
+      level: RuleLevel.SURFACE,
+      costFormula: 'surfaceArea * coef.tile_glue',
+    });
+
+    expect(result).toEqual({
+      valid: true,
+      coefficientKeys: ['tile_glue'],
+      errors: [],
+    });
+  });
+
   it('reads coefficients once', async () => {
     const { service, pricingData } = setup();
 
@@ -676,6 +951,28 @@ describe('RulesService.validate', () => {
   });
 });
 
+const FULL_OBJECT = {
+  scope: 'FULL' as const,
+  totalAreaSqm: 60,
+  balconyAreaSqm: 0,
+  balconyTiles: false,
+  finishLevel: 'ROUGH' as const,
+  roomsCount: 2,
+  bathroomsCount: 1,
+  roomsFloorArea: 50,
+  roomsWallArea: 120,
+  roomsPerimeter: 40,
+  wetRoomsCount: 1,
+};
+
+const ROOM_SAMPLE = {
+  roomTypeCode: 'LIVING_ROOM' as const,
+  lengthM: 5,
+  widthM: 4,
+  heightM: 3,
+  heatedFloor: false,
+};
+
 describe('RulesService.preview', () => {
   it('reads coefficients once and passes them to the preview', async () => {
     const { service, pricingData } = setup();
@@ -684,19 +981,54 @@ describe('RulesService.preview', () => {
     const result = await service.preview({
       level: RuleLevel.OBJECT,
       costFormula: 'coef.tile_glue',
-      sample: {
-        object: {
-          totalAreaSqm: 60,
-          balconyAreaSqm: 0,
-          balconyTiles: false,
-          finishLevel: 'ROUGH',
-          roomsCount: 2,
-          bathroomsCount: 1,
-        },
-      },
+      sample: { object: FULL_OBJECT },
     });
 
     expect(pricingData.coefficients).toHaveBeenCalledTimes(1);
     expect(result.coefficients).toEqual({ tile_glue: 10 });
+  });
+
+  it('computes labor cents from the labor formula', async () => {
+    const { service, pricingData } = setup();
+    pricingData.coefficients.mockResolvedValue({ labor_tile: 3 });
+
+    const result = await service.preview({
+      level: RuleLevel.CATEGORY,
+      quantityFormula: 'floorArea',
+      costFormula: 'quantity * 2',
+      laborFormula: 'quantity * coef.labor_tile',
+      sample: {
+        room: ROOM_SAMPLE,
+        product: { priceCents: 1000, unit: 'SQM', wastePercent: 0 },
+        object: FULL_OBJECT,
+      },
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.quantity).toBe(20);
+    expect(result.laborCents).toBe(6000);
+  });
+
+  it('previews a surface rule of a partial scope', async () => {
+    const { service, pricingData } = setup();
+    pricingData.coefficients.mockResolvedValue({});
+
+    const result = await service.preview({
+      level: RuleLevel.SURFACE,
+      costFormula: 'surfaceArea * roomsPerimeter',
+      sample: {
+        room: ROOM_SAMPLE,
+        surfaceArea: 20,
+        object: {
+          ...FULL_OBJECT,
+          scope: 'PARTIAL',
+          totalAreaSqm: null,
+        },
+      },
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.amountCents).toBe(80000);
+    expect(result.laborCents).toBeNull();
   });
 });

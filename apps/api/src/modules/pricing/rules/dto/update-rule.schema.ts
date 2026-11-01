@@ -8,6 +8,8 @@ export const updateRuleSchema = z
     name: localizedNameDraftSchema.optional(),
     quantityFormula: formulaSchema.nullable().optional(),
     costFormula: formulaSchema.optional(),
+    laborFormula: formulaSchema.nullable().optional(),
+    baseComponent: z.boolean().optional(),
     revision: z.uuid(),
   })
   .strict();

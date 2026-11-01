@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { auditSchema } from '../../../../common/concurrency/audit.schema';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
 import { RuleLevel } from '../../../../generated/prisma/enums';
+import { ruleSurfaceSchema } from './rule-input.schema';
 
 export const ruleAdminSchema = z
   .object({
@@ -10,9 +11,12 @@ export const ruleAdminSchema = z
     level: z.enum(RuleLevel),
     categoryId: z.uuid().nullable(),
     materialTypeId: z.uuid().nullable(),
+    surface: ruleSurfaceSchema.nullable(),
+    baseComponent: z.boolean(),
     name: localizedNameDraftSchema,
     quantityFormula: z.string().nullable(),
     costFormula: z.string(),
+    laborFormula: z.string().nullable(),
     coefficientKeys: z.array(z.string()),
     sortOrder: z.int(),
     orphaned: z.boolean(),
