@@ -106,6 +106,15 @@ describe('checkLimits', () => {
     ]);
   });
 
+  it('skips the total area check in PARTIAL and bounds the balcony by the maximum', () => {
+    const partial = (balconyAreaSqm: number) =>
+      configuration({ scope: 'PARTIAL', totalAreaSqm: null, balconyAreaSqm });
+    expect(checkLimits(partial(200), limits)).toEqual([]);
+    expect(checkLimits(partial(501), limits)).toEqual([
+      { field: 'balconyAreaSqm', min: 0, max: limits.totalAreaSqm.max },
+    ]);
+  });
+
   it.each([
     [0, true],
     [1, false],

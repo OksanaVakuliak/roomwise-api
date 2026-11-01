@@ -10,7 +10,10 @@ import reference from './fixtures/reference/us1-reference.json';
 import referenceRequest from './fixtures/reference/us1-reference.request.json';
 
 const data = PricingDataSchema.parse(reference.pricingData);
-const request = ConfigurationSchema.parse(referenceRequest);
+const request = ConfigurationSchema.parse({
+  ...referenceRequest,
+  totalAreaSqm: 24,
+});
 
 const livingFloor = 'MATERIALS:living:cat-floor';
 
@@ -126,6 +129,21 @@ describe('rooms area warning', () => {
 
   it('does not warn when the areas are equal', () => {
     expect(estimate(withTotal(24), data).warnings).toEqual([]);
+  });
+
+  it.each([
+    [28, false],
+    [29, false],
+    [29.5, true],
+  ])('total %s below-total warning=%s', (totalAreaSqm, warned) => {
+    const result = estimate(withTotal(totalAreaSqm), data);
+    expect(codes(result).includes('ROOMS_AREA_BELOW_TOTAL')).toBe(warned);
+    if (warned) {
+      expect(result.warnings).toContainEqual({
+        code: 'ROOMS_AREA_BELOW_TOTAL',
+        params: { missingSqm: 5.5 },
+      });
+    }
   });
 
   it('rounds the rooms area before comparing', () => {

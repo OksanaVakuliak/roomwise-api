@@ -18,7 +18,8 @@ export function checkLimits(
     }
   };
 
-  if (configuration.totalAreaSqm !== null) {
+  const isFull = configuration.scope === 'FULL';
+  if (isFull && configuration.totalAreaSqm !== null) {
     check(
       'totalAreaSqm',
       configuration.totalAreaSqm,
@@ -30,7 +31,9 @@ export function checkLimits(
     'balconyAreaSqm',
     configuration.balconyAreaSqm,
     0,
-    configuration.totalAreaSqm ?? limits.totalAreaSqm.max,
+    isFull && configuration.totalAreaSqm !== null
+      ? configuration.totalAreaSqm
+      : limits.totalAreaSqm.max,
   );
   check(
     'rooms',
