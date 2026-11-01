@@ -23,6 +23,7 @@ const room = (
 });
 
 const configuration = (rooms: RoomConfiguration[]): Configuration => ({
+  scope: 'FULL',
   finishLevel: 'PRE_FINISH',
   totalAreaSqm: 72.5,
   balconyAreaSqm: 4,
@@ -113,6 +114,14 @@ describe('objectVariables', () => {
   it('counts a kitchen-living room as a room and a separate kitchen as none', () => {
     const vars = objectVariables(
       configuration([room('KITCHEN_LIVING'), room('KITCHEN')]),
+    );
+    expect(vars.roomsCount).toBe(1);
+    expect(vars.bathroomsCount).toBe(0);
+  });
+
+  it('does not count a hallway or a storage room as a room', () => {
+    const vars = objectVariables(
+      configuration([room('BEDROOM'), room('HALLWAY'), room('STORAGE')]),
     );
     expect(vars.roomsCount).toBe(1);
     expect(vars.bathroomsCount).toBe(0);

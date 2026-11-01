@@ -172,6 +172,42 @@ describe('schemas', () => {
     ).toBe(false);
   });
 
+  it('defaults the scope to FULL', () => {
+    const result = ConfigurationSchema.safeParse(configuration);
+    expect(result.data?.scope).toBe('FULL');
+  });
+
+  it('requires the total area for FULL and forbids it for PARTIAL', () => {
+    const parse = (value: unknown) => ConfigurationSchema.safeParse(value);
+    const partial = { ...configuration, scope: 'PARTIAL' };
+    expect(parse({ ...partial, totalAreaSqm: null }).success).toBe(true);
+    const tooMuch = parse({ ...partial, totalAreaSqm: 40 });
+    expect(tooMuch.success).toBe(false);
+    expect(tooMuch.error?.issues[0].path).toEqual(['totalAreaSqm']);
+    const missing = parse({ ...configuration, totalAreaSqm: null });
+    expect(missing.success).toBe(false);
+    expect(missing.error?.issues[0].path).toEqual(['totalAreaSqm']);
+    expect(parse({ ...configuration, scope: 'FULL' }).success).toBe(true);
+    expect(parse({ ...configuration, scope: 'HALF' }).success).toBe(false);
+  });
+
+  it('accepts hallway and storage rooms and the lived-in finish level', () => {
+    const rooms = ['HALLWAY', 'STORAGE'].map((roomTypeCode, index) => ({
+      ...configuration.rooms[0],
+      clientId: `x${index}`,
+      roomTypeCode,
+    }));
+    expect(
+      ConfigurationSchema.safeParse({ ...configuration, rooms }).success,
+    ).toBe(true);
+    expect(
+      ConfigurationSchema.safeParse({
+        ...configuration,
+        finishLevel: 'LIVED_IN',
+      }).success,
+    ).toBe(true);
+  });
+
   it('validates the optional room name', () => {
     const withName = (name: unknown) =>
       ConfigurationSchema.safeParse({
@@ -241,6 +277,64 @@ describe('schemas', () => {
     expect(
       parse({ ...materialRule, quantityFormula: 'floorArea' }).success,
     ).toBe(true);
+  });
+
+  it('shapes pricing rules by level', () => {
+    const base = {
+      ...pricingData.rules[0],
+      surface: null,
+      baseComponent: false,
+      laborFormula: null,
+    };
+    const parse = (rule: unknown) =>
+      PricingDataSchema.safeParse({ ...pricingData, rules: [rule] });
+    const surfaceRule = {
+      ...base,
+      level: 'SURFACE',
+      surface: 'FLOOR',
+      quantityFormula: null,
+    };
+    expect(parse(surfaceRule).success).toBe(true);
+    expect(parse({ ...surfaceRule, surface: null }).success).toBe(false);
+    expect(parse({ ...surfaceRule, categoryId: 'c1' }).success).toBe(false);
+    expect(
+      parse({ ...surfaceRule, quantityFormula: 'floorArea' }).success,
+    ).toBe(false);
+    expect(parse({ ...surfaceRule, laborFormula: 'floorArea' }).success).toBe(
+      false,
+    );
+    expect(parse({ ...base, surface: 'FLOOR' }).success).toBe(false);
+
+    expect(parse({ ...base, baseComponent: true }).success).toBe(true);
+    const materialRule = {
+      ...base,
+      level: 'CATEGORY',
+      categoryId: 'c1',
+      quantityFormula: 'floorArea',
+    };
+    expect(parse(materialRule).success).toBe(true);
+    expect(parse({ ...materialRule, baseComponent: true }).success).toBe(false);
+    expect(parse({ ...materialRule, laborFormula: 'floorArea' }).success).toBe(
+      true,
+    );
+    expect(parse({ ...base, laborFormula: 'totalArea' }).success).toBe(false);
+  });
+
+  it('shapes pricing options with coefficient keys and scopes', () => {
+    const option = {
+      ...pricingData.options[0],
+      priceCoefficientKeys: ['k_floor'],
+      scopes: ['FULL', 'PARTIAL'],
+    };
+    const parse = (value: unknown) =>
+      PricingDataSchema.safeParse({ ...pricingData, options: [value] });
+    expect(parse(option).success).toBe(true);
+    expect(parse({ ...option, priceCoefficientKeys: [] }).success).toBe(true);
+    expect(parse({ ...option, priceCoefficientKeys: 'k_floor' }).success).toBe(
+      false,
+    );
+    expect(parse({ ...option, scopes: [] }).success).toBe(false);
+    expect(parse({ ...option, scopes: ['HALF'] }).success).toBe(false);
   });
 
   it('parses a valid Estimate and rejects non-integer cents or a missing section', () => {

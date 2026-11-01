@@ -393,6 +393,17 @@ describe('validateFormula static typing', () => {
     ]);
   });
 
+  it('accepts the scope variable and reports unknown scope values', () => {
+    expect(check("scope == 'PARTIAL'").valid).toBe(true);
+    expect(check("scope == 'X'").errors).toEqual([
+      syntax(9, 3, {
+        reason: 'UNKNOWN_ENUM_VALUE',
+        value: 'X',
+        variable: 'scope',
+      }),
+    ]);
+  });
+
   it('rejects strings outside an enum comparison', () => {
     expect(check('"BATHROOM" + 1').errors).toEqual([mismatch(0, 10, 'number')]);
     expect(check('roomType == 1').errors).toEqual([
