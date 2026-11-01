@@ -1,8 +1,10 @@
+import { toCents } from '../money';
 import type {
   Configuration,
   EstimateLine,
   OptionSelection,
   OptionUnit,
+  PricingData,
   PricingOption,
   RoomConfiguration,
 } from '../schemas';
@@ -26,20 +28,54 @@ export function unitQuantity(
   }
 }
 
+function optionUnitPriceCents(
+  option: PricingOption,
+  coefficients: PricingData['coefficients'],
+): number | { readonly missingKey: string } {
+  if (option.priceCoefficientKeys.length === 0) {
+    return option.priceCents;
+  }
+  let dollars = 0;
+  for (const key of option.priceCoefficientKeys) {
+    const value = Object.hasOwn(coefficients, key)
+      ? coefficients[key]
+      : undefined;
+    if (value === undefined) {
+      return { missingKey: key };
+    }
+    dollars += value;
+  }
+  return toCents(dollars);
+}
+
 export function optionLine(
   configuration: Configuration,
   option: PricingOption,
   selection: OptionSelection,
+  coefficients: PricingData['coefficients'] = {},
 ): EstimateLine {
   const init = {
     id: lineId(option.kind, 'option', option.id),
     section: option.kind,
     optionId: option.id,
   } as const;
+  if (!option.scopes.includes(configuration.scope)) {
+    return failedLine(init, 'UNAVAILABLE', {
+      code: 'OPTION_SCOPE_NOT_ALLOWED',
+      params: { optionId: option.id, scope: configuration.scope },
+    });
+  }
   if (!option.available) {
     return failedLine(init, 'UNAVAILABLE', {
       code: 'PRODUCT_UNAVAILABLE',
       params: { optionId: option.id },
+    });
+  }
+  const unitPriceCents = optionUnitPriceCents(option, coefficients);
+  if (typeof unitPriceCents !== 'number') {
+    return failedLine(init, 'ERROR', {
+      code: 'UNKNOWN_COEFFICIENT',
+      params: { key: unitPriceCents.missingKey },
     });
   }
   const selected = configuration.rooms.filter((room) =>
@@ -62,7 +98,7 @@ export function optionLine(
       ...init,
       quantity: roundQuantity(quantity),
       unit: option.unit,
-      unitPriceCents: option.priceCents,
+      unitPriceCents,
       warnings: rejected.map((room) => ({
         code: 'OPTION_ROOM_TYPE_NOT_ALLOWED',
         params: {
@@ -71,19 +107,19 @@ export function optionLine(
         },
       })),
     },
-    (option.priceCents / 100) * quantity,
+    (unitPriceCents / 100) * quantity,
   );
 }
 
 export function optionLines(
   configuration: Configuration,
-  data: { readonly options: readonly PricingOption[] },
+  data: Pick<PricingData, 'options' | 'coefficients'>,
   kind: PricingOption['kind'],
 ): EstimateLine[] {
   return configuration.options.flatMap((selection) => {
     const option = data.options.find((item) => item.id === selection.optionId);
     return option?.kind === kind
-      ? [optionLine(configuration, option, selection)]
+      ? [optionLine(configuration, option, selection, data.coefficients)]
       : [];
   });
 }
