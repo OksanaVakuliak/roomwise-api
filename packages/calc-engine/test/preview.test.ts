@@ -22,12 +22,17 @@ const sample: RuleSample = RuleSampleSchema.parse({
   },
   product: { priceCents: 1800, unit: 'SQM', wastePercent: 5 },
   object: {
+    scope: 'FULL',
     totalAreaSqm: 62,
     balconyAreaSqm: 4,
     balconyTiles: true,
     finishLevel: 'PRE_FINISH',
     roomsCount: 1,
     bathroomsCount: 1,
+    roomsFloorArea: 50,
+    roomsWallArea: 135,
+    roomsPerimeter: 50,
+    wetRoomsCount: 2,
   },
 });
 
@@ -136,6 +141,65 @@ describe('previewRule', () => {
         params: { maxCents: MAX_LINE_CENTS },
       },
     });
+  });
+
+  it('exposes the new object variables to the formulas', () => {
+    const preview = previewRule({
+      level: 'OBJECT',
+      quantityFormula: null,
+      costFormula:
+        "scope == 'FULL' ? roomsFloorArea + roomsWallArea + roomsPerimeter + wetRoomsCount : 0",
+      coefficients: {},
+      sample,
+    });
+    expect(preview.error).toBeNull();
+    expect(preview.amountCents).toBe(23700);
+    expect(preview.variables).toEqual({
+      scope: 'FULL',
+      roomsFloorArea: 50,
+      roomsWallArea: 135,
+      roomsPerimeter: 50,
+      wetRoomsCount: 2,
+    });
+  });
+
+  it('previews a surface rule with the surface area and no quantity', () => {
+    const preview = previewRule({
+      level: 'SURFACE',
+      quantityFormula: null,
+      costFormula: 'surfaceArea * coef.rate + floorArea',
+      coefficients: { rate: 2 },
+      sample: { ...sample, surfaceArea: 10 },
+    });
+    expect(preview.error).toBeNull();
+    expect(preview.amountCents).toBe(4000);
+    expect(preview.variables).toEqual({ surfaceArea: 10, floorArea: 20 });
+  });
+
+  it('reports an incomplete surface sample', () => {
+    const rule = {
+      level: 'SURFACE',
+      quantityFormula: null,
+      costFormula: 'surfaceArea',
+      coefficients: {},
+    } as const;
+    expect(previewRule({ ...rule, sample }).error).toEqual({
+      code: 'SAMPLE_INCOMPLETE',
+      params: { missing: 'surfaceArea' },
+    });
+    expect(
+      previewRule({
+        ...rule,
+        sample: { ...sample, surfaceArea: 1, room: undefined },
+      }).error,
+    ).toEqual({ code: 'SAMPLE_INCOMPLETE', params: { missing: 'room' } });
+    expect(
+      previewRule({
+        ...rule,
+        quantityFormula: 'surfaceArea',
+        sample: { ...sample, surfaceArea: 1 },
+      }).error,
+    ).toEqual({ code: 'QUANTITY_FORMULA_MISMATCH' });
   });
 
   it('reports an incomplete sample', () => {

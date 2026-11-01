@@ -4,6 +4,7 @@ import {
   FinishLevelSchema,
   ProductUnitSchema,
   RoomTypeCodeSchema,
+  ScopeSchema,
 } from './common';
 import { EstimateMessageSchema } from './estimate';
 
@@ -24,13 +25,19 @@ export const RuleSampleSchema = z.object({
       wastePercent: z.number().min(0),
     })
     .optional(),
+  surfaceArea: z.number().min(0).optional(),
   object: z.object({
+    scope: ScopeSchema,
     totalAreaSqm: z.number().positive(),
     balconyAreaSqm: z.number().min(0),
     balconyTiles: z.boolean(),
     finishLevel: FinishLevelSchema,
     roomsCount: z.int().min(0),
     bathroomsCount: z.int().min(0),
+    roomsFloorArea: z.number().min(0),
+    roomsWallArea: z.number().min(0),
+    roomsPerimeter: z.number().min(0),
+    wetRoomsCount: z.int().min(0),
   }),
 });
 export type RuleSample = z.infer<typeof RuleSampleSchema>;

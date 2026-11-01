@@ -73,12 +73,17 @@ function referencesOf(sources: readonly (string | null)[]): References {
 
 function objectScope({ object }: RuleSample): Variables {
   return {
+    scope: object.scope,
     totalArea: object.totalAreaSqm,
     balconyArea: object.balconyAreaSqm,
     balconyTiles: object.balconyTiles,
     finishLevel: object.finishLevel,
     roomsCount: object.roomsCount,
     bathroomsCount: object.bathroomsCount,
+    roomsFloorArea: object.roomsFloorArea,
+    roomsWallArea: object.roomsWallArea,
+    roomsPerimeter: object.roomsPerimeter,
+    wetRoomsCount: object.wetRoomsCount,
   };
 }
 
@@ -89,7 +94,20 @@ function scopeOf(
   if (level === 'OBJECT') {
     return { scope: objectScope(sample) };
   }
-  const { room, product } = sample;
+  const { room, product, surfaceArea } = sample;
+  if (level === 'SURFACE') {
+    if (room === undefined || surfaceArea === undefined) {
+      return {
+        error: {
+          code: 'SAMPLE_INCOMPLETE',
+          params: { missing: room === undefined ? 'room' : 'surfaceArea' },
+        },
+      };
+    }
+    return {
+      scope: { ...roomVariables(room), ...objectScope(sample), surfaceArea },
+    };
+  }
   if (room === undefined || product === undefined) {
     return {
       error: {
@@ -132,7 +150,10 @@ export function previewRule(input: PreviewRuleInput): RulePreview {
     error,
   });
 
-  if ((level === 'OBJECT') !== (quantityFormula === null)) {
+  if (
+    (level === 'OBJECT' || level === 'SURFACE') !==
+    (quantityFormula === null)
+  ) {
     return report({}, null, null, { code: 'QUANTITY_FORMULA_MISMATCH' });
   }
   const prepared = scopeOf(level, input.sample);

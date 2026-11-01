@@ -1,13 +1,23 @@
-import type { Configuration, FinishLevel, RoomTypeCode } from '../schemas';
+import type {
+  Configuration,
+  FinishLevel,
+  RoomTypeCode,
+  Scope,
+} from '../schemas';
 import { roomVariables } from './room';
 
 export interface ObjectVariables {
+  readonly scope: Scope;
   readonly totalArea: number;
   readonly balconyArea: number;
   readonly balconyTiles: boolean;
   readonly finishLevel: FinishLevel;
   readonly roomsCount: number;
   readonly bathroomsCount: number;
+  readonly roomsFloorArea: number;
+  readonly roomsWallArea: number;
+  readonly roomsPerimeter: number;
+  readonly wetRoomsCount: number;
 }
 
 const COUNTED_AS_ROOMS: readonly RoomTypeCode[] = [
@@ -16,14 +26,23 @@ const COUNTED_AS_ROOMS: readonly RoomTypeCode[] = [
   'KITCHEN_LIVING',
 ];
 
+const WET_ROOMS: readonly RoomTypeCode[] = [
+  'BATHROOM',
+  'KITCHEN',
+  'KITCHEN_LIVING',
+];
+
 export function objectVariables(configuration: Configuration): ObjectVariables {
+  const rooms = configuration.rooms.map(roomVariables);
+  const sum = (pick: (room: (typeof rooms)[number]) => number): number =>
+    rooms.reduce((total, room) => total + pick(room), 0);
+  const roomsFloorArea = sum((room) => room.floorArea);
   return {
+    scope: configuration.scope,
     totalArea:
-      configuration.totalAreaSqm ??
-      configuration.rooms.reduce(
-        (sum, room) => sum + roomVariables(room).floorArea,
-        0,
-      ),
+      configuration.scope === 'PARTIAL' || configuration.totalAreaSqm === null
+        ? roomsFloorArea
+        : configuration.totalAreaSqm,
     balconyArea: configuration.balconyAreaSqm,
     balconyTiles: configuration.balconyTiles,
     finishLevel: configuration.finishLevel,
@@ -33,5 +52,10 @@ export function objectVariables(configuration: Configuration): ObjectVariables {
     bathroomsCount: configuration.rooms.filter(
       (room) => room.roomTypeCode === 'BATHROOM',
     ).length,
+    roomsFloorArea,
+    roomsWallArea: sum((room) => room.wallArea),
+    roomsPerimeter: sum((room) => room.perimeter),
+    wetRoomsCount: rooms.filter((room) => WET_ROOMS.includes(room.roomType))
+      .length,
   };
 }

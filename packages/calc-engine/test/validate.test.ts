@@ -18,8 +18,8 @@ const coefficientKeys = ['waste_factor', 'labor'];
 
 function check(
   source: string,
-  level: 'OBJECT' | 'CATEGORY' | 'MATERIAL_TYPE' = 'CATEGORY',
-  kind: 'quantity' | 'cost' = 'cost',
+  level: 'OBJECT' | 'CATEGORY' | 'MATERIAL_TYPE' | 'SURFACE' = 'CATEGORY',
+  kind: 'quantity' | 'cost' | 'labor' = 'cost',
 ) {
   return validateFormula({ level, kind, source, coefficientKeys });
 }
@@ -394,14 +394,68 @@ describe('validateFormula static typing', () => {
   });
 
   it('accepts the scope variable and reports unknown scope values', () => {
-    expect(check("scope == 'PARTIAL'").valid).toBe(true);
-    expect(check("scope == 'X'").errors).toEqual([
+    expect(check("scope == 'PARTIAL' ? 1 : 0").valid).toBe(true);
+    expect(check("scope == 'X' ? 1 : 0").errors).toEqual([
       syntax(9, 3, {
         reason: 'UNKNOWN_ENUM_VALUE',
         value: 'X',
         variable: 'scope',
       }),
     ]);
+  });
+
+  it('declares the new object variables and the finish level', () => {
+    const object = Object.fromEntries(
+      FORMULA_SCOPE_VARIABLES.object.map((variable) => [
+        variable.name,
+        variable,
+      ]),
+    );
+    expect(object.scope).toEqual({
+      name: 'scope',
+      kind: 'enum',
+      values: ['FULL', 'PARTIAL'],
+    });
+    expect(object.finishLevel?.values).toContain('LIVED_IN');
+    for (const name of [
+      'roomsFloorArea',
+      'roomsWallArea',
+      'roomsPerimeter',
+      'wetRoomsCount',
+    ]) {
+      expect(object[name]?.kind).toBe('number');
+    }
+    expect(check("finishLevel == 'LIVED_IN' ? 1 : 0").valid).toBe(true);
+    expect(check('wetRoomsCount * roomsFloorArea', 'OBJECT').valid).toBe(true);
+  });
+
+  it('allows the surface area only at the surface level', () => {
+    expect(check('surfaceArea * floorArea', 'SURFACE').valid).toBe(true);
+    expect(check('surfaceArea * 2', 'CATEGORY').errors).toEqual([
+      {
+        code: 'VARIABLE_NOT_ALLOWED_AT_LEVEL',
+        position: 0,
+        length: 11,
+        params: { variable: 'surfaceArea', level: 'CATEGORY' },
+      },
+    ]);
+    expect(check('surfaceArea', 'OBJECT').valid).toBe(false);
+    expect(FORMULA_VARIABLES.SURFACE.map((v) => v.name)).toContain(
+      'surfaceArea',
+    );
+  });
+
+  it('gives a labor formula the cost formula variables and quantity', () => {
+    expect(check('quantity * coef.labor', 'CATEGORY', 'labor').valid).toBe(
+      true,
+    );
+    expect(check('quantity * price', 'MATERIAL_TYPE', 'labor').valid).toBe(
+      true,
+    );
+    expect(check('quantity', 'SURFACE', 'labor').errors[0]?.code).toBe(
+      'QUANTITY_NOT_ALLOWED',
+    );
+    expect(check('floorArea * 2', 'CATEGORY', 'labor').valid).toBe(true);
   });
 
   it('rejects strings outside an enum comparison', () => {
