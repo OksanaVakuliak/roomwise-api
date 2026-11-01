@@ -51,6 +51,9 @@ describe('material line labor component', () => {
     const labor = line?.components?.find((item) => item.kind === 'LABOR');
     expect(labor?.amountCents).toBe(1);
     const material = line?.components?.find((item) => item.kind === 'MATERIAL');
-    expect(line?.amountCents).toBe((material?.amountCents ?? 0) + 1);
+    const prep = line?.components?.find((item) => item.kind === 'PREP');
+    expect(line?.amountCents).toBe(
+      (material?.amountCents ?? 0) + 1 + (prep?.amountCents ?? 0),
+    );
   });
 });

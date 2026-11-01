@@ -50,3 +50,18 @@ export function pricedLine(init: LineInit, dollars: number): EstimateLine {
 export function roundQuantity(quantity: number): number {
   return Math.round(quantity * 1000) / 1000;
 }
+
+export function componentCents(dollars: number): number | null {
+  if (
+    !Number.isFinite(dollars) ||
+    dollars < 0 ||
+    dollars * 100 > MAX_LINE_CENTS
+  ) {
+    return null;
+  }
+  return toCents(dollars);
+}
+
+export function outOfRange(): EstimateMessage {
+  return { code: 'AMOUNT_OUT_OF_RANGE', params: { maxCents: MAX_LINE_CENTS } };
+}

@@ -1,8 +1,6 @@
-import { toCents } from '../money';
 import type {
   Configuration,
   EstimateLine,
-  EstimateMessage,
   EstimateWarning,
   LineComponent,
   PricingData,
@@ -10,9 +8,17 @@ import type {
   RoomConfiguration,
 } from '../schemas';
 import { objectVariables, productVariables, roomVariables } from '../variables';
-import { createLine, failedLine, MAX_LINE_CENTS, roundQuantity } from './line';
+import {
+  componentCents,
+  createLine,
+  failedLine,
+  MAX_LINE_CENTS,
+  outOfRange,
+  roundQuantity,
+} from './line';
 import { lineId } from './line-id';
 import { runNumericFormula } from './run-formula';
+import { applySurfacePrep } from './surfaces';
 
 type MaterialRule = PricingRule & { quantityFormula: string };
 
@@ -36,21 +42,6 @@ function selectRule(
       (rule) => rule.level === 'CATEGORY' && rule.categoryId === categoryId,
     )
   );
-}
-
-function componentCents(dollars: number): number | null {
-  if (
-    !Number.isFinite(dollars) ||
-    dollars < 0 ||
-    dollars * 100 > MAX_LINE_CENTS
-  ) {
-    return null;
-  }
-  return toCents(dollars);
-}
-
-function outOfRange(): EstimateMessage {
-  return { code: 'AMOUNT_OUT_OF_RANGE', params: { maxCents: MAX_LINE_CENTS } };
 }
 
 function materialLine(
@@ -168,11 +159,14 @@ export function materialLines(
   configuration: Configuration,
   data: PricingData,
 ): EstimateLine[] {
-  return configuration.rooms.flatMap((room) =>
-    room.selections.flatMap(({ categoryId, productId }) =>
+  return configuration.rooms.flatMap((room) => {
+    const lines = room.selections.flatMap(({ categoryId, productId }) =>
       productId === null
         ? []
         : [materialLine(configuration, data, room, categoryId, productId)],
-    ),
-  );
+    );
+    return configuration.scope === 'PARTIAL'
+      ? applySurfacePrep(configuration, data, room, lines)
+      : lines;
+  });
 }
