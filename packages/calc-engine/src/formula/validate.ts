@@ -94,6 +94,10 @@ export const FORMULA_VARIABLES: Record<RuleLevel, readonly FormulaVariable[]> =
       ...FORMULA_SCOPE_VARIABLES.product,
       ...FORMULA_SCOPE_VARIABLES.object,
     ],
+    SURFACE: [
+      ...FORMULA_SCOPE_VARIABLES.room,
+      ...FORMULA_SCOPE_VARIABLES.object,
+    ],
   };
 
 export interface ValidateFormulaInput {

@@ -28,7 +28,7 @@ interface Case {
   name: string;
   description: string;
   pricingData: Partial<PricingData>;
-  configuration: Configuration;
+  configuration: Omit<Configuration, 'scope'>;
   expected: ExpectedCase;
 }
 

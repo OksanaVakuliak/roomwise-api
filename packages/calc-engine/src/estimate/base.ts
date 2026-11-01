@@ -7,7 +7,7 @@ export function baseLine(
   data: PricingData,
 ): EstimateLine {
   const init = { id: lineId('BASE'), section: 'BASE' } as const;
-  const area = configuration.totalAreaSqm;
+  const area = configuration.totalAreaSqm ?? 0;
   const rate = data.baseRates.find(
     (candidate) =>
       candidate.finishLevel === configuration.finishLevel &&

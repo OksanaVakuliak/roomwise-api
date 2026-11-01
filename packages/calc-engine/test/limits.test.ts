@@ -30,6 +30,7 @@ const room = (
 const configuration = (
   overrides: Partial<Configuration> = {},
 ): Configuration => ({
+  scope: 'FULL',
   finishLevel: 'PRE_FINISH',
   totalAreaSqm: 60,
   balconyAreaSqm: 4,

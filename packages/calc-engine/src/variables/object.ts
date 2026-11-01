@@ -1,4 +1,5 @@
 import type { Configuration, FinishLevel, RoomTypeCode } from '../schemas';
+import { roomVariables } from './room';
 
 export interface ObjectVariables {
   readonly totalArea: number;
@@ -17,7 +18,12 @@ const COUNTED_AS_ROOMS: readonly RoomTypeCode[] = [
 
 export function objectVariables(configuration: Configuration): ObjectVariables {
   return {
-    totalArea: configuration.totalAreaSqm,
+    totalArea:
+      configuration.totalAreaSqm ??
+      configuration.rooms.reduce(
+        (sum, room) => sum + roomVariables(room).floorArea,
+        0,
+      ),
     balconyArea: configuration.balconyAreaSqm,
     balconyTiles: configuration.balconyTiles,
     finishLevel: configuration.finishLevel,

@@ -17,6 +17,7 @@ const MEASURED_RUNS = 25;
 const data = PricingDataSchema.parse(reference.pricingData);
 
 const configuration: Configuration = ConfigurationSchema.parse({
+  scope: 'FULL',
   finishLevel: 'PRE_FINISH',
   totalAreaSqm: 400,
   balconyAreaSqm: 6,

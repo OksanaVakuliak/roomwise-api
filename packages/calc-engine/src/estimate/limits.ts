@@ -18,17 +18,19 @@ export function checkLimits(
     }
   };
 
-  check(
-    'totalAreaSqm',
-    configuration.totalAreaSqm,
-    limits.totalAreaSqm.min,
-    limits.totalAreaSqm.max,
-  );
+  if (configuration.totalAreaSqm !== null) {
+    check(
+      'totalAreaSqm',
+      configuration.totalAreaSqm,
+      limits.totalAreaSqm.min,
+      limits.totalAreaSqm.max,
+    );
+  }
   check(
     'balconyAreaSqm',
     configuration.balconyAreaSqm,
     0,
-    configuration.totalAreaSqm,
+    configuration.totalAreaSqm ?? limits.totalAreaSqm.max,
   );
   check(
     'rooms',

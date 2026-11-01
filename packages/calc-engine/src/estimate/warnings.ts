@@ -3,6 +3,10 @@ import { roomVariables } from '../variables';
 import { collectWarnings } from './totals';
 
 function roomsAreaWarnings(configuration: Configuration): EstimateWarning[] {
+  const totalAreaSqm = configuration.totalAreaSqm;
+  if (totalAreaSqm === null) {
+    return [];
+  }
   const roomsAreaSqm =
     Math.round(
       configuration.rooms.reduce(
@@ -10,11 +14,11 @@ function roomsAreaWarnings(configuration: Configuration): EstimateWarning[] {
         0,
       ) * 10_000,
     ) / 10_000;
-  return roomsAreaSqm > configuration.totalAreaSqm
+  return roomsAreaSqm > totalAreaSqm
     ? [
         {
           code: 'ROOMS_AREA_EXCEEDS_TOTAL',
-          params: { roomsAreaSqm, totalAreaSqm: configuration.totalAreaSqm },
+          params: { roomsAreaSqm, totalAreaSqm },
         },
       ]
     : [];

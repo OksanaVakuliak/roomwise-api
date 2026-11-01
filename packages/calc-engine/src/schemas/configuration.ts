@@ -3,6 +3,7 @@ import {
   CurrencySchema,
   FinishLevelSchema,
   RoomTypeCodeSchema,
+  ScopeSchema,
 } from './common';
 
 export const RoomSelectionSchema = z.object({
@@ -47,8 +48,9 @@ function duplicateIndexes<T>(
 
 export const ConfigurationSchema = z
   .object({
+    scope: ScopeSchema.default('FULL'),
     finishLevel: FinishLevelSchema,
-    totalAreaSqm: z.number().positive(),
+    totalAreaSqm: z.number().positive().nullable(),
     balconyAreaSqm: z.number().min(0),
     balconyTiles: z.boolean(),
     rooms: z.array(RoomConfigurationSchema),
@@ -58,6 +60,17 @@ export const ConfigurationSchema = z
   .superRefine((configuration, ctx) => {
     const addDuplicate = (path: (string | number)[]) =>
       ctx.addIssue({ code: 'custom', path, message: 'Duplicate' });
+
+    if (
+      (configuration.scope === 'FULL') !==
+      (configuration.totalAreaSqm !== null)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['totalAreaSqm'],
+        message: configuration.scope === 'FULL' ? 'Required' : 'Not allowed',
+      });
+    }
 
     for (const index of duplicateIndexes(
       configuration.rooms,
