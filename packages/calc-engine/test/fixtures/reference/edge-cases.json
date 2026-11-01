@@ -1,7 +1,7 @@
 [
   {
     "name": "disabled-categories",
-    "description": "All categories of the living room are disabled: no material lines. Total is the base 734700 plus the zero object line.",
+    "description": "All categories of the living room are disabled: no material lines. Total is the base electrics 20 m2 * 11.00 = 22000 plus the zero object line.",
     "pricingData": {
       "packageItems": []
     },
@@ -41,13 +41,13 @@
       "lineCount": 2,
       "lines": [
         {
-          "id": "BASE",
+          "id": "BASE:rule-base-electrics",
           "section": "BASE",
           "status": "OK",
-          "quantity": 62,
-          "unit": "SQM",
-          "unitPriceCents": 11850,
-          "amountCents": 734700
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 22000
         },
         {
           "id": "OBJECT:rule-balcony-tile",
@@ -60,16 +60,162 @@
         }
       ],
       "totals": {
-        "usdCents": 734700
+        "usdCents": 22000
       },
       "incomplete": false
     }
   },
   {
-    "name": "area-outside-rates",
-    "description": "Total area 10 m2 is below every range: the base line is NOT_CALCULATED with BASE_RATE_NOT_FOUND, the floor line is still calculated (42000), the estimate is incomplete. Total 42000.",
+    "name": "base-rule-formula-error",
+    "description": "The electrics base formula divides by (roomsFloorArea - 20), which is 0 for the 20 m2 living room: the base line is ERROR with FORMULA_RUNTIME_ERROR / DIVISION_BY_ZERO and amount 0, the floor line is still calculated (42000), the estimate is incomplete. Total 42000.",
     "pricingData": {
-      "packageItems": []
+      "packageItems": [],
+      "rules": [
+        {
+          "id": "rule-floor",
+          "level": "CATEGORY",
+          "categoryId": "cat-floor",
+          "materialTypeId": null,
+          "name": {
+            "en": "Floor",
+            "uk": "Підлога"
+          },
+          "quantityFormula": "floorArea * (1 + waste)",
+          "costFormula": "quantity * (price + coef.laminate_underlay)",
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-floor-tile",
+          "level": "MATERIAL_TYPE",
+          "categoryId": "cat-floor",
+          "materialTypeId": "mt-tile",
+          "name": {
+            "en": "Floor tile",
+            "uk": "Плитка на підлозі"
+          },
+          "quantityFormula": "floorArea * (1 + waste)",
+          "costFormula": "quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))",
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-walls",
+          "level": "CATEGORY",
+          "categoryId": "cat-walls",
+          "materialTypeId": null,
+          "name": {
+            "en": "Walls",
+            "uk": "Стіни"
+          },
+          "quantityFormula": "wallArea * (1 + waste)",
+          "costFormula": "quantity * price",
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-ceiling",
+          "level": "CATEGORY",
+          "categoryId": "cat-ceiling",
+          "materialTypeId": null,
+          "name": {
+            "en": "Ceiling",
+            "uk": "Стеля"
+          },
+          "quantityFormula": "floorArea * (1 + waste)",
+          "costFormula": "quantity * price",
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-balcony-tile",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Balcony tile",
+            "uk": "Плитка на балконі"
+          },
+          "quantityFormula": null,
+          "costFormula": "balconyTiles ? balconyArea * coef.balcony_tile : 0",
+          "sortOrder": 0,
+          "surface": null,
+          "baseComponent": false,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-screed",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Screed",
+            "uk": "Стяжка"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsFloorArea * (coef.prep_screed + coef.mat_screed) : 0",
+          "sortOrder": 1,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plaster",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Wall plaster",
+            "uk": "Штукатурка стін"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsWallArea * (coef.prep_wall_plaster + coef.mat_wall_plaster) : 0",
+          "sortOrder": 2,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-electrics",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Electrics",
+            "uk": "Електрика"
+          },
+          "quantityFormula": null,
+          "costFormula": "roomsFloorArea / (roomsFloorArea - 20)",
+          "sortOrder": 3,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plumbing",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Plumbing",
+            "uk": "Водопостачання"
+          },
+          "quantityFormula": null,
+          "costFormula": "wetRoomsCount * coef.mat_plumbing_room",
+          "sortOrder": 4,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        }
+      ]
     },
     "configuration": {
       "finishLevel": "PRE_FINISH",
@@ -99,15 +245,18 @@
       "lineCount": 3,
       "lines": [
         {
-          "id": "BASE",
+          "id": "BASE:rule-base-electrics",
           "section": "BASE",
-          "status": "NOT_CALCULATED",
+          "status": "ERROR",
           "quantity": null,
           "unit": null,
           "unitPriceCents": null,
           "amountCents": 0,
           "error": {
-            "code": "BASE_RATE_NOT_FOUND"
+            "code": "FORMULA_RUNTIME_ERROR",
+            "params": {
+              "reason": "DIVISION_BY_ZERO"
+            }
           }
         },
         {
@@ -128,18 +277,93 @@
     }
   },
   {
-    "name": "range-lower-bound-inclusive",
-    "description": "Total area 55 m2 is the inclusive lower bound of [55, 70): rate 11850, 55 * 11850 = 651750 cents.",
+    "name": "base-zero-line-omitted",
+    "description": "Living room 5 x 4 x 2.7 m at PRE_FINISH with only the base rules: screed and plaster are ROUGH only (0), plumbing has no wet rooms (0), so the three zero OK lines are omitted and only electrics 20 m2 * 11.00 = 22000 remains.",
     "pricingData": {
       "packageItems": [],
-      "rules": []
+      "rules": [
+        {
+          "id": "rule-base-screed",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Screed",
+            "uk": "Стяжка"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsFloorArea * (coef.prep_screed + coef.mat_screed) : 0",
+          "sortOrder": 1,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plaster",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Wall plaster",
+            "uk": "Штукатурка стін"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsWallArea * (coef.prep_wall_plaster + coef.mat_wall_plaster) : 0",
+          "sortOrder": 2,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-electrics",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Electrics",
+            "uk": "Електрика"
+          },
+          "quantityFormula": null,
+          "costFormula": "roomsFloorArea * coef.mat_electrics_sqm",
+          "sortOrder": 3,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plumbing",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Plumbing",
+            "uk": "Водопостачання"
+          },
+          "quantityFormula": null,
+          "costFormula": "wetRoomsCount * coef.mat_plumbing_room",
+          "sortOrder": 4,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        }
+      ]
     },
     "configuration": {
       "finishLevel": "PRE_FINISH",
       "totalAreaSqm": 55,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "rooms": [],
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": []
+        }
+      ],
       "options": [],
       "currency": "USD"
     },
@@ -147,94 +371,175 @@
       "lineCount": 1,
       "lines": [
         {
-          "id": "BASE",
+          "id": "BASE:rule-base-electrics",
           "section": "BASE",
           "status": "OK",
-          "quantity": 55,
-          "unit": "SQM",
-          "unitPriceCents": 11850,
-          "amountCents": 651750
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 22000
         }
       ],
-      "totals": {
-        "usdCents": 651750
-      },
-      "incomplete": false
-    }
-  },
-  {
-    "name": "range-upper-bound-exclusive",
-    "description": "Total area 70 m2 is the exclusive upper bound of [55, 70), so it belongs to [70, 501) with rate 10900: 70 * 10900 = 763000 cents.",
-    "pricingData": {
-      "packageItems": [],
-      "rules": []
-    },
-    "configuration": {
-      "finishLevel": "PRE_FINISH",
-      "totalAreaSqm": 70,
-      "balconyAreaSqm": 0,
-      "balconyTiles": false,
-      "rooms": [],
-      "options": [],
-      "currency": "USD"
-    },
-    "expected": {
-      "lineCount": 1,
-      "lines": [
-        {
-          "id": "BASE",
-          "section": "BASE",
-          "status": "OK",
-          "quantity": 70,
-          "unit": "SQM",
-          "unitPriceCents": 10900,
-          "amountCents": 763000
-        }
+      "absentLineIds": [
+        "BASE:rule-base-screed",
+        "BASE:rule-base-plaster",
+        "BASE:rule-base-plumbing"
       ],
       "totals": {
-        "usdCents": 763000
+        "usdCents": 22000
       },
       "incomplete": false
     }
   },
   {
     "name": "rough-finish-level",
-    "description": "The ROUGH rate in [55, 70) is 8500: 62 * 8500 = 527000 cents.",
+    "description": "ROUGH with a living room 5 x 4 x 2.7 m and a bathroom 2 x 2 x 2.5 m and only the base rules: screed 24 m2 * (8.3 + 14.8) = 554.40 USD = 55440; plaster wall area (48.6 + 20) = 68.6 m2 * (7.9 + 5.0) = 884.94 USD = 88494; electrics 24 * 11.00 = 26400; plumbing 1 * 56 = 5600. Total 175934.",
     "pricingData": {
       "packageItems": [],
-      "rules": []
+      "rules": [
+        {
+          "id": "rule-base-screed",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Screed",
+            "uk": "Стяжка"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsFloorArea * (coef.prep_screed + coef.mat_screed) : 0",
+          "sortOrder": 1,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plaster",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Wall plaster",
+            "uk": "Штукатурка стін"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsWallArea * (coef.prep_wall_plaster + coef.mat_wall_plaster) : 0",
+          "sortOrder": 2,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-electrics",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Electrics",
+            "uk": "Електрика"
+          },
+          "quantityFormula": null,
+          "costFormula": "roomsFloorArea * coef.mat_electrics_sqm",
+          "sortOrder": 3,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plumbing",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Plumbing",
+            "uk": "Водопостачання"
+          },
+          "quantityFormula": null,
+          "costFormula": "wetRoomsCount * coef.mat_plumbing_room",
+          "sortOrder": 4,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        }
+      ]
     },
     "configuration": {
       "finishLevel": "ROUGH",
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "rooms": [],
+      "rooms": [
+        {
+          "clientId": "living",
+          "roomTypeCode": "LIVING_ROOM",
+          "lengthM": 5,
+          "widthM": 4,
+          "heightM": 2.7,
+          "heatedFloor": false,
+          "selections": []
+        },
+        {
+          "clientId": "bath",
+          "roomTypeCode": "BATHROOM",
+          "lengthM": 2,
+          "widthM": 2,
+          "heightM": 2.5,
+          "heatedFloor": false,
+          "selections": []
+        }
+      ],
       "options": [],
       "currency": "USD"
     },
     "expected": {
-      "lineCount": 1,
+      "lineCount": 4,
       "lines": [
         {
-          "id": "BASE",
+          "id": "BASE:rule-base-screed",
           "section": "BASE",
           "status": "OK",
-          "quantity": 62,
-          "unit": "SQM",
-          "unitPriceCents": 8500,
-          "amountCents": 527000
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 55440
+        },
+        {
+          "id": "BASE:rule-base-plaster",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 88494
+        },
+        {
+          "id": "BASE:rule-base-electrics",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 26400
+        },
+        {
+          "id": "BASE:rule-base-plumbing",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 5600
         }
       ],
       "totals": {
-        "usdCents": 527000
+        "usdCents": 175934
       },
       "incomplete": false
     }
   },
   {
     "name": "rule-not-found",
-    "description": "No category or material-type rule exists for the ceiling: the line is NOT_CALCULATED with RULE_NOT_FOUND and the estimate is incomplete. Total is the base 734700 plus the zero object line.",
+    "description": "No category or material-type rule exists for the ceiling: the line is NOT_CALCULATED with RULE_NOT_FOUND and the estimate is incomplete. Bathroom 2 x 2: base electrics 4 * 11.00 = 4400 plus plumbing 56 = 5600 plus the zero object line: total 10000.",
     "pricingData": {
       "packageItems": [],
       "rules": [
@@ -301,6 +606,70 @@
           "surface": null,
           "baseComponent": false,
           "laborFormula": null
+        },
+        {
+          "id": "rule-base-screed",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Screed",
+            "uk": "Стяжка"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsFloorArea * (coef.prep_screed + coef.mat_screed) : 0",
+          "sortOrder": 1,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plaster",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Wall plaster",
+            "uk": "Штукатурка стін"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsWallArea * (coef.prep_wall_plaster + coef.mat_wall_plaster) : 0",
+          "sortOrder": 2,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-electrics",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Electrics",
+            "uk": "Електрика"
+          },
+          "quantityFormula": null,
+          "costFormula": "roomsFloorArea * coef.mat_electrics_sqm",
+          "sortOrder": 3,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plumbing",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Plumbing",
+            "uk": "Водопостачання"
+          },
+          "quantityFormula": null,
+          "costFormula": "wetRoomsCount * coef.mat_plumbing_room",
+          "sortOrder": 4,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
         }
       ]
     },
@@ -329,7 +698,7 @@
       "currency": "USD"
     },
     "expected": {
-      "lineCount": 3,
+      "lineCount": 4,
       "lines": [
         {
           "id": "MATERIALS:bath:cat-ceiling",
@@ -346,14 +715,14 @@
         }
       ],
       "totals": {
-        "usdCents": 734700
+        "usdCents": 10000
       },
       "incomplete": true
     }
   },
   {
     "name": "unavailable-product",
-    "description": "The laminate is unavailable: the floor line is UNAVAILABLE with amount 0 and does not count, the walls line 36086 is calculated. The estimate is not incomplete. Total 734700 + 0 + 36086 = 770786.",
+    "description": "The laminate is unavailable: the floor line is UNAVAILABLE with amount 0 and does not count, the walls line 36086 is calculated. The estimate is not incomplete. Total 22000 + 0 + 36086 = 58086.",
     "pricingData": {
       "packageItems": [],
       "products": [
@@ -475,14 +844,14 @@
         }
       ],
       "totals": {
-        "usdCents": 770786
+        "usdCents": 58086
       },
       "incomplete": false
     }
   },
   {
     "name": "formula-error",
-    "description": "The floor cost formula divides by (length - 5), which is 0 for the 5 m long room: the line is ERROR with FORMULA_RUNTIME_ERROR / DIVISION_BY_ZERO and amount 0, other lines continue. Total 734700 + 0 + 36086 = 770786, incomplete.",
+    "description": "The floor cost formula divides by (length - 5), which is 0 for the 5 m long room: the line is ERROR with FORMULA_RUNTIME_ERROR / DIVISION_BY_ZERO and amount 0, other lines continue. Total 22000 + 0 + 36086 = 58086, incomplete.",
     "pricingData": {
       "packageItems": [],
       "rules": [
@@ -565,6 +934,70 @@
           "surface": null,
           "baseComponent": false,
           "laborFormula": null
+        },
+        {
+          "id": "rule-base-screed",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Screed",
+            "uk": "Стяжка"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsFloorArea * (coef.prep_screed + coef.mat_screed) : 0",
+          "sortOrder": 1,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plaster",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Wall plaster",
+            "uk": "Штукатурка стін"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsWallArea * (coef.prep_wall_plaster + coef.mat_wall_plaster) : 0",
+          "sortOrder": 2,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-electrics",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Electrics",
+            "uk": "Електрика"
+          },
+          "quantityFormula": null,
+          "costFormula": "roomsFloorArea * coef.mat_electrics_sqm",
+          "sortOrder": 3,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plumbing",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Plumbing",
+            "uk": "Водопостачання"
+          },
+          "quantityFormula": null,
+          "costFormula": "wetRoomsCount * coef.mat_plumbing_room",
+          "sortOrder": 4,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
         }
       ]
     },
@@ -627,14 +1060,14 @@
         }
       ],
       "totals": {
-        "usdCents": 770786
+        "usdCents": 58086
       },
       "incomplete": true
     }
   },
   {
     "name": "maximum-object",
-    "description": "500 m2 with 15 rooms of 6 x 5 x 3 m. Base 500 * 10900 = 5450000. Per room floor: 30 * 1.05 = 31.5 m2 * (95.5 + 2) = 3071.25 USD = 307125 cents; walls: 66 * 1.1 = 72.6 m2 * 250.5 = 18186.3 USD = 1818630 cents. For 15 rooms: 15 * 307125 = 4606875 and 15 * 1818630 = 27279450. Total 5450000 + 4606875 + 27279450 = 37336325. Lines: base, zero object line and 30 material lines.",
+    "description": "500 m2 with 15 rooms of 6 x 5 x 3 m. Base electrics 15 * 30 = 450 m2 * 11.00 = 4950 USD = 495000. Per room floor: 30 * 1.05 = 31.5 m2 * (95.5 + 2) = 3071.25 USD = 307125 cents; walls: 66 * 1.1 = 72.6 m2 * 250.5 = 18186.3 USD = 1818630 cents. For 15 rooms: 15 * 307125 = 4606875 and 15 * 1818630 = 27279450. Total 495000 + 4606875 + 27279450 = 32381325. Lines: base electrics, zero object line and 30 material lines.",
     "pricingData": {
       "packageItems": []
     },
@@ -922,13 +1355,13 @@
       "lineCount": 32,
       "lines": [
         {
-          "id": "BASE",
+          "id": "BASE:rule-base-electrics",
           "section": "BASE",
           "status": "OK",
-          "quantity": 500,
-          "unit": "SQM",
-          "unitPriceCents": 10900,
-          "amountCents": 5450000
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 495000
         },
         {
           "id": "MATERIALS:r1:cat-floor",
@@ -972,14 +1405,14 @@
         }
       ],
       "totals": {
-        "usdCents": 37336325
+        "usdCents": 32381325
       },
       "incomplete": false
     }
   },
   {
     "name": "option-room-type-not-allowed",
-    "description": "Heated floor is selected for the living room and the bathroom, but only BATHROOM and KITCHEN are allowed: the living room is ignored with a warning on the line and in the summary, quantity is the bathroom 4 m2. Total 734700 + 0 + 34000 = 768700.",
+    "description": "Heated floor is selected for the living room and the bathroom, but only BATHROOM and KITCHEN are allowed: the living room is ignored with a warning on the line and in the summary, quantity is the bathroom 4 m2. Base electrics 24 * 11.00 = 26400 plus plumbing 56 = 5600. Total 26400 + 5600 + 0 + 34000 = 66000. Rooms area 24 m2 against 62 m2 adds ROOMS_AREA_BELOW_TOTAL with missingSqm 38.",
     "pricingData": {
       "packageItems": []
     },
@@ -1017,7 +1450,7 @@
       "currency": "USD"
     },
     "expected": {
-      "lineCount": 3,
+      "lineCount": 4,
       "lines": [
         {
           "id": "ENGINEERING:option:opt-heated-floor",
@@ -1046,20 +1479,91 @@
             "roomTypeCode": "LIVING_ROOM"
           },
           "lineId": "ENGINEERING:option:opt-heated-floor"
+        },
+        {
+          "code": "ROOMS_AREA_BELOW_TOTAL",
+          "params": {
+            "missingSqm": 38
+          }
         }
       ],
       "totals": {
-        "usdCents": 768700
+        "usdCents": 66000
       },
       "incomplete": false
     }
   },
   {
     "name": "no-exchange-rate",
-    "description": "No rate is available: the USD estimate is calculated, kopeck fields are null.",
+    "description": "No rate is available: the USD estimate is calculated, kopeck fields are null. Bathroom 2 x 2 with the base rules: electrics 4400 and plumbing 5600, total 10000.",
     "pricingData": {
       "packageItems": [],
-      "rules": [],
+      "rules": [
+        {
+          "id": "rule-base-screed",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Screed",
+            "uk": "Стяжка"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsFloorArea * (coef.prep_screed + coef.mat_screed) : 0",
+          "sortOrder": 1,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plaster",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Wall plaster",
+            "uk": "Штукатурка стін"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsWallArea * (coef.prep_wall_plaster + coef.mat_wall_plaster) : 0",
+          "sortOrder": 2,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-electrics",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Electrics",
+            "uk": "Електрика"
+          },
+          "quantityFormula": null,
+          "costFormula": "roomsFloorArea * coef.mat_electrics_sqm",
+          "sortOrder": 3,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plumbing",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Plumbing",
+            "uk": "Водопостачання"
+          },
+          "quantityFormula": null,
+          "costFormula": "wetRoomsCount * coef.mat_plumbing_room",
+          "sortOrder": 4,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        }
+      ],
       "exchangeRate": null
     },
     "configuration": {
@@ -1067,26 +1571,46 @@
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "rooms": [],
+      "rooms": [
+        {
+          "clientId": "bath",
+          "roomTypeCode": "BATHROOM",
+          "lengthM": 2,
+          "widthM": 2,
+          "heightM": 2.5,
+          "heatedFloor": false,
+          "selections": []
+        }
+      ],
       "options": [],
       "currency": "UAH"
     },
     "expected": {
-      "lineCount": 1,
+      "lineCount": 2,
       "lines": [
         {
-          "id": "BASE",
+          "id": "BASE:rule-base-electrics",
           "section": "BASE",
           "status": "OK",
-          "quantity": 62,
-          "unit": "SQM",
-          "unitPriceCents": 11850,
-          "amountCents": 734700,
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 4400,
+          "amountUahKopecks": null
+        },
+        {
+          "id": "BASE:rule-base-plumbing",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 5600,
           "amountUahKopecks": null
         }
       ],
       "totals": {
-        "usdCents": 734700,
+        "usdCents": 10000,
         "uahKopecks": null
       },
       "incomplete": false
