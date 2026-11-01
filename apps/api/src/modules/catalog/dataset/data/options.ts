@@ -6,7 +6,6 @@ import {
 } from '../../../../generated/prisma/enums';
 import type { SeedOption } from '../catalog-dataset.schema';
 import { seedImages } from './images';
-import { roomTypeIds } from './room-types';
 
 export const optionIds = {
   heatedFloor: 'd063df67-2423-4c0d-8aef-ec20a55f8919',
@@ -36,11 +35,7 @@ export const options: SeedOption[] = [
     maxQuantity: null,
     sortOrder: 0,
     status: PublicationStatus.PUBLISHED,
-    roomTypeIds: [
-      roomTypeIds.bathroom,
-      roomTypeIds.kitchen,
-      roomTypeIds.kitchenLiving,
-    ],
+    roomTypeIds: [],
   },
   {
     id: optionIds.airConditioning,

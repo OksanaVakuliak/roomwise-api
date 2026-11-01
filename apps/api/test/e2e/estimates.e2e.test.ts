@@ -95,6 +95,14 @@ describe('estimates e2e', () => {
       ]);
     });
 
+    it('allows the heated floor option in every room type', () => {
+      const option = data.options.find(
+        (item) => item.id === optionIds.heatedFloor,
+      );
+
+      expect(option?.roomTypeCodes).toEqual([]);
+    });
+
     it('answers 304 when If-None-Match carries the current version', async () => {
       const response = await request(testApp.http)
         .get('/api/v1/public/pricing-data')
@@ -348,6 +356,34 @@ describe('estimates e2e', () => {
         expect(line.warnings).toEqual([]);
       },
     );
+
+    it('prices the heated floor option in a bedroom without warnings', async () => {
+      const room = {
+        ...samples[0].rooms[0],
+        roomTypeCode: 'BEDROOM' as const,
+        heatedFloor: true,
+      };
+      const configuration: Configuration = {
+        ...samples[0],
+        rooms: [room],
+        options: [
+          { optionId: optionIds.heatedFloor, roomClientIds: [room.clientId] },
+        ],
+      };
+
+      const response = await request(testApp.http)
+        .post('/api/v1/public/estimates')
+        .send({ configuration })
+        .expect(200);
+
+      const line = response.body.estimate.lines.find(
+        (item: { optionId?: string }) =>
+          item.optionId === optionIds.heatedFloor,
+      );
+      expect(line.quantity).toBeGreaterThan(0);
+      expect(line.amountCents).toBeGreaterThan(0);
+      expect(line.warnings).toEqual([]);
+    });
 
     describe('warnings', () => {
       const floorCategory = () => {
