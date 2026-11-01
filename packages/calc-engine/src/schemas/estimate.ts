@@ -16,9 +16,9 @@ export type EstimateMessage = z.infer<typeof EstimateMessageSchema>;
 
 export const LineComponentSchema = z.object({
   kind: LineComponentKindSchema,
-  ruleId: z.uuid(),
+  ruleId: z.string(),
   amountCents: z.number().int().min(0),
-  sharedWithCategoryId: z.uuid().optional(),
+  sharedWithCategoryId: z.string().optional(),
 });
 export type LineComponent = z.infer<typeof LineComponentSchema>;
 

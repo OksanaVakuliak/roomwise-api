@@ -354,10 +354,10 @@ describe('schemas', () => {
       ]).success,
     ).toBe(true);
     expect(parse([{ ...component, kind: 'OTHER' }]).success).toBe(false);
-    expect(parse([{ ...component, ruleId: 'r1' }]).success).toBe(false);
+    expect(parse([{ ...component, ruleId: 1 }]).success).toBe(false);
     expect(parse([{ ...component, amountCents: -1 }]).success).toBe(false);
     expect(parse([{ ...component, amountCents: 1.5 }]).success).toBe(false);
-    expect(parse([{ ...component, sharedWithCategoryId: 'c1' }]).success).toBe(
+    expect(parse([{ ...component, sharedWithCategoryId: 1 }]).success).toBe(
       false,
     );
   });
