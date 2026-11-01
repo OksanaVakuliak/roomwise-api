@@ -13,6 +13,7 @@ import { createOpenApiDocument } from './openapi';
 class SampleDto extends createZodDto(
   z.object({
     note: z.string().nullable(),
+    quantity: z.number().nullable(),
     tags: z.array(z.string()),
     nested: z.object({ text: z.string().nullable() }),
   }),
@@ -23,7 +24,7 @@ class SampleController {
   @Get()
   @ZodResponse({ status: HttpStatus.OK, type: SampleDto })
   get() {
-    return { note: null, tags: [], nested: { text: null } };
+    return { note: null, quantity: null, tags: [], nested: { text: null } };
   }
 }
 
@@ -51,6 +52,12 @@ describe('createOpenApiDocument', () => {
   it('describes a top-level nullable string as string or null', () => {
     expect(sampleProperties().note).toEqual({
       anyOf: [{ type: 'string' }, { type: 'null' }],
+    });
+  });
+
+  it('describes a top-level nullable number as number or null', () => {
+    expect(sampleProperties().quantity).toEqual({
+      anyOf: [{ type: 'number' }, { type: 'null' }],
     });
   });
 
