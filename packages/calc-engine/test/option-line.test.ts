@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { Configuration, PricingOption } from '../src';
+import {
+  type Configuration,
+  EstimateSchema,
+  estimate,
+  type PricingOption,
+} from '../src';
 import { optionLine } from '../src/estimate/option-line';
+import { partialConfiguration, scopeData } from './fixtures/scope';
 
 const configuration = (scope: 'FULL' | 'PARTIAL'): Configuration => ({
   scope,
@@ -76,6 +82,40 @@ describe('option line pricing', () => {
       status: 'UNAVAILABLE',
       amountCents: 0,
       error: { code: 'OPTION_SCOPE_NOT_ALLOWED' },
+    });
+  });
+
+  it('fails the line when the coefficient sum is negative', () => {
+    expect(
+      line('PARTIAL', { priceCoefficientKeys: ['a', 'b'] }, { a: 5, b: -10 }),
+    ).toMatchObject({
+      status: 'ERROR',
+      unitPriceCents: null,
+      amountCents: 0,
+      error: { code: 'AMOUNT_OUT_OF_RANGE' },
+    });
+  });
+
+  it('keeps the estimate valid with a negative coefficient price', () => {
+    const data = {
+      ...scopeData,
+      coefficients: { ...scopeData.coefficients, a: 5, b: -10 },
+      options: scopeData.options.map((item) =>
+        item.kind === 'ADDITIONAL'
+          ? { ...item, priceCoefficientKeys: ['a', 'b'] }
+          : item,
+      ),
+    };
+    const result = estimate(
+      partialConfiguration({ options: [{ optionId: 'opt-extra' }] }),
+      data,
+    );
+    expect(EstimateSchema.safeParse(result).success).toBe(true);
+    expect(
+      result.lines.find((item) => item.optionId === 'opt-extra'),
+    ).toMatchObject({
+      status: 'ERROR',
+      error: { code: 'AMOUNT_OUT_OF_RANGE' },
     });
   });
 });

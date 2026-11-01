@@ -152,13 +152,14 @@ const preview = previewRule({
 // {
 //   quantity: 21,
 //   amountCents: 42000,
+//   laborCents: null,
 //   variables: { floorArea: 20, waste: 0.05, price: 18, quantity: 21 },
 //   coefficients: { underlay: 2 },
 //   error: null,
 // }
 ```
 
-`variables` and `coefficients` in the result contain only what the formulas reference. For `OBJECT` rules `quantityFormula` must be `null` and `room`/`product` may be omitted. For `SURFACE` rules `quantityFormula` must be `null`, and `sample.room` and `sample.surfaceArea` are required. For `CATEGORY` and `MATERIAL_TYPE` rules `quantityFormula`, `room` and `product` are required. Otherwise `error.code` is `QUANTITY_FORMULA_MISMATCH` or `SAMPLE_INCOMPLETE` (`params.missing` names the absent part, for example `surfaceArea`). `previewRule` evaluates the cost formula only, not `laborFormula`.
+`variables` and `coefficients` in the result contain only what the formulas reference. For `OBJECT` rules `quantityFormula` must be `null` and `room`/`product` may be omitted. For `SURFACE` rules `quantityFormula` must be `null`, and `sample.room` and `sample.surfaceArea` are required. For `CATEGORY` and `MATERIAL_TYPE` rules `quantityFormula`, `room` and `product` are required. Otherwise `error.code` is `QUANTITY_FORMULA_MISMATCH` or `SAMPLE_INCOMPLETE` (`params.missing` names the absent part, for example `surfaceArea`). `laborFormula` is optional and is evaluated for `CATEGORY` and `MATERIAL_TYPE` rules with the same variables as the cost formula, including `quantity`. Its amount is `laborCents`, which is `null` without a labor formula or when it fails; a labor failure is reported in `error` and `amountCents` keeps the material cost. In a `PARTIAL` sample `totalArea` is `roomsFloorArea`, as in `estimate`, and `sample.object.totalAreaSqm` is required in `FULL` and must be `null` in `PARTIAL`.
 
 ### Lower-level formula API
 

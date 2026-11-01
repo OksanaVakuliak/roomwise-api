@@ -22,6 +22,7 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PricingLimits.missingAreaHintSqm`: the threshold for the new `ROOMS_AREA_BELOW_TOTAL` warning.
 - `PricingOption.priceCoefficientKeys`: when not empty, the unit price is the sum of those coefficients in dollars instead of `priceCents`. A missing coefficient gives an `ERROR` line with `UNKNOWN_COEFFICIENT`.
 - `PricingOption.scopes`: the renovation scopes an option is available in. An option outside the configuration scope is `UNAVAILABLE` with `OPTION_SCOPE_NOT_ALLOWED`.
+- `previewRule` evaluates the optional `laborFormula` of `CATEGORY` and `MATERIAL_TYPE` rules and returns it as `RulePreview.laborCents` (`null` without a labor formula or on error). `totalAreaOf(scope, totalAreaSqm, roomsFloorArea)` is exported next to `objectVariables`.
 - Codes `LABOR_RATE_MISSING`, `OPTION_SCOPE_NOT_ALLOWED` and `ROOMS_AREA_BELOW_TOTAL` (`{ missingSqm }`).
 
 ### Removed
@@ -37,7 +38,8 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In `PARTIAL`, package items with `includedInBase` are skipped, and `totalArea` equals `roomsFloorArea`.
 - `checkLimits` checks `totalAreaSqm` in `FULL` only. In `PARTIAL` the balcony area is limited by `limits.totalAreaSqm.max`.
 - `ROOMS_AREA_EXCEEDS_TOTAL` and `ROOMS_AREA_BELOW_TOTAL` are produced in `FULL` only.
-- `RuleSampleSchema` requires the new object variables in `object`.
+- `RuleSampleSchema` requires the new object variables in `object`, and `object.totalAreaSqm` is nullable: required in `FULL`, `null` in `PARTIAL`. The preview `totalArea` follows the scope, as in `estimate`.
+- A coefficient-based option price that is negative or above the line limit gives an `ERROR` line with `AMOUNT_OUT_OF_RANGE` and no unit price.
 - `quantity` is available in `labor` formulas of `CATEGORY` and `MATERIAL_TYPE` rules, and is not allowed in `SURFACE` formulas.
 
 ## [0.4.0] - 2026-10-31

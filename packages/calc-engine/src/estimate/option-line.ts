@@ -1,4 +1,3 @@
-import { toCents } from '../money';
 import type {
   Configuration,
   EstimateLine,
@@ -8,7 +7,13 @@ import type {
   PricingOption,
   RoomConfiguration,
 } from '../schemas';
-import { failedLine, pricedLine, roundQuantity } from './line';
+import {
+  componentCents,
+  failedLine,
+  outOfRange,
+  pricedLine,
+  roundQuantity,
+} from './line';
 import { lineId } from './line-id';
 
 export function unitQuantity(
@@ -31,7 +36,7 @@ export function unitQuantity(
 function optionUnitPriceCents(
   option: PricingOption,
   coefficients: PricingData['coefficients'],
-): number | { readonly missingKey: string } {
+): number | null | { readonly missingKey: string } {
   if (option.priceCoefficientKeys.length === 0) {
     return option.priceCents;
   }
@@ -45,7 +50,7 @@ function optionUnitPriceCents(
     }
     dollars += value;
   }
-  return toCents(dollars);
+  return componentCents(dollars);
 }
 
 export function optionLine(
@@ -72,6 +77,9 @@ export function optionLine(
     });
   }
   const unitPriceCents = optionUnitPriceCents(option, coefficients);
+  if (unitPriceCents === null) {
+    return failedLine(init, 'ERROR', outOfRange());
+  }
   if (typeof unitPriceCents !== 'number') {
     return failedLine(init, 'ERROR', {
       code: 'UNKNOWN_COEFFICIENT',

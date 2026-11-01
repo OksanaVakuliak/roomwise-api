@@ -50,6 +50,7 @@ describe('previewRule', () => {
     expect(preview).toEqual({
       quantity: 21,
       amountCents: 42000,
+      laborCents: null,
       variables: { floorArea: 20, waste: 0.05, price: 18, quantity: 21 },
       coefficients: { underlay: 2 },
       error: null,
@@ -84,6 +85,7 @@ describe('previewRule', () => {
     ).toEqual({
       quantity: null,
       amountCents: 30000,
+      laborCents: null,
       variables: { balconyTiles: true, balconyArea: 4 },
       coefficients: { balcony_tile: 75 },
       error: null,
@@ -262,5 +264,123 @@ describe('previewRule', () => {
       result.lines.find((item) => item.id === 'OBJECT:rule-balcony-tile')
         ?.amountCents,
     );
+  });
+});
+
+describe('previewRule in a partial renovation', () => {
+  const partialSample = RuleSampleSchema.parse({
+    ...sample,
+    object: { ...sample.object, scope: 'PARTIAL', totalAreaSqm: null },
+  });
+
+  it('uses the rooms floor area as totalArea', () => {
+    const preview = previewRule({
+      level: 'OBJECT',
+      quantityFormula: null,
+      costFormula: 'totalArea * 2',
+      coefficients: {},
+      sample: { object: partialSample.object },
+    });
+    expect(preview.amountCents).toBe(10000);
+    expect(preview.variables).toEqual({ totalArea: 50 });
+  });
+
+  it('keeps totalAreaSqm as totalArea in a full renovation', () => {
+    const preview = previewRule({
+      level: 'OBJECT',
+      quantityFormula: null,
+      costFormula: 'totalArea',
+      coefficients: {},
+      sample: { object: sample.object },
+    });
+    expect(preview.variables).toEqual({ totalArea: 62 });
+  });
+
+  it('requires totalAreaSqm in FULL and rejects it in PARTIAL', () => {
+    expect(
+      RuleSampleSchema.safeParse({
+        ...sample,
+        object: { ...sample.object, totalAreaSqm: null },
+      }).success,
+    ).toBe(false);
+    expect(
+      RuleSampleSchema.safeParse({
+        ...sample,
+        object: { ...sample.object, scope: 'PARTIAL' },
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('previewRule labor formula', () => {
+  const withLabor = { ...floorRule, laborFormula: 'quantity * coef.labor' };
+  const coefficients = { underlay: 2, labor: 4 };
+
+  it('previews the labor cost next to the material cost', () => {
+    const preview = previewRule({ ...withLabor, coefficients });
+    expect(preview).toEqual({
+      quantity: 21,
+      amountCents: 42000,
+      laborCents: 8400,
+      variables: { floorArea: 20, waste: 0.05, price: 18, quantity: 21 },
+      coefficients,
+      error: null,
+    });
+    expect(RulePreviewSchema.parse(preview)).toEqual(preview);
+  });
+
+  it('has no labor result without a labor formula', () => {
+    expect(previewRule(floorRule).laborCents).toBeNull();
+    expect(
+      previewRule({ ...floorRule, laborFormula: null }).laborCents,
+    ).toBeNull();
+  });
+
+  it('references the labor formula variables and coefficients', () => {
+    const preview = previewRule({
+      ...floorRule,
+      laborFormula: 'wallArea * coef.labor',
+      coefficients,
+    });
+    expect(preview.variables).toHaveProperty('wallArea');
+    expect(preview.coefficients).toEqual({ underlay: 2, labor: 4 });
+  });
+
+  it('reports a labor error and keeps the material cost', () => {
+    const preview = previewRule({
+      ...withLabor,
+      laborFormula: 'quantity * coef.missing',
+      coefficients,
+    });
+    expect(preview).toMatchObject({
+      amountCents: 42000,
+      laborCents: null,
+      error: { code: 'UNKNOWN_COEFFICIENT' },
+    });
+  });
+
+  it('reports a labor amount beyond the line limit', () => {
+    const preview = previewRule({
+      ...withLabor,
+      laborFormula: `quantity * ${MAX_LINE_CENTS}`,
+      coefficients,
+    });
+    expect(preview).toMatchObject({
+      amountCents: 42000,
+      laborCents: null,
+      error: { code: 'AMOUNT_OUT_OF_RANGE' },
+    });
+  });
+
+  it('ignores a labor formula on object rules', () => {
+    const preview = previewRule({
+      level: 'OBJECT',
+      quantityFormula: null,
+      costFormula: 'balconyArea',
+      laborFormula: 'balconyArea',
+      coefficients: {},
+      sample: { object: sample.object },
+    });
+    expect(preview.laborCents).toBeNull();
   });
 });

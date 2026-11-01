@@ -32,6 +32,16 @@ const WET_ROOMS: readonly RoomTypeCode[] = [
   'KITCHEN_LIVING',
 ];
 
+export function totalAreaOf(
+  scope: Scope,
+  totalAreaSqm: number | null,
+  roomsFloorArea: number,
+): number {
+  return scope === 'PARTIAL' || totalAreaSqm === null
+    ? roomsFloorArea
+    : totalAreaSqm;
+}
+
 export function objectVariables(configuration: Configuration): ObjectVariables {
   const rooms = configuration.rooms.map(roomVariables);
   const sum = (pick: (room: (typeof rooms)[number]) => number): number =>
@@ -39,10 +49,11 @@ export function objectVariables(configuration: Configuration): ObjectVariables {
   const roomsFloorArea = sum((room) => room.floorArea);
   return {
     scope: configuration.scope,
-    totalArea:
-      configuration.scope === 'PARTIAL' || configuration.totalAreaSqm === null
-        ? roomsFloorArea
-        : configuration.totalAreaSqm,
+    totalArea: totalAreaOf(
+      configuration.scope,
+      configuration.totalAreaSqm,
+      roomsFloorArea,
+    ),
     balconyArea: configuration.balconyAreaSqm,
     balconyTiles: configuration.balconyTiles,
     finishLevel: configuration.finishLevel,
