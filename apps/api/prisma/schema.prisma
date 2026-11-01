@@ -50,17 +50,21 @@ enum RoomTypeCode {
   KITCHEN
   KITCHEN_LIVING
   BATHROOM
+  HALLWAY
+  STORAGE
 }
 
 enum FinishLevel {
   ROUGH
   PRE_FINISH
+  LIVED_IN
 }
 
 enum RuleLevel {
   OBJECT
   CATEGORY
   MATERIAL_TYPE
+  SURFACE
 }
 
 enum RateSource {
