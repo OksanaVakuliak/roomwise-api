@@ -215,12 +215,12 @@ const loftDefaultMaterials: SeedStyleDefaultMaterial[] = [
   {
     roomTypeId: roomTypeIds.bathroom,
     categoryId: categoryIds.lighting,
-    productId: productIds.industrialBlackWallSconce,
+    productId: productIds.minimalistLedCeilingLamp,
   },
   {
     roomTypeId: roomTypeIds.bathroom,
     categoryId: categoryIds.plumbingFixtures,
-    productId: productIds.matteBlackBathroomFaucet,
+    productId: productIds.whiteCeramicWashbasin,
   },
 ];
 
@@ -393,7 +393,7 @@ const classicDefaultMaterials: SeedStyleDefaultMaterial[] = [
   {
     roomTypeId: roomTypeIds.bathroom,
     categoryId: categoryIds.lighting,
-    productId: productIds.brassWallSconce,
+    productId: productIds.minimalistLedCeilingLamp,
   },
   {
     roomTypeId: roomTypeIds.bathroom,
