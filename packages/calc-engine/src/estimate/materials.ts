@@ -1,13 +1,16 @@
+import { toCents } from '../money';
 import type {
   Configuration,
   EstimateLine,
+  EstimateMessage,
   EstimateWarning,
+  LineComponent,
   PricingData,
   PricingRule,
   RoomConfiguration,
 } from '../schemas';
 import { objectVariables, productVariables, roomVariables } from '../variables';
-import { failedLine, pricedLine, roundQuantity } from './line';
+import { createLine, failedLine, MAX_LINE_CENTS, roundQuantity } from './line';
 import { lineId } from './line-id';
 import { runNumericFormula } from './run-formula';
 
@@ -33,6 +36,21 @@ function selectRule(
       (rule) => rule.level === 'CATEGORY' && rule.categoryId === categoryId,
     )
   );
+}
+
+function componentCents(dollars: number): number | null {
+  if (
+    !Number.isFinite(dollars) ||
+    dollars < 0 ||
+    dollars * 100 > MAX_LINE_CENTS
+  ) {
+    return null;
+  }
+  return toCents(dollars);
+}
+
+function outOfRange(): EstimateMessage {
+  return { code: 'AMOUNT_OUT_OF_RANGE', params: { maxCents: MAX_LINE_CENTS } };
 }
 
 function materialLine(
@@ -93,15 +111,57 @@ function materialLine(
   if (!cost.ok) {
     return failedLine(ruled, 'ERROR', cost.error);
   }
-  return pricedLine(
-    {
-      ...ruled,
-      quantity: roundQuantity(quantity.value),
-      unit: product.unit,
-      unitPriceCents: product.priceCents,
-    },
-    cost.value,
+  const materialCents = componentCents(cost.value);
+  if (materialCents === null) {
+    return failedLine(ruled, 'ERROR', outOfRange());
+  }
+  const components: LineComponent[] = [
+    { kind: 'MATERIAL', ruleId: rule.id, amountCents: materialCents },
+  ];
+  const lineWarnings = [...warnings];
+  if (configuration.scope === 'PARTIAL') {
+    let laborCents = 0;
+    if (rule.laborFormula === null) {
+      lineWarnings.push({
+        code: 'LABOR_RATE_MISSING',
+        params: { categoryId },
+      });
+    } else {
+      const labor = runNumericFormula(rule.laborFormula, {
+        variables: { ...variables, quantity: quantity.value },
+        coefficients,
+      });
+      if (!labor.ok) {
+        return failedLine(ruled, 'ERROR', labor.error);
+      }
+      const cents = componentCents(labor.value);
+      if (cents === null) {
+        return failedLine(ruled, 'ERROR', outOfRange());
+      }
+      laborCents = cents;
+    }
+    components.push({
+      kind: 'LABOR',
+      ruleId: rule.id,
+      amountCents: laborCents,
+    });
+  }
+  const amountCents = components.reduce(
+    (sum, component) => sum + component.amountCents,
+    0,
   );
+  if (amountCents > MAX_LINE_CENTS) {
+    return failedLine(ruled, 'ERROR', outOfRange());
+  }
+  return createLine({
+    ...ruled,
+    warnings: lineWarnings,
+    quantity: roundQuantity(quantity.value),
+    unit: product.unit,
+    unitPriceCents: product.priceCents,
+    amountCents,
+    components,
+  });
 }
 
 export function materialLines(
