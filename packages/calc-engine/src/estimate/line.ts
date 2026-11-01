@@ -34,17 +34,10 @@ export function failedLine(
 }
 
 export function pricedLine(init: LineInit, dollars: number): EstimateLine {
-  if (
-    !Number.isFinite(dollars) ||
-    dollars < 0 ||
-    dollars * 100 > MAX_LINE_CENTS
-  ) {
-    return failedLine(init, 'ERROR', {
-      code: 'AMOUNT_OUT_OF_RANGE',
-      params: { maxCents: MAX_LINE_CENTS },
-    });
-  }
-  return createLine({ ...init, amountCents: toCents(dollars) });
+  const amountCents = componentCents(dollars);
+  return amountCents === null
+    ? failedLine(init, 'ERROR', outOfRange())
+    : createLine({ ...init, amountCents });
 }
 
 export function roundQuantity(quantity: number): number {

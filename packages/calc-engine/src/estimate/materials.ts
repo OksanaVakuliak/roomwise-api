@@ -7,7 +7,8 @@ import type {
   PricingRule,
   RoomConfiguration,
 } from '../schemas';
-import { objectVariables, productVariables, roomVariables } from '../variables';
+import type { ObjectVariables } from '../variables';
+import { productVariables, roomVariables } from '../variables';
 import {
   componentCents,
   createLine,
@@ -50,6 +51,7 @@ function materialLine(
   room: RoomConfiguration,
   categoryId: string,
   productId: string,
+  objectScope: ObjectVariables,
 ): EstimateLine {
   const init = {
     id: lineId('MATERIALS', room.clientId, categoryId),
@@ -84,7 +86,7 @@ function materialLine(
   const variables = {
     ...roomVariables(room),
     ...productVariables(product, category),
-    ...objectVariables(configuration),
+    ...objectScope,
   };
   const { coefficients } = data;
   const ruled = { ...init, warnings, ruleId: rule.id };
@@ -158,15 +160,25 @@ function materialLine(
 export function materialLines(
   configuration: Configuration,
   data: PricingData,
+  objectScope: ObjectVariables,
 ): EstimateLine[] {
   return configuration.rooms.flatMap((room) => {
     const lines = room.selections.flatMap(({ categoryId, productId }) =>
       productId === null
         ? []
-        : [materialLine(configuration, data, room, categoryId, productId)],
+        : [
+            materialLine(
+              configuration,
+              data,
+              room,
+              categoryId,
+              productId,
+              objectScope,
+            ),
+          ],
     );
     return configuration.scope === 'PARTIAL'
-      ? applySurfacePrep(configuration, data, room, lines)
+      ? applySurfacePrep(data, room, lines, objectScope)
       : lines;
   });
 }

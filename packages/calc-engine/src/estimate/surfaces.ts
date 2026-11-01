@@ -1,5 +1,4 @@
 import type {
-  Configuration,
   EstimateLine,
   EstimateMessage,
   LineComponent,
@@ -7,7 +6,8 @@ import type {
   PricingRule,
   RoomConfiguration,
 } from '../schemas';
-import { objectVariables, roomVariables } from '../variables';
+import type { ObjectVariables } from '../variables';
+import { roomVariables } from '../variables';
 import { componentCents, failedLine, MAX_LINE_CENTS, outOfRange } from './line';
 import { runNumericFormula } from './run-formula';
 
@@ -54,15 +54,15 @@ function withComponent(
 }
 
 export function applySurfacePrep(
-  configuration: Configuration,
   data: PricingData,
   room: RoomConfiguration,
   lines: readonly EstimateLine[],
+  objectScope: ObjectVariables,
 ): EstimateLine[] {
   const result = [...lines];
   const variables = {
     ...roomVariables(room),
-    ...objectVariables(configuration),
+    ...objectScope,
   };
   const areas: Record<Surface, number> = {
     FLOOR: variables.floorArea,

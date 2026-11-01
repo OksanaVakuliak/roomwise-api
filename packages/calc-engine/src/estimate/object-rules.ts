@@ -1,5 +1,5 @@
 import type { Configuration, EstimateLine, PricingData } from '../schemas';
-import { objectVariables } from '../variables';
+import type { ObjectVariables } from '../variables';
 import { failedLine, pricedLine } from './line';
 import { lineId } from './line-id';
 import { runNumericFormula } from './run-formula';
@@ -8,12 +8,13 @@ export function objectRuleLines(
   configuration: Configuration,
   data: PricingData,
   section: 'BASE' | 'OBJECT',
+  variables: ObjectVariables,
 ): EstimateLine[] {
   if (section === 'BASE' && configuration.scope !== 'FULL') {
     return [];
   }
   const scope = {
-    variables: objectVariables(configuration),
+    variables,
     coefficients: data.coefficients,
   };
   return data.rules
