@@ -296,7 +296,6 @@ export const scopeData: PricingData = {
     roomHeightM: { min: 2, max: 4 },
     missingAreaHintSqm: 5,
   },
-  baseRates: [],
   coefficients: { ...COEFFICIENTS },
   rules,
   roomTypes: [

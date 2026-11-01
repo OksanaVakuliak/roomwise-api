@@ -6,7 +6,6 @@ import type {
   PricingData,
 } from '../schemas';
 import { additionalLines } from './additional';
-import { baseLine } from './base';
 import { engineeringLines } from './engineering';
 import { materialLines } from './materials';
 import { objectRuleLines } from './object-rules';
@@ -27,8 +26,8 @@ export function estimate(
 ): Estimate {
   const rate = data.exchangeRate?.rate ?? null;
   const lines = [
-    baseLine(configuration, data),
-    ...objectRuleLines(configuration, data),
+    ...objectRuleLines(configuration, data, 'BASE'),
+    ...objectRuleLines(configuration, data, 'OBJECT'),
     ...materialLines(configuration, data),
     ...engineeringLines(configuration, data),
     ...additionalLines(configuration, data),
@@ -39,7 +38,7 @@ export function estimate(
     exchangeRate: data.exchangeRate,
     lines,
     totals: computeTotals(lines, rate !== null),
-    warnings: estimateWarnings(lines, configuration, rate),
+    warnings: estimateWarnings(lines, configuration, rate, data.limits),
     incomplete: isIncomplete(lines),
   };
 }

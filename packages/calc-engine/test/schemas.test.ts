@@ -18,14 +18,6 @@ const pricingData = {
     roomHeightM: { min: 2.2, max: 5 },
     missingAreaHintSqm: 5,
   },
-  baseRates: [
-    {
-      finishLevel: 'ROUGH',
-      areaFromSqm: 0,
-      areaToSqm: 50,
-      rateCentsPerSqm: 3000,
-    },
-  ],
   coefficients: { k_floor: 1.2 },
   rules: [
     {

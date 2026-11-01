@@ -46,44 +46,6 @@
       },
       "missingAreaHintSqm": 5
     },
-    "baseRates": [
-      {
-        "finishLevel": "ROUGH",
-        "areaFromSqm": 15,
-        "areaToSqm": 55,
-        "rateCentsPerSqm": 9000
-      },
-      {
-        "finishLevel": "ROUGH",
-        "areaFromSqm": 55,
-        "areaToSqm": 70,
-        "rateCentsPerSqm": 8500
-      },
-      {
-        "finishLevel": "ROUGH",
-        "areaFromSqm": 70,
-        "areaToSqm": 501,
-        "rateCentsPerSqm": 8000
-      },
-      {
-        "finishLevel": "PRE_FINISH",
-        "areaFromSqm": 15,
-        "areaToSqm": 55,
-        "rateCentsPerSqm": 14000
-      },
-      {
-        "finishLevel": "PRE_FINISH",
-        "areaFromSqm": 55,
-        "areaToSqm": 70,
-        "rateCentsPerSqm": 11850
-      },
-      {
-        "finishLevel": "PRE_FINISH",
-        "areaFromSqm": 70,
-        "areaToSqm": 501,
-        "rateCentsPerSqm": 10900
-      }
-    ],
     "coefficients": {
       "laminate_underlay": 2,
       "tile_glue": 10,

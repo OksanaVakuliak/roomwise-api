@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import {
   CentsSchema,
-  FinishLevelSchema,
   LocalizedTextSchema,
   OptionCodeSchema,
   OptionKindSchema,
@@ -29,14 +28,6 @@ export const PricingLimitsSchema = z.object({
   missingAreaHintSqm: z.number().min(0),
 });
 export type PricingLimits = z.infer<typeof PricingLimitsSchema>;
-
-export const BaseRateSchema = z.object({
-  finishLevel: FinishLevelSchema,
-  areaFromSqm: z.number().min(0),
-  areaToSqm: z.number(),
-  rateCentsPerSqm: z.int().positive(),
-});
-export type BaseRate = z.infer<typeof BaseRateSchema>;
 
 export const PricingRuleSchema = z
   .object({
@@ -134,7 +125,6 @@ export const PricingDataSchema = z.object({
   version: z.string().regex(/^[0-9a-f]{16}$/),
   exchangeRate: ExchangeRateSchema.nullable(),
   limits: PricingLimitsSchema,
-  baseRates: z.array(BaseRateSchema),
   coefficients: z.record(z.string(), z.number()),
   rules: z.array(PricingRuleSchema),
   roomTypes: z.array(PricingRoomTypeSchema),
