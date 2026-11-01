@@ -2,6 +2,7 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
 import {
+  coefficientGroupSchema,
   coefficientKeySchema,
   coefficientValueSchema,
 } from './coefficient-input.schema';
@@ -12,6 +13,7 @@ export const updateCoefficientSchema = z
     name: localizedNameDraftSchema.optional(),
     value: coefficientValueSchema.optional(),
     unit: localizedNameDraftSchema.optional(),
+    group: coefficientGroupSchema.optional(),
     revision: z.uuid(),
   })
   .strict();

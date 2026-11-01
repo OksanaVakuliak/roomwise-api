@@ -10,6 +10,11 @@ import {
   vi,
 } from 'vitest';
 import { ERROR_CODES } from '../../src/common/http/error-codes';
+import {
+  OptionKind,
+  OptionUnit,
+  PublicationStatus,
+} from '../../src/generated/prisma/enums';
 import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog-dataset.service';
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
 import { categoryIds } from '../../src/modules/catalog/dataset/data/categories';
@@ -54,7 +59,12 @@ interface CoefficientBody {
   key: string;
   value: number;
   revision: string;
+  group: string;
   usedBy: Array<{ ruleId: string; ruleName: { en: string; uk: string } }>;
+  usedByOptions: Array<{
+    optionId: string;
+    optionName: { en: string; uk: string };
+  }>;
 }
 
 interface EstimateLine {
@@ -345,6 +355,80 @@ describe('admin base rates and coefficients e2e', () => {
 
       expect(response.body.rateCentsPerSqm).toBe(9999);
       expect(response.body.revision).not.toBe(middle.revision);
+    });
+
+    it('defaults the group and accepts an explicit one', async () => {
+      const plain = await authed('post', COEFFICIENTS_PATH)
+        .send(coefficientInput('group_default'))
+        .expect(201);
+      const labor = await authed('post', COEFFICIENTS_PATH)
+        .send({ ...coefficientInput('group_labor'), group: 'LABOR' })
+        .expect(201);
+
+      expect(plain.body.group).toBe('MATERIAL_EXTRA');
+      expect(labor.body.group).toBe('LABOR');
+    });
+
+    it('changes the group and filters the list by it', async () => {
+      const spare = await authed('post', COEFFICIENTS_PATH)
+        .send(coefficientInput('group_move'))
+        .expect(201);
+
+      const patched = await authed(
+        'patch',
+        `${COEFFICIENTS_PATH}/${spare.body.id}`,
+      )
+        .send({ group: 'PREPARATION', revision: spare.body.revision })
+        .expect(200);
+
+      expect(patched.body.group).toBe('PREPARATION');
+
+      const filtered = await authed(
+        'get',
+        `${COEFFICIENTS_PATH}?group=PREPARATION`,
+      ).expect(200);
+      const items = filtered.body.items as CoefficientBody[];
+
+      expect(items.map((item) => item.key)).toContain('group_move');
+      expect(items.every((item) => item.group === 'PREPARATION')).toBe(true);
+
+      await authed('get', `${COEFFICIENTS_PATH}?group=UNKNOWN`).expect(400);
+    });
+
+    it('rejects deleting a coefficient used by an option', async () => {
+      const spare = await authed('post', COEFFICIENTS_PATH)
+        .send(coefficientInput('option_priced'))
+        .expect(201);
+      const option = await testApp.prisma.option.create({
+        data: {
+          kind: OptionKind.ADDITIONAL,
+          name: { en: 'Priced option', uk: 'Опція з ціною' },
+          description: { en: 'Option', uk: 'Опція' },
+          priceCents: 1000,
+          unit: OptionUnit.PIECE,
+          sortOrder: 99,
+          status: PublicationStatus.DRAFT,
+          priceCoefficientKeys: ['option_priced'],
+        },
+      });
+
+      const response = await authed(
+        'delete',
+        `${COEFFICIENTS_PATH}/${spare.body.id}`,
+      ).expect(409);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.COEFFICIENT_IN_USE);
+      expect(response.body.error.params.options).toEqual([
+        { optionId: option.id, optionName: option.name },
+      ]);
+      expect(
+        (await findCoefficient('option_priced')).usedByOptions,
+      ).toHaveLength(1);
+
+      await testApp.prisma.option.delete({ where: { id: option.id } });
+      await authed('delete', `${COEFFICIENTS_PATH}/${spare.body.id}`).expect(
+        204,
+      );
     });
 
     it('rejects a stale revision', async () => {
