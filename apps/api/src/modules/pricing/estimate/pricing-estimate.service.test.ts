@@ -14,14 +14,6 @@ const data = {
     roomSideM: { min: 1, max: 20 },
     roomHeightM: { min: 2.2, max: 5 },
   },
-  baseRates: [
-    {
-      finishLevel: 'ROUGH',
-      areaFromSqm: 0,
-      areaToSqm: 1000,
-      rateCentsPerSqm: 1000,
-    },
-  ],
   coefficients: {},
   rules: [],
   roomTypes: [{ id: 'rt-1', code: 'BEDROOM' }],
@@ -51,6 +43,7 @@ const room: Configuration['rooms'][number] = {
 
 function configuration(overrides: Partial<Configuration>): Configuration {
   return {
+    scope: 'FULL',
     finishLevel: 'ROUGH',
     totalAreaSqm: 50,
     balconyAreaSqm: 0,

@@ -1,0 +1,1044 @@
+{
+  "lines": [
+    {
+      "id": "BASE",
+      "unit": "SQM",
+      "error": null,
+      "ruleId": null,
+      "status": "OK",
+      "product": null,
+      "section": "BASE",
+      "optionId": null,
+      "quantity": 60,
+      "roomName": null,
+      "ruleName": null,
+      "warnings": [],
+      "productId": null,
+      "categoryId": null,
+      "optionName": null,
+      "amountCents": 732000,
+      "categoryName": null,
+      "roomClientId": null,
+      "packageItemId": null,
+      "unitPriceCents": 12200,
+      "packageItemName": null,
+      "amountUahKopecks": 33198103
+    },
+    {
+      "id": "OBJECT:69d9411d-6fd7-4f6b-8ce9-6f68f90b24fc",
+      "unit": null,
+      "error": null,
+      "ruleId": "69d9411d-6fd7-4f6b-8ce9-6f68f90b24fc",
+      "status": "OK",
+      "product": null,
+      "section": "OBJECT",
+      "optionId": null,
+      "quantity": null,
+      "roomName": null,
+      "ruleName": {
+        "en": "Balcony tile",
+        "uk": "Плитка на балконі"
+      },
+      "warnings": [],
+      "productId": null,
+      "categoryId": null,
+      "optionName": null,
+      "amountCents": 0,
+      "categoryName": null,
+      "roomClientId": null,
+      "packageItemId": null,
+      "unitPriceCents": null,
+      "packageItemName": null,
+      "amountUahKopecks": 0
+    },
+    {
+      "id": "MATERIALS:living:a02f1429-4d77-49eb-a43d-52dcb2426d9f",
+      "unit": "SQM",
+      "error": null,
+      "ruleId": "50b580ae-9a1f-49f4-990f-a28bece9d65b",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "White oak parquet plank",
+          "uk": "Паркетна дошка \"Білий дуб\""
+        },
+        "size": {
+          "en": "130x1200 mm",
+          "uk": "130x1200 мм"
+        },
+        "brand": "Norrsken",
+        "color": {
+          "en": "White oak",
+          "uk": "Білий дуб"
+        },
+        "image": {
+          "id": "92634cfe-86b2-4120-b7f9-166e27324266",
+          "publicId": "roomwise/seed/textures/oak-parquet"
+        },
+        "manufacturer": "Verdano Wood Group"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 22,
+      "roomName": {
+        "en": "Living room",
+        "uk": "Вітальня"
+      },
+      "ruleName": {
+        "en": "Floor covering",
+        "uk": "Підлогове покриття"
+      },
+      "warnings": [],
+      "productId": "0532040d-147f-41e6-9f53-afe9bf7237fe",
+      "categoryId": "a02f1429-4d77-49eb-a43d-52dcb2426d9f",
+      "optionName": null,
+      "amountCents": 85580,
+      "categoryName": {
+        "en": "Floor covering",
+        "uk": "Підлогове покриття"
+      },
+      "roomClientId": "living",
+      "packageItemId": null,
+      "unitPriceCents": 3890,
+      "packageItemName": null,
+      "amountUahKopecks": 3881276
+    },
+    {
+      "id": "MATERIALS:living:715411d8-63c7-4b6e-99dd-f03782c8b2f3",
+      "unit": "SQM",
+      "error": null,
+      "ruleId": "e0293aaf-0879-4e76-950f-847b637cbc83",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "White matte wall paint",
+          "uk": "Біла матова фарба для стін"
+        },
+        "size": {
+          "en": "1 module (1x1 m)",
+          "uk": "1 модуль (1x1 м)"
+        },
+        "brand": "Bilyi Dim",
+        "color": {
+          "en": "Pure white",
+          "uk": "Чисто білий"
+        },
+        "image": {
+          "id": "7de3094f-fa48-40c5-b199-56ead9e30967",
+          "publicId": "roomwise/seed/textures/white-plaster-wall"
+        },
+        "manufacturer": "Lypa Paints"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 51.03,
+      "roomName": {
+        "en": "Living room",
+        "uk": "Вітальня"
+      },
+      "ruleName": {
+        "en": "Wall paint",
+        "uk": "Фарба для стін"
+      },
+      "warnings": [],
+      "productId": "ef28ef5a-8577-4959-8256-a44adf07e520",
+      "categoryId": "715411d8-63c7-4b6e-99dd-f03782c8b2f3",
+      "optionName": null,
+      "amountCents": 58685,
+      "categoryName": {
+        "en": "Wall paint",
+        "uk": "Фарба для стін"
+      },
+      "roomClientId": "living",
+      "packageItemId": null,
+      "unitPriceCents": 1150,
+      "packageItemName": null,
+      "amountUahKopecks": 2661517
+    },
+    {
+      "id": "MATERIALS:living:2d0ea439-be0e-44ac-bc20-269dd47a3318",
+      "unit": "SQM",
+      "error": null,
+      "ruleId": "1c33d619-d098-449c-a19b-1c0215c1c74b",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "Light linen-textured wallpaper",
+          "uk": "Шпалери зі світлою текстурою льону"
+        },
+        "size": {
+          "en": "530x10050 mm",
+          "uk": "530x10050 мм"
+        },
+        "brand": "Lyon Decor",
+        "color": {
+          "en": "Light linen",
+          "uk": "Світлий льон"
+        },
+        "image": {
+          "id": "19131bff-0002-4804-b97b-b3ccd8dcfd5c",
+          "publicId": "roomwise/seed/textures/patterned-fabric-wall"
+        },
+        "manufacturer": "Stinova Textiles"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 53.46,
+      "roomName": {
+        "en": "Living room",
+        "uk": "Вітальня"
+      },
+      "ruleName": {
+        "en": "Wallpaper",
+        "uk": "Шпалери"
+      },
+      "warnings": [],
+      "productId": "11d12d78-78f6-48ae-8c45-bd6ba60791d3",
+      "categoryId": "2d0ea439-be0e-44ac-bc20-269dd47a3318",
+      "optionName": null,
+      "amountCents": 52925,
+      "categoryName": {
+        "en": "Wallpaper",
+        "uk": "Шпалери"
+      },
+      "roomClientId": "living",
+      "packageItemId": null,
+      "unitPriceCents": 990,
+      "packageItemName": null,
+      "amountUahKopecks": 2400286
+    },
+    {
+      "id": "MATERIALS:living:e3eb686d-ef3d-4b76-a1ab-23b21052d543",
+      "unit": "SQM",
+      "error": null,
+      "ruleId": "92bc8f9b-4a61-4e37-b959-36bfe64c5095",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "White matte ceiling paint",
+          "uk": "Біла матова фарба для стелі"
+        },
+        "size": {
+          "en": "1 module (1x1 m)",
+          "uk": "1 модуль (1x1 м)"
+        },
+        "brand": "Bilyi Dim",
+        "color": {
+          "en": "Bright white",
+          "uk": "Яскраво-білий"
+        },
+        "image": {
+          "id": "7de3094f-fa48-40c5-b199-56ead9e30967",
+          "publicId": "roomwise/seed/textures/white-plaster-wall"
+        },
+        "manufacturer": "Lypa Paints"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 21,
+      "roomName": {
+        "en": "Living room",
+        "uk": "Вітальня"
+      },
+      "ruleName": {
+        "en": "Ceiling finish",
+        "uk": "Оздоблення стелі"
+      },
+      "warnings": [],
+      "productId": "1679aeec-d94e-4ddf-940a-6902572c0b81",
+      "categoryId": "e3eb686d-ef3d-4b76-a1ab-23b21052d543",
+      "optionName": null,
+      "amountCents": 20790,
+      "categoryName": {
+        "en": "Ceiling finish",
+        "uk": "Оздоблення стелі"
+      },
+      "roomClientId": "living",
+      "packageItemId": null,
+      "unitPriceCents": 990,
+      "packageItemName": null,
+      "amountUahKopecks": 942881
+    },
+    {
+      "id": "MATERIALS:living:fb7fb100-7fc8-40ff-a015-2d22883e088e",
+      "unit": "LINEAR_M",
+      "error": null,
+      "ruleId": "81a0886e-9c7c-4832-b367-1297dcafdce4",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "Light oak veneer skirting",
+          "uk": "Плінтус зі шпоном світлого дуба"
+        },
+        "size": {
+          "en": "80x2400 mm",
+          "uk": "80x2400 мм"
+        },
+        "brand": "Obramka",
+        "color": {
+          "en": "Light oak",
+          "uk": "Світлий дуб"
+        },
+        "image": {
+          "id": "92634cfe-86b2-4120-b7f9-166e27324266",
+          "publicId": "roomwise/seed/textures/oak-parquet"
+        },
+        "manufacturer": "Verdano Wood Group"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 18.9,
+      "roomName": {
+        "en": "Living room",
+        "uk": "Вітальня"
+      },
+      "ruleName": {
+        "en": "Skirting boards",
+        "uk": "Плінтуси"
+      },
+      "warnings": [],
+      "productId": "a756d92f-8e42-4005-91f3-c1f1205e0dfa",
+      "categoryId": "fb7fb100-7fc8-40ff-a015-2d22883e088e",
+      "optionName": null,
+      "amountCents": 11151,
+      "categoryName": {
+        "en": "Skirting boards",
+        "uk": "Плінтуси"
+      },
+      "roomClientId": "living",
+      "packageItemId": null,
+      "unitPriceCents": 590,
+      "packageItemName": null,
+      "amountUahKopecks": 505727
+    },
+    {
+      "id": "MATERIALS:living:5fe2749d-d2da-42b6-8a2a-28f6c3ebbb80",
+      "unit": "PIECE",
+      "error": null,
+      "ruleId": "499f300d-01e2-4709-9f69-d80c2ceffda6",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "White painted interior door",
+          "uk": "Білі фарбовані міжкімнатні двері"
+        },
+        "size": {
+          "en": "800x2000 mm",
+          "uk": "800x2000 мм"
+        },
+        "brand": "Oselya Doors",
+        "color": {
+          "en": "White",
+          "uk": "Білий"
+        },
+        "image": {
+          "id": "6ab61a52-5d28-4386-85eb-f0f28921c293",
+          "publicId": "roomwise/seed/placeholders/door-white"
+        },
+        "manufacturer": "Verdano Wood Group"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 1,
+      "roomName": {
+        "en": "Living room",
+        "uk": "Вітальня"
+      },
+      "ruleName": {
+        "en": "Doors",
+        "uk": "Двері"
+      },
+      "warnings": [],
+      "productId": "9c8ff995-599c-4e57-9dac-80e905ff0ac1",
+      "categoryId": "5fe2749d-d2da-42b6-8a2a-28f6c3ebbb80",
+      "optionName": null,
+      "amountCents": 18900,
+      "categoryName": {
+        "en": "Doors",
+        "uk": "Двері"
+      },
+      "roomClientId": "living",
+      "packageItemId": null,
+      "unitPriceCents": 18900,
+      "packageItemName": null,
+      "amountUahKopecks": 857164
+    },
+    {
+      "id": "MATERIALS:living:427d2da3-8693-4588-850b-428fd120fa1a",
+      "unit": "PIECE",
+      "error": null,
+      "ruleId": "92e68dee-d63a-4ca1-857f-00a8613dd198",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "Modern white ceiling pendant lamp",
+          "uk": "Сучасний білий стельовий підвіс"
+        },
+        "size": {
+          "en": "300x1200 mm",
+          "uk": "300x1200 мм"
+        },
+        "brand": "MistoLight",
+        "color": {
+          "en": "Matte white",
+          "uk": "Матовий білий"
+        },
+        "image": {
+          "id": "8e554694-af62-47f8-ad23-f2632e7c4f35",
+          "publicId": "roomwise/seed/products/modern-ceiling-lamp"
+        },
+        "manufacturer": "Aurelia Lighting"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 1,
+      "roomName": {
+        "en": "Living room",
+        "uk": "Вітальня"
+      },
+      "ruleName": {
+        "en": "Lighting fixtures",
+        "uk": "Освітлювальні прилади"
+      },
+      "warnings": [],
+      "productId": "69d7fb7c-2c5f-4069-9444-8ef09dbc7ead",
+      "categoryId": "427d2da3-8693-4588-850b-428fd120fa1a",
+      "optionName": null,
+      "amountCents": 5900,
+      "categoryName": {
+        "en": "Lighting fixtures",
+        "uk": "Освітлювальні прилади"
+      },
+      "roomClientId": "living",
+      "packageItemId": null,
+      "unitPriceCents": 5900,
+      "packageItemName": null,
+      "amountUahKopecks": 267580
+    },
+    {
+      "id": "MATERIALS:bath:fbab82c2-ccab-4f6d-b131-7195993a5346",
+      "unit": "SQM",
+      "error": null,
+      "ruleId": "ff329d4e-abf2-4668-8116-1d01a98802b3",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "White matte porcelain floor tile",
+          "uk": "Біла матова керамогранітна плитка для підлоги"
+        },
+        "size": {
+          "en": "600x600 mm",
+          "uk": "600x600 мм"
+        },
+        "brand": "Kalyna Ceramics",
+        "color": {
+          "en": "White",
+          "uk": "Білий"
+        },
+        "image": {
+          "id": "12d36f5b-4fa5-4165-8cc6-492001b7e4b4",
+          "publicId": "roomwise/seed/textures/white-floor-tiles"
+        },
+        "manufacturer": "Porcelan Studio"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 6.72,
+      "roomName": {
+        "en": "Bathroom",
+        "uk": "Санвузол"
+      },
+      "ruleName": {
+        "en": "Porcelain floor tile with glue",
+        "uk": "Керамограніт на підлозі з клеєм"
+      },
+      "warnings": [],
+      "productId": "b913d87a-ba5a-4b61-bdd5-64965fd8b65f",
+      "categoryId": "fbab82c2-ccab-4f6d-b131-7195993a5346",
+      "optionName": null,
+      "amountCents": 27485,
+      "categoryName": {
+        "en": "Floor tile",
+        "uk": "Підлогова плитка"
+      },
+      "roomClientId": "bath",
+      "packageItemId": null,
+      "unitPriceCents": 1990,
+      "packageItemName": null,
+      "amountUahKopecks": 1246516
+    },
+    {
+      "id": "MATERIALS:bath:ffc93df3-13b8-440a-a0d1-9cf2bc2ed941",
+      "unit": "SQM",
+      "error": null,
+      "ruleId": "3a23d981-4c27-4b05-b923-f70803d6de69",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "White glossy wall tile",
+          "uk": "Біла глянцева настінна плитка"
+        },
+        "size": {
+          "en": "100x300 mm",
+          "uk": "100x300 мм"
+        },
+        "brand": "Kalyna Ceramics",
+        "color": {
+          "en": "White",
+          "uk": "Білий"
+        },
+        "image": {
+          "id": "12d36f5b-4fa5-4165-8cc6-492001b7e4b4",
+          "publicId": "roomwise/seed/textures/white-floor-tiles"
+        },
+        "manufacturer": "Porcelan Studio"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 29.12,
+      "roomName": {
+        "en": "Bathroom",
+        "uk": "Санвузол"
+      },
+      "ruleName": {
+        "en": "Ceramic wall tile with glue",
+        "uk": "Керамічна настінна плитка з клеєм"
+      },
+      "warnings": [],
+      "productId": "594bec7c-e71a-4e21-968a-e029fad73c94",
+      "categoryId": "ffc93df3-13b8-440a-a0d1-9cf2bc2ed941",
+      "optionName": null,
+      "amountCents": 66685,
+      "categoryName": {
+        "en": "Wall tile",
+        "uk": "Настінна плитка"
+      },
+      "roomClientId": "bath",
+      "packageItemId": null,
+      "unitPriceCents": 1290,
+      "packageItemName": null,
+      "amountUahKopecks": 3024338
+    },
+    {
+      "id": "MATERIALS:bath:e3eb686d-ef3d-4b76-a1ab-23b21052d543",
+      "unit": "SQM",
+      "error": null,
+      "ruleId": "92bc8f9b-4a61-4e37-b959-36bfe64c5095",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "White matte ceiling paint",
+          "uk": "Біла матова фарба для стелі"
+        },
+        "size": {
+          "en": "1 module (1x1 m)",
+          "uk": "1 модуль (1x1 м)"
+        },
+        "brand": "Bilyi Dim",
+        "color": {
+          "en": "Bright white",
+          "uk": "Яскраво-білий"
+        },
+        "image": {
+          "id": "7de3094f-fa48-40c5-b199-56ead9e30967",
+          "publicId": "roomwise/seed/textures/white-plaster-wall"
+        },
+        "manufacturer": "Lypa Paints"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 6.3,
+      "roomName": {
+        "en": "Bathroom",
+        "uk": "Санвузол"
+      },
+      "ruleName": {
+        "en": "Ceiling finish",
+        "uk": "Оздоблення стелі"
+      },
+      "warnings": [],
+      "productId": "1679aeec-d94e-4ddf-940a-6902572c0b81",
+      "categoryId": "e3eb686d-ef3d-4b76-a1ab-23b21052d543",
+      "optionName": null,
+      "amountCents": 6237,
+      "categoryName": {
+        "en": "Ceiling finish",
+        "uk": "Оздоблення стелі"
+      },
+      "roomClientId": "bath",
+      "packageItemId": null,
+      "unitPriceCents": 990,
+      "packageItemName": null,
+      "amountUahKopecks": 282864
+    },
+    {
+      "id": "MATERIALS:bath:f13be20a-8830-488b-a38e-d8330e456b7c",
+      "unit": "PIECE",
+      "error": null,
+      "ruleId": "b2b64869-56fa-40de-925f-40019691047b",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "White ceramic washbasin",
+          "uk": "Біла керамічна раковина"
+        },
+        "size": {
+          "en": "500x400 mm",
+          "uk": "500x400 мм"
+        },
+        "brand": "AquaLyra",
+        "color": {
+          "en": "White",
+          "uk": "Білий"
+        },
+        "image": {
+          "id": "aaed05e5-dc90-49b1-880d-e336a2a70ed5",
+          "publicId": "roomwise/seed/placeholders/washbasin"
+        },
+        "manufacturer": "Kalyna Ceramics"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 1,
+      "roomName": {
+        "en": "Bathroom",
+        "uk": "Санвузол"
+      },
+      "ruleName": {
+        "en": "Plumbing fixtures",
+        "uk": "Сантехніка"
+      },
+      "warnings": [],
+      "productId": "a019cb7e-354c-4c13-b94b-4c33532d961c",
+      "categoryId": "f13be20a-8830-488b-a38e-d8330e456b7c",
+      "optionName": null,
+      "amountCents": 8900,
+      "categoryName": {
+        "en": "Plumbing fixtures",
+        "uk": "Сантехніка"
+      },
+      "roomClientId": "bath",
+      "packageItemId": null,
+      "unitPriceCents": 8900,
+      "packageItemName": null,
+      "amountUahKopecks": 403638
+    },
+    {
+      "id": "MATERIALS:bath:5fe2749d-d2da-42b6-8a2a-28f6c3ebbb80",
+      "unit": "PIECE",
+      "error": null,
+      "ruleId": "499f300d-01e2-4709-9f69-d80c2ceffda6",
+      "status": "OK",
+      "product": {
+        "name": {
+          "en": "White painted interior door",
+          "uk": "Білі фарбовані міжкімнатні двері"
+        },
+        "size": {
+          "en": "800x2000 mm",
+          "uk": "800x2000 мм"
+        },
+        "brand": "Oselya Doors",
+        "color": {
+          "en": "White",
+          "uk": "Білий"
+        },
+        "image": {
+          "id": "6ab61a52-5d28-4386-85eb-f0f28921c293",
+          "publicId": "roomwise/seed/placeholders/door-white"
+        },
+        "manufacturer": "Verdano Wood Group"
+      },
+      "section": "MATERIALS",
+      "optionId": null,
+      "quantity": 1,
+      "roomName": {
+        "en": "Bathroom",
+        "uk": "Санвузол"
+      },
+      "ruleName": {
+        "en": "Doors",
+        "uk": "Двері"
+      },
+      "warnings": [],
+      "productId": "9c8ff995-599c-4e57-9dac-80e905ff0ac1",
+      "categoryId": "5fe2749d-d2da-42b6-8a2a-28f6c3ebbb80",
+      "optionName": null,
+      "amountCents": 18900,
+      "categoryName": {
+        "en": "Doors",
+        "uk": "Двері"
+      },
+      "roomClientId": "bath",
+      "packageItemId": null,
+      "unitPriceCents": 18900,
+      "packageItemName": null,
+      "amountUahKopecks": 857164
+    },
+    {
+      "id": "ENGINEERING:package:92411198-27d0-4140-ad87-9373afc32345",
+      "unit": null,
+      "error": null,
+      "ruleId": null,
+      "status": "INCLUDED",
+      "product": null,
+      "section": "ENGINEERING",
+      "optionId": null,
+      "quantity": null,
+      "roomName": null,
+      "ruleName": null,
+      "warnings": [],
+      "productId": null,
+      "categoryId": null,
+      "optionName": null,
+      "amountCents": 0,
+      "categoryName": null,
+      "roomClientId": null,
+      "packageItemId": "92411198-27d0-4140-ad87-9373afc32345",
+      "unitPriceCents": null,
+      "packageItemName": {
+        "en": "Electrical wiring",
+        "uk": "Електропроводка"
+      },
+      "amountUahKopecks": 0
+    },
+    {
+      "id": "ENGINEERING:package:4ce0ff7d-1358-4a19-9504-22033fb162f7",
+      "unit": null,
+      "error": null,
+      "ruleId": null,
+      "status": "INCLUDED",
+      "product": null,
+      "section": "ENGINEERING",
+      "optionId": null,
+      "quantity": null,
+      "roomName": null,
+      "ruleName": null,
+      "warnings": [],
+      "productId": null,
+      "categoryId": null,
+      "optionName": null,
+      "amountCents": 0,
+      "categoryName": null,
+      "roomClientId": null,
+      "packageItemId": "4ce0ff7d-1358-4a19-9504-22033fb162f7",
+      "unitPriceCents": null,
+      "packageItemName": {
+        "en": "Plumbing pipes",
+        "uk": "Сантехнічні труби"
+      },
+      "amountUahKopecks": 0
+    },
+    {
+      "id": "ENGINEERING:package:ca9cf10f-e2ac-490c-ad55-aa41849a8f7f",
+      "unit": "PROJECT",
+      "error": null,
+      "ruleId": null,
+      "status": "OK",
+      "product": null,
+      "section": "ENGINEERING",
+      "optionId": null,
+      "quantity": 1,
+      "roomName": null,
+      "ruleName": null,
+      "warnings": [],
+      "productId": null,
+      "categoryId": null,
+      "optionName": null,
+      "amountCents": 45000,
+      "categoryName": null,
+      "roomClientId": null,
+      "packageItemId": "ca9cf10f-e2ac-490c-ad55-aa41849a8f7f",
+      "unitPriceCents": 45000,
+      "packageItemName": {
+        "en": "Forced ventilation system",
+        "uk": "Система примусової вентиляції"
+      },
+      "amountUahKopecks": 2040867
+    },
+    {
+      "id": "ENGINEERING:package:cb242ed9-716f-4cf3-ab5b-3696304a1e73",
+      "unit": "PIECE",
+      "error": null,
+      "ruleId": null,
+      "status": "OK",
+      "product": null,
+      "section": "ENGINEERING",
+      "optionId": null,
+      "quantity": 1,
+      "roomName": null,
+      "ruleName": null,
+      "warnings": [],
+      "productId": null,
+      "categoryId": null,
+      "optionName": null,
+      "amountCents": 3200,
+      "categoryName": null,
+      "roomClientId": null,
+      "packageItemId": "cb242ed9-716f-4cf3-ab5b-3696304a1e73",
+      "unitPriceCents": 3200,
+      "packageItemName": {
+        "en": "Heating radiators",
+        "uk": "Опалювальні радіатори"
+      },
+      "amountUahKopecks": 145128
+    }
+  ],
+  "rooms": [
+    {
+      "name": "Вітальня",
+      "widthM": 4,
+      "heightM": 2.7,
+      "lengthM": 5,
+      "clientId": "living",
+      "heatedFloor": false,
+      "roomTypeCode": "LIVING_ROOM",
+      "roomTypeName": {
+        "en": "Living room",
+        "uk": "Вітальня"
+      }
+    },
+    {
+      "widthM": 2,
+      "heightM": 2.6,
+      "lengthM": 3,
+      "clientId": "bath",
+      "heatedFloor": true,
+      "roomTypeCode": "BATHROOM",
+      "roomTypeName": {
+        "en": "Bathroom",
+        "uk": "Санвузол"
+      }
+    }
+  ],
+  "style": {
+    "id": "c68a23a2-ca4f-4fcf-a0f6-69e6019ff91b",
+    "name": {
+      "en": "Scandinavian",
+      "uk": "Скандинавський"
+    }
+  },
+  "pricing": {
+    "rules": [
+      {
+        "id": "69d9411d-6fd7-4f6b-8ce9-6f68f90b24fc",
+        "level": "OBJECT",
+        "categoryId": null,
+        "costFormula": "balconyTiles ? balconyArea * coef.balcony_tile : 0",
+        "materialTypeId": null,
+        "quantityFormula": null
+      },
+      {
+        "id": "1c33d619-d098-449c-a19b-1c0215c1c74b",
+        "level": "CATEGORY",
+        "categoryId": "2d0ea439-be0e-44ac-bc20-269dd47a3318",
+        "costFormula": "quantity * price",
+        "materialTypeId": null,
+        "quantityFormula": "wallArea * (1 + waste)"
+      },
+      {
+        "id": "499f300d-01e2-4709-9f69-d80c2ceffda6",
+        "level": "CATEGORY",
+        "categoryId": "5fe2749d-d2da-42b6-8a2a-28f6c3ebbb80",
+        "costFormula": "quantity * price",
+        "materialTypeId": null,
+        "quantityFormula": "1"
+      },
+      {
+        "id": "50b580ae-9a1f-49f4-990f-a28bece9d65b",
+        "level": "CATEGORY",
+        "categoryId": "a02f1429-4d77-49eb-a43d-52dcb2426d9f",
+        "costFormula": "quantity * price",
+        "materialTypeId": null,
+        "quantityFormula": "floorArea * (1 + waste)"
+      },
+      {
+        "id": "81a0886e-9c7c-4832-b367-1297dcafdce4",
+        "level": "CATEGORY",
+        "categoryId": "fb7fb100-7fc8-40ff-a015-2d22883e088e",
+        "costFormula": "quantity * price",
+        "materialTypeId": null,
+        "quantityFormula": "perimeter * (1 + waste)"
+      },
+      {
+        "id": "92bc8f9b-4a61-4e37-b959-36bfe64c5095",
+        "level": "CATEGORY",
+        "categoryId": "e3eb686d-ef3d-4b76-a1ab-23b21052d543",
+        "costFormula": "quantity * price",
+        "materialTypeId": null,
+        "quantityFormula": "floorArea * (1 + waste)"
+      },
+      {
+        "id": "92e68dee-d63a-4ca1-857f-00a8613dd198",
+        "level": "CATEGORY",
+        "categoryId": "427d2da3-8693-4588-850b-428fd120fa1a",
+        "costFormula": "quantity * price",
+        "materialTypeId": null,
+        "quantityFormula": "1"
+      },
+      {
+        "id": "b2b64869-56fa-40de-925f-40019691047b",
+        "level": "CATEGORY",
+        "categoryId": "f13be20a-8830-488b-a38e-d8330e456b7c",
+        "costFormula": "quantity * price",
+        "materialTypeId": null,
+        "quantityFormula": "1"
+      },
+      {
+        "id": "e0293aaf-0879-4e76-950f-847b637cbc83",
+        "level": "CATEGORY",
+        "categoryId": "715411d8-63c7-4b6e-99dd-f03782c8b2f3",
+        "costFormula": "quantity * price",
+        "materialTypeId": null,
+        "quantityFormula": "wallArea * (1 + waste)"
+      },
+      {
+        "id": "3a23d981-4c27-4b05-b923-f70803d6de69",
+        "level": "MATERIAL_TYPE",
+        "categoryId": "ffc93df3-13b8-440a-a0d1-9cf2bc2ed941",
+        "costFormula": "quantity * (price + coef.tile_glue)",
+        "materialTypeId": "cd5fe355-b799-4c81-b766-b2239d85e321",
+        "quantityFormula": "wallArea * (1 + waste)"
+      },
+      {
+        "id": "ff329d4e-abf2-4668-8116-1d01a98802b3",
+        "level": "MATERIAL_TYPE",
+        "categoryId": "fbab82c2-ccab-4f6d-b131-7195993a5346",
+        "costFormula": "quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))",
+        "materialTypeId": "c83106bd-f5cd-4202-8f2b-8e9140022ed1",
+        "quantityFormula": "floorArea * (1 + waste)"
+      }
+    ],
+    "baseRate": {
+      "areaToSqm": 70,
+      "areaFromSqm": 55,
+      "finishLevel": "PRE_FINISH",
+      "rateCentsPerSqm": 12200
+    },
+    "coefficients": {
+      "tile_glue": 10,
+      "balcony_tile": 75,
+      "tile_glue_heated": 21,
+      "laminate_underlay": 2
+    },
+    "exchangeRate": {
+      "date": "2026-11-02",
+      "rate": "45.3526",
+      "source": "NBU"
+    }
+  },
+  "estimate": {
+    "totals": {
+      "sections": {
+        "BASE": {
+          "usdCents": 732000,
+          "uahKopecks": 33198103
+        },
+        "OBJECT": {
+          "usdCents": 0,
+          "uahKopecks": 0
+        },
+        "MATERIALS": {
+          "usdCents": 382138,
+          "uahKopecks": 17330951
+        },
+        "ADDITIONAL": {
+          "usdCents": 0,
+          "uahKopecks": 0
+        },
+        "ENGINEERING": {
+          "usdCents": 48200,
+          "uahKopecks": 2185995
+        }
+      },
+      "usdCents": 1162338,
+      "uahKopecks": 52715049
+    },
+    "currency": "USD",
+    "warnings": [],
+    "incomplete": false
+  },
+  "createdAt": "2026-10-30T23:13:44.590Z",
+  "configuration": {
+    "rooms": [
+      {
+        "name": "Вітальня",
+        "widthM": 4,
+        "heightM": 2.7,
+        "lengthM": 5,
+        "clientId": "living",
+        "selections": [
+          {
+            "productId": "0532040d-147f-41e6-9f53-afe9bf7237fe",
+            "categoryId": "a02f1429-4d77-49eb-a43d-52dcb2426d9f"
+          },
+          {
+            "productId": "ef28ef5a-8577-4959-8256-a44adf07e520",
+            "categoryId": "715411d8-63c7-4b6e-99dd-f03782c8b2f3"
+          },
+          {
+            "productId": "11d12d78-78f6-48ae-8c45-bd6ba60791d3",
+            "categoryId": "2d0ea439-be0e-44ac-bc20-269dd47a3318"
+          },
+          {
+            "productId": "1679aeec-d94e-4ddf-940a-6902572c0b81",
+            "categoryId": "e3eb686d-ef3d-4b76-a1ab-23b21052d543"
+          },
+          {
+            "productId": "a756d92f-8e42-4005-91f3-c1f1205e0dfa",
+            "categoryId": "fb7fb100-7fc8-40ff-a015-2d22883e088e"
+          },
+          {
+            "productId": "9c8ff995-599c-4e57-9dac-80e905ff0ac1",
+            "categoryId": "5fe2749d-d2da-42b6-8a2a-28f6c3ebbb80"
+          },
+          {
+            "productId": "69d7fb7c-2c5f-4069-9444-8ef09dbc7ead",
+            "categoryId": "427d2da3-8693-4588-850b-428fd120fa1a"
+          }
+        ],
+        "heatedFloor": false,
+        "roomTypeCode": "LIVING_ROOM"
+      },
+      {
+        "widthM": 2,
+        "heightM": 2.6,
+        "lengthM": 3,
+        "clientId": "bath",
+        "selections": [
+          {
+            "productId": "b913d87a-ba5a-4b61-bdd5-64965fd8b65f",
+            "categoryId": "fbab82c2-ccab-4f6d-b131-7195993a5346"
+          },
+          {
+            "productId": "594bec7c-e71a-4e21-968a-e029fad73c94",
+            "categoryId": "ffc93df3-13b8-440a-a0d1-9cf2bc2ed941"
+          },
+          {
+            "productId": "1679aeec-d94e-4ddf-940a-6902572c0b81",
+            "categoryId": "e3eb686d-ef3d-4b76-a1ab-23b21052d543"
+          },
+          {
+            "productId": "a019cb7e-354c-4c13-b94b-4c33532d961c",
+            "categoryId": "f13be20a-8830-488b-a38e-d8330e456b7c"
+          },
+          {
+            "productId": "9c8ff995-599c-4e57-9dac-80e905ff0ac1",
+            "categoryId": "5fe2749d-d2da-42b6-8a2a-28f6c3ebbb80"
+          }
+        ],
+        "heatedFloor": true,
+        "roomTypeCode": "BATHROOM"
+      }
+    ],
+    "options": [],
+    "currency": "USD",
+    "finishLevel": "PRE_FINISH",
+    "kitchenType": "SEPARATE",
+    "balconyTiles": false,
+    "totalAreaSqm": 60,
+    "balconyAreaSqm": 0
+  },
+  "schemaVersion": 1,
+  "pricingVersion": "0652145a94f1fcf2"
+}

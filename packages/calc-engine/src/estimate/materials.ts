@@ -2,14 +2,24 @@ import type {
   Configuration,
   EstimateLine,
   EstimateWarning,
+  LineComponent,
   PricingData,
   PricingRule,
   RoomConfiguration,
 } from '../schemas';
-import { objectVariables, productVariables, roomVariables } from '../variables';
-import { failedLine, pricedLine, roundQuantity } from './line';
+import type { ObjectVariables } from '../variables';
+import { productVariables, roomVariables } from '../variables';
+import {
+  componentCents,
+  createLine,
+  failedLine,
+  MAX_LINE_CENTS,
+  outOfRange,
+  roundQuantity,
+} from './line';
 import { lineId } from './line-id';
 import { runNumericFormula } from './run-formula';
+import { applySurfacePrep } from './surfaces';
 
 type MaterialRule = PricingRule & { quantityFormula: string };
 
@@ -41,6 +51,7 @@ function materialLine(
   room: RoomConfiguration,
   categoryId: string,
   productId: string,
+  objectScope: ObjectVariables,
 ): EstimateLine {
   const init = {
     id: lineId('MATERIALS', room.clientId, categoryId),
@@ -75,7 +86,7 @@ function materialLine(
   const variables = {
     ...roomVariables(room),
     ...productVariables(product, category),
-    ...objectVariables(configuration),
+    ...objectScope,
   };
   const { coefficients } = data;
   const ruled = { ...init, warnings, ruleId: rule.id };
@@ -93,26 +104,81 @@ function materialLine(
   if (!cost.ok) {
     return failedLine(ruled, 'ERROR', cost.error);
   }
-  return pricedLine(
-    {
-      ...ruled,
-      quantity: roundQuantity(quantity.value),
-      unit: product.unit,
-      unitPriceCents: product.priceCents,
-    },
-    cost.value,
+  const materialCents = componentCents(cost.value);
+  if (materialCents === null) {
+    return failedLine(ruled, 'ERROR', outOfRange());
+  }
+  const components: LineComponent[] = [
+    { kind: 'MATERIAL', ruleId: rule.id, amountCents: materialCents },
+  ];
+  const lineWarnings = [...warnings];
+  if (configuration.scope === 'PARTIAL') {
+    let laborCents = 0;
+    if (rule.laborFormula === null) {
+      lineWarnings.push({
+        code: 'LABOR_RATE_MISSING',
+        params: { categoryId },
+      });
+    } else {
+      const labor = runNumericFormula(rule.laborFormula, {
+        variables: { ...variables, quantity: quantity.value },
+        coefficients,
+      });
+      if (!labor.ok) {
+        return failedLine(ruled, 'ERROR', labor.error);
+      }
+      const cents = componentCents(labor.value);
+      if (cents === null) {
+        return failedLine(ruled, 'ERROR', outOfRange());
+      }
+      laborCents = cents;
+    }
+    components.push({
+      kind: 'LABOR',
+      ruleId: rule.id,
+      amountCents: laborCents,
+    });
+  }
+  const amountCents = components.reduce(
+    (sum, component) => sum + component.amountCents,
+    0,
   );
+  if (amountCents > MAX_LINE_CENTS) {
+    return failedLine(ruled, 'ERROR', outOfRange());
+  }
+  return createLine({
+    ...ruled,
+    warnings: lineWarnings,
+    quantity: roundQuantity(quantity.value),
+    unit: product.unit,
+    unitPriceCents: product.priceCents,
+    amountCents,
+    components,
+  });
 }
 
 export function materialLines(
   configuration: Configuration,
   data: PricingData,
+  objectScope: ObjectVariables,
 ): EstimateLine[] {
-  return configuration.rooms.flatMap((room) =>
-    room.selections.flatMap(({ categoryId, productId }) =>
+  return configuration.rooms.flatMap((room) => {
+    const lines = room.selections.flatMap(({ categoryId, productId }) =>
       productId === null
         ? []
-        : [materialLine(configuration, data, room, categoryId, productId)],
-    ),
-  );
+        : [
+            materialLine(
+              configuration,
+              data,
+              room,
+              categoryId,
+              productId,
+              objectScope,
+            ),
+          ],
+    );
+    return configuration.scope === 'PARTIAL'
+      ? applySurfacePrep(data, room, lines, objectScope)
+      : lines;
+  });
 }

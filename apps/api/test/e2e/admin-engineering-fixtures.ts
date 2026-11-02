@@ -47,6 +47,8 @@ export interface OptionInputOverrides {
   minQuantity?: number;
   maxQuantity?: number;
   roomTypeIds?: string[];
+  priceCoefficientKeys?: string[];
+  scopes?: string[];
 }
 
 export interface OptionInput {
@@ -60,6 +62,8 @@ export interface OptionInput {
   minQuantity?: number;
   maxQuantity?: number;
   roomTypeIds: string[];
+  priceCoefficientKeys?: string[];
+  scopes?: string[];
 }
 
 const DEFAULT_OPTION_PRICE_CENTS = 1500;
@@ -83,5 +87,7 @@ export function buildOptionInput(
     minQuantity: overrides.minQuantity,
     maxQuantity: overrides.maxQuantity,
     roomTypeIds: overrides.roomTypeIds ?? [],
+    priceCoefficientKeys: overrides.priceCoefficientKeys,
+    scopes: overrides.scopes,
   };
 }

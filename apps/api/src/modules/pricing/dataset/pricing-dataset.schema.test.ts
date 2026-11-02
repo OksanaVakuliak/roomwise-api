@@ -1,13 +1,13 @@
 import { validateFormula } from '@roomwise/calc-engine';
 import { describe, expect, it } from 'vitest';
-import { FinishLevel, RuleLevel } from '../../../generated/prisma/enums';
+import {
+  CoefficientGroup,
+  RuleLevel,
+  SurfaceKind,
+} from '../../../generated/prisma/enums';
 import { catalogDataset } from '../../catalog/dataset/data';
 import { pricingDataset } from './data';
 import { pricingDatasetSchema } from './pricing-dataset.schema';
-
-function withBaseRates(baseRates: unknown[]) {
-  return { ...pricingDataset, baseRates };
-}
 
 describe('pricingDataset', () => {
   it('has a category rule for every seeded category', () => {
@@ -93,21 +93,8 @@ describe('pricingDataset', () => {
       rooms: { min: 1, max: 15 },
       roomSideM: { min: 1, max: 30 },
       roomHeightM: { min: 2.2, max: 5 },
+      missingAreaHintSqm: 5,
     });
-  });
-
-  it('covers 15 to 500 m² for both finish levels without gaps', () => {
-    for (const finishLevel of Object.values(FinishLevel)) {
-      const ranges = pricingDataset.baseRates
-        .filter((rate) => rate.finishLevel === finishLevel)
-        .sort((a, b) => a.areaFromSqm - b.areaFromSqm);
-
-      expect(ranges[0].areaFromSqm).toBe(15);
-      expect(ranges.at(-1)?.areaToSqm).toBeGreaterThan(500);
-      ranges.slice(1).forEach((range, index) => {
-        expect(range.areaFromSqm).toBe(ranges[index].areaToSqm);
-      });
-    }
   });
 
   it('has formulas that are valid in the package formula language', () => {
@@ -139,39 +126,6 @@ describe('pricingDataset', () => {
 });
 
 describe('pricingDatasetSchema', () => {
-  it('rejects a gap between rate ranges', () => {
-    const rates = pricingDataset.baseRates.filter(
-      (rate) =>
-        !(rate.finishLevel === FinishLevel.ROUGH && rate.areaFromSqm === 45),
-    );
-
-    expect(pricingDatasetSchema.safeParse(withBaseRates(rates)).success).toBe(
-      false,
-    );
-  });
-
-  it('rejects overlapping rate ranges', () => {
-    const rates = pricingDataset.baseRates.map((rate) =>
-      rate.finishLevel === FinishLevel.ROUGH && rate.areaFromSqm === 30
-        ? { ...rate, areaFromSqm: 25 }
-        : rate,
-    );
-
-    expect(pricingDatasetSchema.safeParse(withBaseRates(rates)).success).toBe(
-      false,
-    );
-  });
-
-  it('rejects rates that stop at the maximum area', () => {
-    const rates = pricingDataset.baseRates.map((rate) =>
-      rate.areaToSqm === 500.01 ? { ...rate, areaToSqm: 500 } : rate,
-    );
-
-    expect(pricingDatasetSchema.safeParse(withBaseRates(rates)).success).toBe(
-      false,
-    );
-  });
-
   it('rejects a rule that uses an unknown coefficient', () => {
     const rules = pricingDataset.rules.map((rule, index) =>
       index === 0 ? { ...rule, coefficientKeys: ['missing'] } : rule,
@@ -209,5 +163,109 @@ describe('pricingDatasetSchema', () => {
     expect(
       pricingDatasetSchema.safeParse({ ...pricingDataset, rules }).success,
     ).toBe(false);
+  });
+
+  describe('surface rules and new columns', () => {
+    const surfaceRule = {
+      id: '3b9b1f7e-6e0c-4f5e-9f7a-0c1f2d3e4a5c',
+      level: RuleLevel.SURFACE,
+      categoryId: null,
+      materialTypeId: null,
+      surface: SurfaceKind.FLOOR,
+      name: { en: 'Floor', uk: 'Підлога' },
+      quantityFormula: null,
+      costFormula: 'floorArea * 10',
+      coefficientKeys: [],
+      sortOrder: 0,
+    };
+
+    function parse(rules: unknown[]) {
+      return pricingDatasetSchema.safeParse({ ...pricingDataset, rules });
+    }
+
+    it('accepts a surface rule and applies defaults', () => {
+      const result = parse([surfaceRule]);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.rules[0]).toMatchObject({
+        baseComponent: false,
+        laborFormula: null,
+      });
+    });
+
+    it('rejects the NONE surface', () => {
+      expect(
+        parse([{ ...surfaceRule, surface: SurfaceKind.NONE }]).success,
+      ).toBe(false);
+    });
+
+    it('rejects a surface rule without a surface', () => {
+      expect(parse([{ ...surfaceRule, surface: null }]).success).toBe(false);
+    });
+
+    it('rejects a surface on a non-surface rule', () => {
+      const [categoryRule] = pricingDataset.rules;
+
+      expect(
+        parse([{ ...categoryRule, surface: SurfaceKind.FLOOR }]).success,
+      ).toBe(false);
+    });
+
+    it('rejects a surface rule with a category or a quantity formula', () => {
+      const [categoryRule] = pricingDataset.rules;
+
+      expect(
+        parse([{ ...surfaceRule, categoryId: categoryRule.categoryId }])
+          .success,
+      ).toBe(false);
+      expect(parse([{ ...surfaceRule, quantityFormula: '1' }]).success).toBe(
+        false,
+      );
+    });
+
+    it('rejects two surface rules for the same surface', () => {
+      expect(
+        parse([
+          surfaceRule,
+          { ...surfaceRule, id: '3b9b1f7e-6e0c-4f5e-9f7a-0c1f2d3e4a5d' },
+        ]).success,
+      ).toBe(false);
+    });
+
+    it('rejects a base component outside the object level', () => {
+      expect(parse([{ ...surfaceRule, baseComponent: true }]).success).toBe(
+        false,
+      );
+    });
+
+    it('rejects a labor formula outside category and material type rules', () => {
+      expect(parse([{ ...surfaceRule, laborFormula: '1' }]).success).toBe(
+        false,
+      );
+    });
+
+    it('accepts a labor formula on a category rule', () => {
+      const [categoryRule] = pricingDataset.rules;
+
+      expect(
+        parse([{ ...categoryRule, laborFormula: 'quantity' }]).success,
+      ).toBe(true);
+    });
+
+    it('defaults the coefficient group and the missing area hint', () => {
+      const { missingAreaHintSqm: _hint, ...limits } = pricingDataset.limits;
+      const { group: _group, ...coefficient } = pricingDataset.coefficients[0];
+      const result = pricingDatasetSchema.safeParse({
+        ...pricingDataset,
+        limits,
+        coefficients: [coefficient],
+        rules: [],
+      });
+
+      expect(result.data?.limits.missingAreaHintSqm).toBe(5);
+      expect(result.data?.coefficients[0].group).toBe(
+        CoefficientGroup.MATERIAL_EXTRA,
+      );
+    });
   });
 });

@@ -74,6 +74,7 @@ export function buildNamedBedroomsConfiguration(): Configuration {
 
 export function buildProjectsConfiguration(): Configuration {
   return {
+    scope: 'FULL',
     finishLevel: 'PRE_FINISH',
     totalAreaSqm: 60,
     balconyAreaSqm: 0,
@@ -161,4 +162,48 @@ export async function shiftIdempotencyKeyCreatedAt(
   createdAt: Date,
 ): Promise<void> {
   await prisma.$executeRaw`UPDATE idempotency_keys SET created_at = ${createdAt} WHERE scope = ${scope}::"IdempotencyScope" AND key = ${key}::uuid`;
+}
+
+export async function withPackageIncludedInBase<T>(
+  testApp: TestApp,
+  run: () => Promise<T>,
+): Promise<T> {
+  const pricingData = testApp.app.get(PricingDataService);
+  const excluded = await testApp.prisma.engineeringPackageItem.findMany({
+    where: { includedInBase: false },
+    select: { id: true },
+  });
+  const ids = excluded.map((item) => item.id);
+
+  await testApp.prisma.engineeringPackageItem.updateMany({
+    where: { id: { in: ids } },
+    data: { includedInBase: true },
+  });
+  pricingData.invalidate();
+
+  try {
+    return await run();
+  } finally {
+    await testApp.prisma.engineeringPackageItem.updateMany({
+      where: { id: { in: ids } },
+      data: { includedInBase: false },
+    });
+    pricingData.invalidate();
+  }
+}
+
+export function buildEmptyPartialConfiguration() {
+  const configuration = buildProjectsConfiguration();
+
+  return {
+    ...configuration,
+    scope: 'PARTIAL' as const,
+    totalAreaSqm: null,
+    options: [],
+    rooms: configuration.rooms.map((room) => ({
+      ...room,
+      heatedFloor: false,
+      selections: [],
+    })),
+  };
 }

@@ -29,6 +29,8 @@ const ROOM_TYPE_SORT_ORDERS: Record<RoomTypeCode, number> = {
   [RoomTypeCode.KITCHEN]: 3,
   [RoomTypeCode.KITCHEN_LIVING]: 4,
   [RoomTypeCode.BATHROOM]: 5,
+  [RoomTypeCode.HALLWAY]: 6,
+  [RoomTypeCode.STORAGE]: 7,
 };
 
 export const MAX_IMAGE_BYTES = 5_242_880;
@@ -53,6 +55,8 @@ export async function createAdminCatalogRoomTypes(
       'Кухня-вітальня',
     ),
     [RoomTypeCode.BATHROOM]: localized('Bathroom', 'Санвузол'),
+    [RoomTypeCode.HALLWAY]: localized('Hallway', 'Коридор'),
+    [RoomTypeCode.STORAGE]: localized('Storage', 'Комора'),
   };
 
   const [livingRoom, bedroom, kitchen, kitchenLiving, bathroom] =

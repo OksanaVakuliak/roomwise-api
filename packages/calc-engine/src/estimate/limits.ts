@@ -18,17 +18,22 @@ export function checkLimits(
     }
   };
 
-  check(
-    'totalAreaSqm',
-    configuration.totalAreaSqm,
-    limits.totalAreaSqm.min,
-    limits.totalAreaSqm.max,
-  );
+  const isFull = configuration.scope === 'FULL';
+  if (isFull && configuration.totalAreaSqm !== null) {
+    check(
+      'totalAreaSqm',
+      configuration.totalAreaSqm,
+      limits.totalAreaSqm.min,
+      limits.totalAreaSqm.max,
+    );
+  }
   check(
     'balconyAreaSqm',
     configuration.balconyAreaSqm,
     0,
-    configuration.totalAreaSqm,
+    isFull && configuration.totalAreaSqm !== null
+      ? configuration.totalAreaSqm
+      : limits.totalAreaSqm.max,
   );
   check(
     'rooms',

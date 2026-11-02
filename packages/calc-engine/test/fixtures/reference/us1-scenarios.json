@@ -1,42 +1,127 @@
 [
   {
     "name": "us1-1-base-cost",
-    "description": "62 m2 in range [55, 70) at 118.50 USD per m2: 62 * 11850 = 734700 cents. Without rules and package items the base line is the only one.",
+    "description": "Bathroom 2 x 2 x 2.5 m, PRE_FINISH, only the base rules: electrics 4 m2 * 11.00 = 44 USD = 4400 cents, plumbing 1 wet room * 56 = 5600 cents, screed and plaster are ROUGH only and omitted. Total 10000.",
     "pricingData": {
       "packageItems": [],
-      "rules": []
+      "rules": [
+        {
+          "id": "rule-base-screed",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Screed",
+            "uk": "Стяжка"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsFloorArea * (coef.prep_screed + coef.mat_screed) : 0",
+          "sortOrder": 1,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plaster",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Wall plaster",
+            "uk": "Штукатурка стін"
+          },
+          "quantityFormula": null,
+          "costFormula": "finishLevel == 'ROUGH' ? roomsWallArea * (coef.prep_wall_plaster + coef.mat_wall_plaster) : 0",
+          "sortOrder": 2,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-electrics",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Electrics",
+            "uk": "Електрика"
+          },
+          "quantityFormula": null,
+          "costFormula": "roomsFloorArea * coef.mat_electrics_sqm",
+          "sortOrder": 3,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        },
+        {
+          "id": "rule-base-plumbing",
+          "level": "OBJECT",
+          "categoryId": null,
+          "materialTypeId": null,
+          "name": {
+            "en": "Plumbing",
+            "uk": "Водопостачання"
+          },
+          "quantityFormula": null,
+          "costFormula": "wetRoomsCount * coef.mat_plumbing_room",
+          "sortOrder": 4,
+          "surface": null,
+          "baseComponent": true,
+          "laborFormula": null
+        }
+      ]
     },
     "configuration": {
       "finishLevel": "PRE_FINISH",
       "totalAreaSqm": 62,
       "balconyAreaSqm": 0,
       "balconyTiles": false,
-      "rooms": [],
+      "rooms": [
+        {
+          "clientId": "bath",
+          "roomTypeCode": "BATHROOM",
+          "lengthM": 2,
+          "widthM": 2,
+          "heightM": 2.5,
+          "heatedFloor": false,
+          "selections": []
+        }
+      ],
       "options": [],
       "currency": "USD"
     },
     "expected": {
-      "lineCount": 1,
+      "lineCount": 2,
       "lines": [
         {
-          "id": "BASE",
+          "id": "BASE:rule-base-electrics",
           "section": "BASE",
           "status": "OK",
-          "quantity": 62,
-          "unit": "SQM",
-          "unitPriceCents": 11850,
-          "amountCents": 734700
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 4400
+        },
+        {
+          "id": "BASE:rule-base-plumbing",
+          "section": "BASE",
+          "status": "OK",
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 5600
         }
       ],
+      "absentLineIds": ["BASE:rule-base-screed", "BASE:rule-base-plaster"],
       "totals": {
-        "usdCents": 734700
+        "usdCents": 10000
       },
       "incomplete": false
     }
   },
   {
     "name": "us1-2-laminate-line",
-    "description": "Living room 5 x 4, laminate 18 USD, waste 5%, underlay 2: quantity 21 m2, cost 21 * 20 = 420 USD = 42000 cents. Base 734700 plus a zero object line plus 42000: 776700.",
+    "description": "Living room 5 x 4, laminate 18 USD, waste 5%, underlay 2: quantity 21 m2, cost 21 * 20 = 420 USD = 42000 cents. Base electrics 20 m2 * 11.00 = 22000 cents (the living room is not wet, no plumbing), plus a zero object line plus 42000: 64000.",
     "pricingData": {
       "packageItems": []
     },
@@ -68,13 +153,13 @@
       "lineCount": 3,
       "lines": [
         {
-          "id": "BASE",
+          "id": "BASE:rule-base-electrics",
           "section": "BASE",
           "status": "OK",
-          "quantity": 62,
-          "unit": "SQM",
-          "unitPriceCents": 11850,
-          "amountCents": 734700
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 22000
         },
         {
           "id": "OBJECT:rule-balcony-tile",
@@ -93,18 +178,25 @@
           "unit": "SQM",
           "unitPriceCents": 1800,
           "amountCents": 42000,
-          "roomClientId": "living"
+          "roomClientId": "living",
+          "components": [
+            {
+              "kind": "MATERIAL",
+              "ruleId": "rule-floor",
+              "amountCents": 42000
+            }
+          ]
         }
       ],
       "totals": {
-        "usdCents": 776700
+        "usdCents": 64000
       },
       "incomplete": false
     }
   },
   {
     "name": "us1-3-disabled-category",
-    "description": "The bedroom ceiling is disabled (productId null): no line for that pair and the other sums stay. Bedroom floor: 12 * 1.05 = 12.6 m2, 12.6 * 20 = 252 USD. Total 734700 + 0 + 42000 + 25200 = 801900.",
+    "description": "The bedroom ceiling is disabled (productId null): no line for that pair and the other sums stay. Bedroom floor: 12 * 1.05 = 12.6 m2, 12.6 * 20 = 252 USD. Base electrics (20 + 12) m2 * 11.00 = 352 USD = 35200. Total 35200 + 0 + 42000 + 25200 = 102400.",
     "pricingData": {
       "packageItems": []
     },
@@ -176,14 +268,14 @@
       ],
       "absentLineIds": ["MATERIALS:bed:cat-ceiling"],
       "totals": {
-        "usdCents": 801900
+        "usdCents": 102400
       },
       "incomplete": false
     }
   },
   {
     "name": "us1-4-uah",
-    "description": "Same configuration as scenario 2 in UAH at 44.5483: each USD line is converted and rounded to kopecks (734700 -> 32729636, 42000 -> 1871029), the UAH total is the sum of the kopeck lines: 34600665.",
+    "description": "Same configuration as scenario 2 in UAH at 44.5483: each USD line is converted and rounded to kopecks (22000 -> 980063, 42000 -> 1871029), the UAH total is the sum of the kopeck lines: 2851092.",
     "pricingData": {
       "packageItems": []
     },
@@ -216,14 +308,14 @@
       "currency": "UAH",
       "lines": [
         {
-          "id": "BASE",
+          "id": "BASE:rule-base-electrics",
           "section": "BASE",
           "status": "OK",
-          "quantity": 62,
-          "unit": "SQM",
-          "unitPriceCents": 11850,
-          "amountCents": 734700,
-          "amountUahKopecks": 32729636
+          "quantity": null,
+          "unit": null,
+          "unitPriceCents": null,
+          "amountCents": 22000,
+          "amountUahKopecks": 980063
         },
         {
           "id": "OBJECT:rule-balcony-tile",
@@ -248,15 +340,15 @@
         }
       ],
       "totals": {
-        "usdCents": 776700,
-        "uahKopecks": 34600665
+        "usdCents": 64000,
+        "uahKopecks": 2851092
       },
       "incomplete": false
     }
   },
   {
     "name": "us1-7-engineering-options",
-    "description": "Air conditioning, 3 pieces * 450 USD = 135000 cents, and heated floor in a 2 x 2 bathroom, 4 m2 * 85 USD = 34000 cents. Total 734700 + 0 + 135000 + 34000 = 903700.",
+    "description": "Base electrics 24 m2 * 11.00 = 26400 and plumbing 1 * 56 = 5600; air conditioning 3 * 450 USD = 135000 cents; heated floor in a 2 x 2 bathroom 4 m2 * 85 USD = 34000 cents. Total 26400 + 5600 + 0 + 135000 + 34000 = 201000.",
     "pricingData": {
       "packageItems": []
     },
@@ -298,7 +390,7 @@
       "currency": "USD"
     },
     "expected": {
-      "lineCount": 4,
+      "lineCount": 5,
       "lines": [
         {
           "id": "ENGINEERING:option:opt-ac",
@@ -320,7 +412,7 @@
         }
       ],
       "totals": {
-        "usdCents": 903700
+        "usdCents": 201000
       },
       "incomplete": false
     }

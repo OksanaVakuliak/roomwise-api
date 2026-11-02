@@ -22,6 +22,22 @@ describe('patchOptionSchema', () => {
     }
   });
 
+  it('rejects duplicate priceCoefficientKeys', () => {
+    const result = patchOptionSchema.safeParse(
+      baseInput({ priceCoefficientKeys: ['paint_extra', 'paint_extra'] }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a malformed coefficient key', () => {
+    const result = patchOptionSchema.safeParse(
+      baseInput({ priceCoefficientKeys: ['Bad Key'] }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects minQuantity greater than maxQuantity when both are patched', () => {
     const result = patchOptionSchema.safeParse(
       baseInput({ minQuantity: 5, maxQuantity: 2 }),
@@ -35,6 +51,23 @@ describe('patchOptionSchema', () => {
 
   it('accepts patching only maxQuantity, leaving the bounds check to the service', () => {
     const result = patchOptionSchema.safeParse(baseInput({ maxQuantity: 2 }));
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects empty scopes with an error on scopes', () => {
+    const result = patchOptionSchema.safeParse(baseInput({ scopes: [] }));
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.path).toEqual(['scopes']);
+    }
+  });
+
+  it('accepts patching priceCoefficientKeys and scopes', () => {
+    const result = patchOptionSchema.safeParse(
+      baseInput({ priceCoefficientKeys: ['waste'], scopes: ['PARTIAL'] }),
+    );
 
     expect(result.success).toBe(true);
   });

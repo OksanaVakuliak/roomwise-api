@@ -87,7 +87,7 @@ describe('estimate formula failures', () => {
       ),
     );
     expect(lineOf(result, 'OBJECT:rule-balcony-tile')?.status).toBe('ERROR');
-    expect(lineOf(result, 'BASE')?.status).toBe('OK');
+    expect(lineOf(result, 'MATERIALS:living:cat-walls')?.status).toBe('OK');
     expect(result.incomplete).toBe(true);
   });
 
@@ -254,6 +254,8 @@ describe('estimate references and options', () => {
           priceCents: 1000,
           unit,
           roomTypeCodes,
+          priceCoefficientKeys: [],
+          scopes: ['FULL', 'PARTIAL'],
           minQuantity: null,
           maxQuantity: null,
           available: true,
@@ -343,7 +345,7 @@ describe('estimate amount bounds', () => {
     expect(lineOf(result, 'MATERIALS:living:cat-walls')?.error?.code).toBe(
       'AMOUNT_OUT_OF_RANGE',
     );
-    expect(lineOf(result, 'BASE')?.status).toBe('OK');
+    expect(lineOf(result, 'MATERIALS:living:cat-floor')?.status).toBe('OK');
   });
 
   it('accepts a line at the bound', () => {

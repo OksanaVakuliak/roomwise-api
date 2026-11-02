@@ -4,14 +4,14 @@ import { ERROR_CODES } from '../../../common/http/error-codes';
 import { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.service';
 import { PricingDataService } from '../../pricing/pricing-data/pricing-data.service';
 import { retiredOptionsOf } from '../snapshot/retired-options';
-import type { SnapshotV1 } from '../snapshot/snapshot.schema';
+import type { Snapshot } from '../snapshot/snapshot.schema';
 import type { PriceStatus } from './price-status.schema';
 
 const CACHE_LIMIT = 1000;
 
 export interface PriceStatusSource {
   id: string;
-  snapshot: SnapshotV1;
+  snapshot: Snapshot;
   totalUsdCents: number;
   pricingVersion: string;
 }

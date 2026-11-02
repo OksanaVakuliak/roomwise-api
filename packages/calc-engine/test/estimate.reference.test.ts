@@ -28,7 +28,7 @@ interface Case {
   name: string;
   description: string;
   pricingData: Partial<PricingData>;
-  configuration: Configuration;
+  configuration: Omit<Configuration, 'scope'>;
   expected: ExpectedCase;
 }
 
@@ -90,7 +90,7 @@ describe('US1 reference estimate', () => {
 
   it('matches the hand-calculated totals', () => {
     expect(result.totals).toEqual(reference.expected.totals);
-    expect(result.totals.usdCents).toBe(1217291);
+    expect(result.totals.usdCents).toBe(514591);
     expect(result.warnings).toEqual(reference.expected.warnings);
     expect(result.incomplete).toBe(reference.expected.incomplete);
   });

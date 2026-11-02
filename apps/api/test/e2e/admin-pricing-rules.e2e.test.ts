@@ -41,7 +41,11 @@ interface RuleBody {
   level: string;
   categoryId: string | null;
   materialTypeId: string | null;
+  surface: string | null;
+  baseComponent: boolean;
   costFormula: string;
+  laborFormula: string | null;
+  coefficientKeys: string[];
   sortOrder: number;
   revision: string;
   updatedBy: { id: string; login: string } | null;
@@ -56,6 +60,20 @@ interface EstimateLine {
 
 type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
+const fullObject = {
+  scope: 'FULL',
+  totalAreaSqm: 60,
+  balconyAreaSqm: 0,
+  balconyTiles: false,
+  finishLevel: 'ROUGH',
+  roomsCount: 2,
+  bathroomsCount: 1,
+  roomsFloorArea: 50,
+  roomsWallArea: 120,
+  roomsPerimeter: 40,
+  wetRoomsCount: 1,
+};
+
 const livingRoomSample = {
   room: {
     roomTypeCode: 'LIVING_ROOM',
@@ -65,14 +83,7 @@ const livingRoomSample = {
     heatedFloor: false,
   },
   product: { priceCents: 1800, unit: 'SQM', wastePercent: 5 },
-  object: {
-    totalAreaSqm: 60,
-    balconyAreaSqm: 0,
-    balconyTiles: false,
-    finishLevel: 'ROUGH',
-    roomsCount: 2,
-    bathroomsCount: 1,
-  },
+  object: fullObject,
 };
 
 function buildRuleInput(overrides: Record<string, unknown> = {}) {
@@ -82,6 +93,19 @@ function buildRuleInput(overrides: Record<string, unknown> = {}) {
     name: { en: 'Rule', uk: 'Правило' },
     quantityFormula: FLOOR_QUANTITY,
     costFormula: 'quantity * price',
+    ...overrides,
+  };
+}
+
+function buildSurfaceInput(
+  surface: string,
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    level: 'SURFACE',
+    surface,
+    name: { en: 'Surface', uk: 'Поверхня' },
+    costFormula: 'surfaceArea * 2',
     ...overrides,
   };
 }
@@ -345,6 +369,256 @@ describe('admin pricing rules e2e', () => {
       expect(created.body.categoryId).toBeNull();
 
       await authed('delete', `${RULES_PATH}/${created.body.id}`).expect(204);
+    });
+  });
+
+  describe('surface rules', () => {
+    async function freeSurface(): Promise<string> {
+      const taken = new Set(
+        (await listRules()).items
+          .filter((item) => item.level === 'SURFACE')
+          .map((item) => item.surface),
+      );
+      const free = ['FLOOR', 'WALLS', 'CEILING'].find(
+        (surface) => !taken.has(surface),
+      );
+
+      if (!free) {
+        throw new Error('every surface already has a rule');
+      }
+
+      return free;
+    }
+
+    it('creates a surface rule and answers 409 for a second one with the same surface', async () => {
+      const surface = await freeSurface();
+      const created = await authed('post', RULES_PATH)
+        .send(buildSurfaceInput(surface))
+        .expect(201);
+
+      expect(created.body).toMatchObject({
+        level: 'SURFACE',
+        surface,
+        categoryId: null,
+        materialTypeId: null,
+        quantityFormula: null,
+        laborFormula: null,
+        baseComponent: false,
+      });
+
+      const duplicate = await authed('post', RULES_PATH)
+        .send(buildSurfaceInput(surface))
+        .expect(409);
+
+      expect(duplicate.body.error.code).toBe(ERROR_CODES.RULE_EXISTS);
+
+      await authed('delete', `${RULES_PATH}/${created.body.id}`).expect(204);
+    });
+
+    it('rejects a surface rule without a surface', async () => {
+      const response = await authed('post', RULES_PATH)
+        .send({ ...buildSurfaceInput('FLOOR'), surface: undefined })
+        .expect(400);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('rejects an unknown surface value', async () => {
+      await authed('post', RULES_PATH)
+        .send(buildSurfaceInput('NONE'))
+        .expect(400);
+    });
+
+    it.each([
+      ['a category', { categoryId: categoryIds.ceilingFinish }],
+      ['a quantity formula', { quantityFormula: FLOOR_QUANTITY }],
+      ['a labor formula', { laborFormula: 'surfaceArea' }],
+    ])('rejects a surface rule with %s', async (_label, extra) => {
+      const response = await authed('post', RULES_PATH)
+        .send(buildSurfaceInput('FLOOR', extra))
+        .expect(400);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('rejects a surface on a category rule', async () => {
+      await authed('post', RULES_PATH)
+        .send(buildRuleInput({ surface: 'FLOOR' }))
+        .expect(400);
+    });
+
+    it('validates a surface formula with the surface area variable', async () => {
+      const response = await authed('post', VALIDATE_PATH)
+        .send({
+          level: 'SURFACE',
+          costFormula: 'surfaceArea * coef.laminate_underlay',
+        })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        valid: true,
+        coefficientKeys: ['laminate_underlay'],
+        errors: [],
+      });
+    });
+
+    it('previews a surface rule of a partial scope', async () => {
+      const response = await authed('post', `${RULES_PATH}/preview`)
+        .send({
+          level: 'SURFACE',
+          costFormula: 'surfaceArea * roomsPerimeter',
+          sample: {
+            room: livingRoomSample.room,
+            surfaceArea: 20,
+            object: { ...fullObject, scope: 'PARTIAL', totalAreaSqm: null },
+          },
+        })
+        .expect(200);
+
+      expect(response.body.amountCents).toBe(80_000);
+      expect(response.body.laborCents).toBeNull();
+      expect(response.body.error).toBeNull();
+    });
+
+    it('rejects a partial preview sample that carries a total area', async () => {
+      await authed('post', `${RULES_PATH}/preview`)
+        .send({
+          level: 'OBJECT',
+          costFormula: 'roomsFloorArea',
+          sample: { object: { ...fullObject, scope: 'PARTIAL' } },
+        })
+        .expect(400);
+    });
+
+    it('rejects a full preview sample without a total area', async () => {
+      await authed('post', `${RULES_PATH}/preview`)
+        .send({
+          level: 'OBJECT',
+          costFormula: 'totalArea',
+          sample: { object: { ...fullObject, totalAreaSqm: null } },
+        })
+        .expect(400);
+    });
+  });
+
+  describe('labor formula and base component', () => {
+    it('stores a labor formula with its coefficient keys', async () => {
+      const created = await authed('post', RULES_PATH)
+        .send(
+          buildRuleInput({
+            level: 'MATERIAL_TYPE',
+            categoryId: categoryIds.floorCovering,
+            materialTypeId: materialTypeIds.parquet,
+            laborFormula: 'quantity * coef.laminate_underlay',
+          }),
+        )
+        .expect(201);
+
+      expect(created.body.laborFormula).toBe(
+        'quantity * coef.laminate_underlay',
+      );
+      expect(created.body.coefficientKeys).toEqual(['laminate_underlay']);
+
+      const updated = await authed('patch', `${RULES_PATH}/${created.body.id}`)
+        .send({ laborFormula: null, revision: created.body.revision })
+        .expect(200);
+
+      expect(updated.body.laborFormula).toBeNull();
+      expect(updated.body.coefficientKeys).toEqual([]);
+
+      await authed('delete', `${RULES_PATH}/${created.body.id}`).expect(204);
+    });
+
+    it('rejects an invalid labor formula with FORMULA_INVALID', async () => {
+      const response = await authed('post', RULES_PATH)
+        .send(buildRuleInput({ laborFormula: 'quantity * coef.nope' }))
+        .expect(422);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.FORMULA_INVALID);
+      expect(response.body.error.params.errors[0]).toMatchObject({
+        formula: 'labor',
+        code: 'UNKNOWN_COEFFICIENT',
+      });
+    });
+
+    it('rejects a labor formula on an object rule', async () => {
+      const response = await authed('post', RULES_PATH)
+        .send({
+          level: 'OBJECT',
+          name: { en: 'Object labor', uk: 'Робота об’єкта' },
+          costFormula: 'totalArea',
+          laborFormula: 'totalArea',
+        })
+        .expect(400);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('rejects the base component flag on a category rule', async () => {
+      const response = await authed('post', RULES_PATH)
+        .send(buildRuleInput({ baseComponent: true }))
+        .expect(400);
+
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('creates an object rule marked as the base component', async () => {
+      const created = await authed('post', RULES_PATH)
+        .send({
+          level: 'OBJECT',
+          baseComponent: true,
+          name: { en: 'Base', uk: 'База' },
+          costFormula: 'totalArea',
+        })
+        .expect(201);
+
+      expect(created.body.baseComponent).toBe(true);
+
+      await authed('delete', `${RULES_PATH}/${created.body.id}`).expect(204);
+    });
+
+    it('rejects a labor formula on validate for an object rule', async () => {
+      await authed('post', VALIDATE_PATH)
+        .send({
+          level: 'OBJECT',
+          costFormula: 'totalArea',
+          laborFormula: 'totalArea',
+        })
+        .expect(400);
+    });
+
+    it('reports labor errors tagged as labor on validate', async () => {
+      const response = await authed('post', VALIDATE_PATH)
+        .send({
+          level: 'CATEGORY',
+          quantityFormula: FLOOR_QUANTITY,
+          costFormula: 'quantity * price',
+          laborFormula: 'quantity * coef.nope',
+        })
+        .expect(200);
+
+      expect(response.body.valid).toBe(false);
+      expect(
+        (response.body.errors as FormulaIssueBody[]).map(
+          (error) => error.formula,
+        ),
+      ).toEqual(['labor']);
+    });
+
+    it('previews labor cents', async () => {
+      const response = await authed('post', `${RULES_PATH}/preview`)
+        .send({
+          level: 'CATEGORY',
+          quantityFormula: FLOOR_QUANTITY,
+          costFormula: 'quantity * price',
+          laborFormula: 'quantity * coef.laminate_underlay',
+          sample: livingRoomSample,
+        })
+        .expect(200);
+
+      expect(response.body.quantity).toBe(21);
+      expect(response.body.laborCents).toBe(4200);
+      expect(response.body.error).toBeNull();
     });
   });
 

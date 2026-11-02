@@ -121,6 +121,7 @@ export function generateConfigurations(
       (_, index) => generateRoom(random, pricingData, index),
     );
     return {
+      scope: 'FULL' as const,
       finishLevel: pick(random, ['ROUGH', 'PRE_FINISH'] as const),
       totalAreaSqm,
       balconyAreaSqm:

@@ -8,7 +8,9 @@ import { OptionKind, OptionUnit } from '../../../../generated/prisma/enums';
 import {
   OPTION_QUANTITY_MAX,
   OPTION_QUANTITY_MIN,
+  priceCoefficientKeysSchema,
   roomTypeIdsSchema,
+  scopesSchema,
 } from './create-option.schema';
 
 const MIN_QUANTITY_EXCEEDS_MAX_QUANTITY_MESSAGE =
@@ -38,6 +40,8 @@ export const patchOptionSchema = z
       .nullable()
       .optional(),
     roomTypeIds: roomTypeIdsSchema.optional(),
+    priceCoefficientKeys: priceCoefficientKeysSchema.optional(),
+    scopes: scopesSchema.optional(),
     revision: z.uuid(),
   })
   .strict()

@@ -42,8 +42,12 @@ export function engineeringLines(
   configuration: Configuration,
   data: PricingData,
 ): EstimateLine[] {
+  const items =
+    configuration.scope === 'PARTIAL'
+      ? data.packageItems.filter((item) => !item.includedInBase)
+      : data.packageItems;
   return [
-    ...data.packageItems.map((item) => packageLine(configuration, item)),
+    ...items.map((item) => packageLine(configuration, item)),
     ...optionLines(configuration, data, 'ENGINEERING'),
   ];
 }

@@ -1,7 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { IdempotencyScope } from '../../../generated/prisma/enums';
+import {
+  SNAPSHOT_SCHEMA_VERSION,
+  SnapshotSchema,
+} from '../snapshot/snapshot.schema';
 import { CalculationsService } from './calculations.service';
 
 vi.mock('../presenters/version-view.presenter', async (importOriginal) => ({
@@ -28,6 +34,7 @@ const snapshot = {
   schemaVersion: 1,
   pricingVersion: PRICING_VERSION,
   createdAt: NOW.toISOString(),
+  lines: [{ amountCents: SAVED_TOTAL }],
   estimate: {
     totals: { usdCents: SAVED_TOTAL, uahKopecks: 41_000 },
     incomplete: false,
@@ -123,7 +130,51 @@ const input = {
   clientTotalUsdCents: SAVED_TOTAL,
 } as never;
 
+function snapshotWithLines(amounts: number[]) {
+  return {
+    ...snapshot,
+    lines: amounts.map((amountCents) => ({ amountCents })),
+  };
+}
+
 describe('CalculationsService.create', () => {
+  it.each([[[]], [[0, 0]]])(
+    'rejects an estimate without a positive line (%j) before persisting',
+    async (amounts) => {
+      const { service, builder, prisma, idempotency } = createService();
+      builder.build.mockResolvedValue(snapshotWithLines(amounts));
+
+      await expect(service.create(input, CONTEXT, 'uk')).rejects.toMatchObject({
+        code: ERROR_CODES.EMPTY_ESTIMATE,
+      });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(idempotency.record).not.toHaveBeenCalled();
+    },
+  );
+
+  it('saves an estimate with a single positive line among zero ones', async () => {
+    const { service, builder, tx } = createService();
+    builder.build.mockResolvedValue(snapshotWithLines([0, 1]));
+
+    await service.create(input, CONTEXT, 'uk');
+
+    expect(tx.calculationVersion.create).toHaveBeenCalledOnce();
+  });
+
+  it('saves without a style when styleId is null', async () => {
+    const { service, builder } = createService();
+
+    await service.create(
+      { ...(input as object), styleId: null } as never,
+      CONTEXT,
+      'uk',
+    );
+
+    expect(builder.build).toHaveBeenCalledWith(
+      expect.objectContaining({ styleId: null }),
+    );
+  });
+
   it('builds the snapshot before the transaction with the current instant', async () => {
     const { service, builder, prisma } = createService();
 
@@ -301,15 +352,56 @@ describe('CalculationsService.recalculate', () => {
     });
   });
 
-  it('answers STYLE_NOT_FOUND when the stored snapshot has no style', async () => {
+  it('recalculates a stored snapshot that has no style', async () => {
     const ctx = setup({ style: null });
 
-    const code = await failureOf(
-      ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk'),
-    );
+    await ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk');
 
-    expect(code).toBe(ERROR_CODES.STYLE_NOT_FOUND);
-    expect(ctx.builder.build).not.toHaveBeenCalled();
+    expect(ctx.builder.build).toHaveBeenCalledWith(
+      expect.objectContaining({ styleId: null }),
+    );
+  });
+
+  it('recalculates a stored snapshot whose estimate has no positive line', async () => {
+    const ctx = setup();
+    ctx.builder.build.mockResolvedValue(snapshotWithLines([]));
+
+    await expect(
+      ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk'),
+    ).resolves.toBeDefined();
+  });
+
+  it('recalculates a stored v1 snapshot into a v2 one', async () => {
+    const ctx = setup();
+    const stored = SnapshotSchema.parse(
+      JSON.parse(
+        readFileSync(
+          join(__dirname, '../snapshot/fixtures/snapshot-v1.json'),
+          'utf8',
+        ),
+      ),
+    );
+    ctx.prisma.calculationVersion.findUnique.mockResolvedValue({
+      ...base,
+      snapshot: stored,
+    });
+    ctx.builder.build.mockResolvedValue({
+      ...snapshot,
+      schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+    });
+
+    await ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk');
+
+    expect(ctx.builder.build).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configuration: expect.objectContaining({ scope: 'FULL' }),
+        styleId: stored.style?.id,
+        previous: stored,
+      }),
+    );
+    expect(ctx.tx.calculationVersion.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ snapshotSchemaVersion: 2 }),
+    });
   });
 
   it('rebuilds the snapshot from the stored configuration and style', async () => {

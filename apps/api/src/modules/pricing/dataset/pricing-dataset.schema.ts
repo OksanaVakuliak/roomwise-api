@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import { localizedNameSchema } from '../../../common/i18n/localized-text.schema';
-import { FinishLevel, RuleLevel } from '../../../generated/prisma/enums';
+import { coefficientKeySchema } from '../../../common/pricing/coefficient-key.schema';
+import { ruleSurfaceSchema } from '../../../common/pricing/rule-surface.schema';
+import { CoefficientGroup, RuleLevel } from '../../../generated/prisma/enums';
 
-export const COEFFICIENT_KEY_PATTERN = /^[a-z][a-z0-9_]{1,40}$/;
 export const FORMULA_MAX_LENGTH = 500;
+const DEFAULT_MISSING_AREA_HINT_SQM = 5;
 
 const rangeSchema = z
   .object({ min: z.number(), max: z.number() })
@@ -14,29 +16,21 @@ export const seedPricingLimitsSchema = z.object({
   rooms: rangeSchema,
   roomSideM: rangeSchema,
   roomHeightM: rangeSchema,
+  missingAreaHintSqm: z
+    .number()
+    .positive()
+    .default(DEFAULT_MISSING_AREA_HINT_SQM),
 });
-export type SeedPricingLimits = z.infer<typeof seedPricingLimitsSchema>;
-
-export const seedBaseRateSchema = z
-  .object({
-    finishLevel: z.enum(FinishLevel),
-    areaFromSqm: z.number().min(0),
-    areaToSqm: z.number(),
-    rateCentsPerSqm: z.int().positive(),
-  })
-  .refine((rate) => rate.areaToSqm > rate.areaFromSqm, {
-    message: 'areaToSqm must be above areaFromSqm',
-    path: ['areaToSqm'],
-  });
-export type SeedBaseRate = z.infer<typeof seedBaseRateSchema>;
+export type SeedPricingLimits = z.input<typeof seedPricingLimitsSchema>;
 
 export const seedCoefficientSchema = z.object({
-  key: z.string().regex(COEFFICIENT_KEY_PATTERN),
+  key: coefficientKeySchema,
   name: localizedNameSchema,
   value: z.number().min(0),
   unit: localizedNameSchema,
+  group: z.enum(CoefficientGroup).default(CoefficientGroup.MATERIAL_EXTRA),
 });
-export type SeedCoefficient = z.infer<typeof seedCoefficientSchema>;
+export type SeedCoefficient = z.input<typeof seedCoefficientSchema>;
 
 export const seedPricingRuleSchema = z
   .object({
@@ -44,16 +38,27 @@ export const seedPricingRuleSchema = z
     level: z.enum(RuleLevel),
     categoryId: z.uuid().nullable(),
     materialTypeId: z.uuid().nullable(),
+    surface: ruleSurfaceSchema.nullable().default(null),
+    baseComponent: z.boolean().default(false),
     name: localizedNameSchema,
     quantityFormula: z.string().max(FORMULA_MAX_LENGTH).nullable(),
     costFormula: z.string().min(1).max(FORMULA_MAX_LENGTH),
-    coefficientKeys: z.array(z.string().regex(COEFFICIENT_KEY_PATTERN)),
+    laborFormula: z
+      .string()
+      .min(1)
+      .max(FORMULA_MAX_LENGTH)
+      .nullable()
+      .default(null),
+    coefficientKeys: z.array(coefficientKeySchema),
     sortOrder: z.int().nonnegative(),
   })
   .superRefine((rule, ctx) => {
-    const expectsCategory = rule.level !== RuleLevel.OBJECT;
+    const expectsCategory =
+      rule.level === RuleLevel.CATEGORY ||
+      rule.level === RuleLevel.MATERIAL_TYPE;
     const expectsMaterialType = rule.level === RuleLevel.MATERIAL_TYPE;
-    const expectsQuantity = rule.level !== RuleLevel.OBJECT;
+    const expectsQuantity = expectsCategory;
+    const expectsSurface = rule.level === RuleLevel.SURFACE;
 
     if (expectsCategory !== (rule.categoryId !== null)) {
       ctx.addIssue({
@@ -76,37 +81,29 @@ export const seedPricingRuleSchema = z
         message: 'Invalid',
       });
     }
+    if (expectsSurface !== (rule.surface !== null)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['surface'],
+        message: 'Invalid',
+      });
+    }
+    if (rule.baseComponent && rule.level !== RuleLevel.OBJECT) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['baseComponent'],
+        message: 'Only object rules can be base components',
+      });
+    }
+    if (rule.laborFormula !== null && !expectsCategory) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['laborFormula'],
+        message: 'Invalid',
+      });
+    }
   });
-export type SeedPricingRule = z.infer<typeof seedPricingRuleSchema>;
-
-function findBaseRateGap(rates: SeedBaseRate[], limits: SeedPricingLimits) {
-  const { min, max } = limits.totalAreaSqm;
-
-  for (const finishLevel of Object.values(FinishLevel)) {
-    const ranges = rates
-      .filter((rate) => rate.finishLevel === finishLevel)
-      .sort((a, b) => a.areaFromSqm - b.areaFromSqm);
-    let covered = min;
-    let previousTo: number | undefined;
-
-    for (const range of ranges) {
-      if (range.areaFromSqm > covered) {
-        return { finishLevel, from: covered, to: range.areaFromSqm };
-      }
-      if (previousTo !== undefined && range.areaFromSqm < previousTo) {
-        return { finishLevel, from: range.areaFromSqm, to: previousTo };
-      }
-      previousTo = range.areaToSqm;
-      covered = Math.max(covered, range.areaToSqm);
-    }
-
-    if (covered <= max) {
-      return { finishLevel, from: covered, to: max };
-    }
-  }
-
-  return undefined;
-}
+export type SeedPricingRule = z.input<typeof seedPricingRuleSchema>;
 
 function findDuplicate(keys: string[]): string | undefined {
   const seen = new Set<string>();
@@ -120,20 +117,10 @@ function findDuplicate(keys: string[]): string | undefined {
 export const pricingDatasetSchema = z
   .object({
     limits: seedPricingLimitsSchema,
-    baseRates: z.array(seedBaseRateSchema).min(1),
     coefficients: z.array(seedCoefficientSchema),
     rules: z.array(seedPricingRuleSchema),
   })
   .superRefine((dataset, ctx) => {
-    const gap = findBaseRateGap(dataset.baseRates, dataset.limits);
-    if (gap) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['baseRates'],
-        message: `${gap.finishLevel} rates have a gap or overlap between ${gap.from} and ${gap.to}`,
-      });
-    }
-
     const duplicateKey = findDuplicate(
       dataset.coefficients.map((coefficient) => coefficient.key),
     );
@@ -158,7 +145,8 @@ export const pricingDatasetSchema = z
       dataset.rules
         .filter((rule) => rule.level !== RuleLevel.OBJECT)
         .map(
-          (rule) => `${rule.level}:${rule.categoryId}:${rule.materialTypeId}`,
+          (rule) =>
+            `${rule.level}:${rule.categoryId}:${rule.materialTypeId}:${rule.surface}`,
         ),
     );
     if (duplicateTarget) {

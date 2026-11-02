@@ -8,11 +8,13 @@ import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
 import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
 import { createTestApp, type TestApp } from './app-factory';
 import {
+  buildEmptyPartialConfiguration,
   buildNamedBedroomsConfiguration,
   buildProjectsConfiguration,
   newIdempotencyKey,
   projectsStyleId,
   seedProjectsData,
+  withPackageIncludedInBase,
 } from './projects-fixtures';
 
 const SEED_TIMEOUT_MS = 120_000;
@@ -233,6 +235,26 @@ describe('calculations e2e', () => {
       const response = await save(savedBody({ configuration }));
 
       expect(response.status).toBe(400);
+    });
+
+    it('saves without a style when styleId is null', async () => {
+      const response = await save(savedBody({ styleId: null }));
+
+      expect(response.status).toBe(201);
+      expect(response.body.version.style).toBeNull();
+    });
+
+    it('rejects a partial renovation with nothing picked with EMPTY_ESTIMATE', async () => {
+      const before = await testApp.prisma.calculation.count();
+      const configuration = buildEmptyPartialConfiguration();
+
+      const response = await withPackageIncludedInBase(testApp, () =>
+        save(savedBody({ configuration })),
+      );
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.EMPTY_ESTIMATE);
+      await expect(testApp.prisma.calculation.count()).resolves.toBe(before);
     });
 
     it('rejects an unknown style with STYLE_NOT_FOUND', async () => {

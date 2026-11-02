@@ -3,14 +3,14 @@ import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import type { Language } from '../../../common/i18n/resolve-lang';
 import { CatalogSnapshotReadService } from '../../catalog/snapshot-read/catalog-snapshot-read.service';
 import type { PriceStatus } from '../calculations/price-status.schema';
-import { type SnapshotV1, SnapshotV1Schema } from '../snapshot/snapshot.schema';
+import { type Snapshot, SnapshotSchema } from '../snapshot/snapshot.schema';
 import type { VersionView } from './version-view.schema';
 
 export interface PresentVersionInput {
   publicId: string;
   version: {
     number: number;
-    snapshot: SnapshotV1;
+    snapshot: Snapshot;
     pricingVersion: string;
     incomplete: boolean;
     expiresAt: Date;
@@ -27,8 +27,8 @@ export interface PresentVersionInput {
   now: Date;
 }
 
-export function parseStoredSnapshot(value: unknown): SnapshotV1 {
-  return SnapshotV1Schema.parse(value);
+export function parseStoredSnapshot(value: unknown): Snapshot {
+  return SnapshotSchema.parse(value);
 }
 
 function pick(text: LocalizedText, lang: Language): string {

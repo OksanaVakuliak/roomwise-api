@@ -1,18 +1,19 @@
 import {
-  BaseRateSchema,
   ConfigurationSchema,
   CurrencySchema,
   EstimateLineSchema,
   EstimateTotalsSchema,
   EstimateWarningSchema,
   ExchangeRateSchema,
+  FinishLevelSchema,
   LocalizedTextSchema,
   RoomConfigurationSchema,
   RuleLevelSchema,
 } from '@roomwise/calc-engine';
 import { z } from 'zod';
+import { ruleSurfaceSchema } from '../../../common/pricing/rule-surface.schema';
 
-export const SNAPSHOT_SCHEMA_VERSION = 1;
+export const SNAPSHOT_SCHEMA_VERSION = 2;
 
 const OptionalNameSchema = LocalizedTextSchema.nullable();
 
@@ -43,6 +44,13 @@ const SnapshotLineSchema = EstimateLineSchema.extend({
   ruleName: OptionalNameSchema,
 });
 
+const LegacyBaseRateSchema = z.object({
+  finishLevel: FinishLevelSchema,
+  areaFromSqm: z.number().min(0),
+  areaToSqm: z.number(),
+  rateCentsPerSqm: z.int().positive(),
+});
+
 const SnapshotRuleSchema = z.object({
   id: z.string(),
   level: RuleLevelSchema,
@@ -50,10 +58,13 @@ const SnapshotRuleSchema = z.object({
   materialTypeId: z.string().nullable(),
   quantityFormula: z.string().nullable(),
   costFormula: z.string(),
+  surface: ruleSurfaceSchema.nullable().optional(),
+  baseComponent: z.boolean().optional(),
+  laborFormula: z.string().nullable().optional(),
 });
 
-export const SnapshotV1Schema = z.object({
-  schemaVersion: z.literal(SNAPSHOT_SCHEMA_VERSION),
+export const SnapshotSchema = z.object({
+  schemaVersion: z.union([z.literal(1), z.literal(2)]),
   createdAt: z.iso.datetime(),
   pricingVersion: z.string(),
   configuration: ConfigurationSchema,
@@ -68,9 +79,9 @@ export const SnapshotV1Schema = z.object({
   }),
   pricing: z.object({
     exchangeRate: ExchangeRateSchema.nullable(),
-    baseRate: BaseRateSchema.nullable(),
+    baseRate: LegacyBaseRateSchema.nullable(),
     coefficients: z.record(z.string(), z.number()),
     rules: z.array(SnapshotRuleSchema),
   }),
 });
-export type SnapshotV1 = z.infer<typeof SnapshotV1Schema>;
+export type Snapshot = z.infer<typeof SnapshotSchema>;

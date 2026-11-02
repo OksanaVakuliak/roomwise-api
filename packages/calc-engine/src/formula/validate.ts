@@ -3,13 +3,14 @@ import {
   ProductUnitSchema,
   RoomTypeCodeSchema,
   type RuleLevel,
+  ScopeSchema,
 } from '../schemas';
 import { COEFFICIENT_NAMESPACE, FORMULA_FUNCTION_TABLE } from './language';
 import { parse } from './parse';
 import { suggestNearest } from './suggest';
 import type { FormulaError, FormulaNode } from './types';
 
-export type FormulaKind = 'quantity' | 'cost';
+export type FormulaKind = 'quantity' | 'cost' | 'labor';
 export type FormulaScope = 'room' | 'product' | 'object';
 
 export interface FormulaVariable {
@@ -76,10 +77,18 @@ export const FORMULA_SCOPE_VARIABLES: Record<
     enumeration('finishLevel', FinishLevelSchema.options),
     number('roomsCount'),
     number('bathroomsCount'),
+    enumeration('scope', ScopeSchema.options),
+    number('roomsFloorArea'),
+    number('roomsWallArea'),
+    number('roomsPerimeter'),
+    number('wetRoomsCount'),
   ],
 };
 
 export const FORMULA_QUANTITY_VARIABLE: FormulaVariable = number('quantity');
+
+export const FORMULA_SURFACE_AREA_VARIABLE: FormulaVariable =
+  number('surfaceArea');
 
 export const FORMULA_VARIABLES: Record<RuleLevel, readonly FormulaVariable[]> =
   {
@@ -93,6 +102,11 @@ export const FORMULA_VARIABLES: Record<RuleLevel, readonly FormulaVariable[]> =
       ...FORMULA_SCOPE_VARIABLES.room,
       ...FORMULA_SCOPE_VARIABLES.product,
       ...FORMULA_SCOPE_VARIABLES.object,
+    ],
+    SURFACE: [
+      ...FORMULA_SCOPE_VARIABLES.room,
+      ...FORMULA_SCOPE_VARIABLES.object,
+      FORMULA_SURFACE_AREA_VARIABLE,
     ],
   };
 
@@ -110,7 +124,9 @@ export interface ValidateFormulaResult {
 }
 
 const ALL_VARIABLE_NAMES: ReadonlySet<string> = new Set(
-  FORMULA_VARIABLES.CATEGORY.map((variable) => variable.name),
+  [...FORMULA_VARIABLES.CATEGORY, ...FORMULA_VARIABLES.SURFACE].map(
+    (variable) => variable.name,
+  ),
 );
 
 function span(node: FormulaNode): { position: number; length: number } {
@@ -138,7 +154,9 @@ export function validateFormula(
   const knownCoefficients = new Set(input.coefficientKeys);
   const usedCoefficients = new Set<string>();
   const errors: FormulaError[] = [];
-  const quantityAllowed = input.kind === 'cost' && input.level !== 'OBJECT';
+  const quantityAllowed =
+    input.kind !== 'quantity' &&
+    (input.level === 'CATEGORY' || input.level === 'MATERIAL_TYPE');
 
   function mismatch(node: FormulaNode, expected: string): void {
     errors.push({

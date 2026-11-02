@@ -10,6 +10,7 @@ import type {
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import type { Prisma } from '../../../generated/prisma/client';
 import { PublicationStatus } from '../../../generated/prisma/enums';
 
 @Injectable()
@@ -120,6 +121,8 @@ export class CatalogPricingReadService {
         unit: true,
         minQuantity: true,
         maxQuantity: true,
+        priceCoefficientKeys: true,
+        scopes: true,
         status: true,
         optionRoomTypes: { select: { roomType: { select: { code: true } } } },
       },
@@ -135,9 +138,40 @@ export class CatalogPricingReadService {
       roomTypeCodes: row.optionRoomTypes
         .map((link) => link.roomType.code)
         .sort(),
+      priceCoefficientKeys: [...row.priceCoefficientKeys].sort(),
+      scopes: [...row.scopes].sort(),
       minQuantity: row.minQuantity,
       maxQuantity: row.maxQuantity,
       available: row.status === PublicationStatus.PUBLISHED,
+    }));
+  }
+
+  async optionsUsingCoefficient(
+    key: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Array<{ id: string; name: LocalizedText }>> {
+    const rows = await client.option.findMany({
+      where: { priceCoefficientKeys: { has: key } },
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+
+    return rows.map((row) => ({ id: row.id, name: toLocalizedText(row.name) }));
+  }
+
+  async optionsUsingCoefficients(): Promise<
+    Array<{ id: string; name: LocalizedText; keys: string[] }>
+  > {
+    const rows = await this.prisma.option.findMany({
+      where: { priceCoefficientKeys: { isEmpty: false } },
+      select: { id: true, name: true, priceCoefficientKeys: true },
+      orderBy: { id: 'asc' },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: toLocalizedText(row.name),
+      keys: row.priceCoefficientKeys,
     }));
   }
 

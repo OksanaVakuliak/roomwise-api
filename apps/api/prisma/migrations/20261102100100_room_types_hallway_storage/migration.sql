@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "RoomTypeCode" ADD VALUE 'HALLWAY';
+ALTER TYPE "RoomTypeCode" ADD VALUE 'STORAGE';

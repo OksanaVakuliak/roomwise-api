@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
@@ -33,6 +34,7 @@ import {
 } from './dto/coefficient-admin.schema';
 import { CoefficientIdParamDto } from './dto/coefficient-id-param.schema';
 import { CoefficientInputDto } from './dto/coefficient-input.schema';
+import { CoefficientListQueryDto } from './dto/coefficient-list-query.schema';
 import { UpdateCoefficientDto } from './dto/update-coefficient.schema';
 
 @Controller('admin/pricing/coefficients')
@@ -47,8 +49,10 @@ export class CoefficientsController {
 
   @Get()
   @ZodResponse({ status: 200, type: CoefficientListResponseDto })
-  async list(): Promise<CoefficientListResponse> {
-    return this.coefficientsService.list();
+  async list(
+    @Query() query: CoefficientListQueryDto,
+  ): Promise<CoefficientListResponse> {
+    return this.coefficientsService.list(query.group);
   }
 
   @Post()
