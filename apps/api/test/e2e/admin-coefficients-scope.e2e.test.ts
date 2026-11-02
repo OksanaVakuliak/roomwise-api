@@ -169,13 +169,14 @@ describe('admin coefficients scope e2e', () => {
   }
 
   async function save(input: Configuration) {
+    const clientPricingVersion = await pricingVersion();
     const response = await request(testApp.http)
       .post(CALCULATIONS_PATH)
       .set(IDEMPOTENCY_HEADER, newIdempotencyKey())
       .send({
         configuration: input,
         styleId: projectsStyleId,
-        clientPricingVersion: await pricingVersion(),
+        clientPricingVersion,
         clientTotalUsdCents: 1,
       })
       .expect(201);
