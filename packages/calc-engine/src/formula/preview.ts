@@ -1,4 +1,9 @@
-import { pricedLine, roundQuantity } from '../estimate/line';
+import {
+  componentCents,
+  outOfRange,
+  pricedLine,
+  roundQuantity,
+} from '../estimate/line';
 import { runNumericFormula } from '../estimate/run-formula';
 import type {
   EstimateMessage,
@@ -6,7 +11,7 @@ import type {
   RulePreview,
   RuleSample,
 } from '../schemas';
-import { productVariablesOf, roomVariables } from '../variables';
+import { productVariablesOf, roomVariables, totalAreaOf } from '../variables';
 import type { FormulaValue } from './evaluate';
 import { COEFFICIENT_NAMESPACE } from './language';
 import { parse } from './parse';
@@ -16,6 +21,7 @@ export interface PreviewRuleInput {
   readonly level: RuleLevel;
   readonly quantityFormula: string | null;
   readonly costFormula: string;
+  readonly laborFormula?: string | null;
   readonly coefficients: Readonly<Record<string, number>>;
   readonly sample: RuleSample;
 }
@@ -73,12 +79,21 @@ function referencesOf(sources: readonly (string | null)[]): References {
 
 function objectScope({ object }: RuleSample): Variables {
   return {
-    totalArea: object.totalAreaSqm,
+    scope: object.scope,
+    totalArea: totalAreaOf(
+      object.scope,
+      object.totalAreaSqm,
+      object.roomsFloorArea,
+    ),
     balconyArea: object.balconyAreaSqm,
     balconyTiles: object.balconyTiles,
     finishLevel: object.finishLevel,
     roomsCount: object.roomsCount,
     bathroomsCount: object.bathroomsCount,
+    roomsFloorArea: object.roomsFloorArea,
+    roomsWallArea: object.roomsWallArea,
+    roomsPerimeter: object.roomsPerimeter,
+    wetRoomsCount: object.wetRoomsCount,
   };
 }
 
@@ -89,7 +104,20 @@ function scopeOf(
   if (level === 'OBJECT') {
     return { scope: objectScope(sample) };
   }
-  const { room, product } = sample;
+  const { room, product, surfaceArea } = sample;
+  if (level === 'SURFACE') {
+    if (room === undefined || surfaceArea === undefined) {
+      return {
+        error: {
+          code: 'SAMPLE_INCOMPLETE',
+          params: { missing: room === undefined ? 'room' : 'surfaceArea' },
+        },
+      };
+    }
+    return {
+      scope: { ...roomVariables(room), ...objectScope(sample), surfaceArea },
+    };
+  }
   if (room === undefined || product === undefined) {
     return {
       error: {
@@ -118,21 +146,28 @@ function pick<Value>(
 
 export function previewRule(input: PreviewRuleInput): RulePreview {
   const { level, quantityFormula, costFormula, coefficients } = input;
-  const references = referencesOf([quantityFormula, costFormula]);
+  const laborFormula =
+    quantityFormula === null ? null : (input.laborFormula ?? null);
+  const references = referencesOf([quantityFormula, costFormula, laborFormula]);
   const report = (
     variables: Variables,
     quantity: number | null,
     amountCents: number | null,
     error: EstimateMessage | null,
+    laborCents: number | null = null,
   ): RulePreview => ({
     quantity,
     amountCents,
+    laborCents,
     variables: pick(variables, references.variables),
     coefficients: pick(coefficients, references.coefficients),
     error,
   });
 
-  if ((level === 'OBJECT') !== (quantityFormula === null)) {
+  if (
+    (level === 'OBJECT' || level === 'SURFACE') !==
+    (quantityFormula === null)
+  ) {
     return report({}, null, null, { code: 'QUANTITY_FORMULA_MISMATCH' });
   }
   const prepared = scopeOf(level, input.sample);
@@ -156,7 +191,18 @@ export function previewRule(input: PreviewRuleInput): RulePreview {
     return report(variables, quantity, null, cost.error);
   }
   const line = pricedLine({ id: 'preview', section: 'OBJECT' }, cost.value);
-  return line.error === null
-    ? report(variables, quantity, line.amountCents, null)
-    : report(variables, quantity, null, line.error);
+  if (line.error !== null) {
+    return report(variables, quantity, null, line.error);
+  }
+  if (laborFormula === null) {
+    return report(variables, quantity, line.amountCents, null);
+  }
+  const labor = runNumericFormula(laborFormula, { variables, coefficients });
+  if (!labor.ok) {
+    return report(variables, quantity, line.amountCents, labor.error);
+  }
+  const laborCents = componentCents(labor.value);
+  return laborCents === null
+    ? report(variables, quantity, line.amountCents, outOfRange())
+    : report(variables, quantity, line.amountCents, null, laborCents);
 }

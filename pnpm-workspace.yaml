@@ -9,3 +9,6 @@ overrides:
 allowBuilds:
   "@swc/core": true
   lefthook: true
+
+patchedDependencies:
+  nestjs-zod@5.5.0: patches/nestjs-zod@5.5.0.patch

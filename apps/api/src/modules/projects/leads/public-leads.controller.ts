@@ -50,7 +50,7 @@ export class PublicLeadsController {
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description:
-      'PHONE_INVALID | INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED',
+      'PHONE_INVALID | INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED | EMPTY_ESTIMATE',
     type: ErrorResponseDto,
   })
   @ApiResponse({

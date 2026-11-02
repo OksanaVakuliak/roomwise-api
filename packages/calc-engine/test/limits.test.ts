@@ -12,6 +12,7 @@ const limits: PricingData['limits'] = {
   rooms: { min: 1, max: 15 },
   roomSideM: { min: 1, max: 30 },
   roomHeightM: { min: 2.2, max: 5 },
+  missingAreaHintSqm: 5,
 };
 
 const room = (
@@ -30,6 +31,7 @@ const room = (
 const configuration = (
   overrides: Partial<Configuration> = {},
 ): Configuration => ({
+  scope: 'FULL',
   finishLevel: 'PRE_FINISH',
   totalAreaSqm: 60,
   balconyAreaSqm: 4,
@@ -49,6 +51,8 @@ const pieceOption = (
   priceCents: 1000,
   unit: 'PIECE',
   roomTypeCodes: [],
+  priceCoefficientKeys: [],
+  scopes: ['FULL', 'PARTIAL'],
   minQuantity: 1,
   maxQuantity: 10,
   available: true,
@@ -99,6 +103,15 @@ describe('checkLimits', () => {
   it('bounds the balcony by the total area', () => {
     expect(checkLimits(configuration({ balconyAreaSqm: 61 }), limits)).toEqual([
       { field: 'balconyAreaSqm', min: 0, max: 60 },
+    ]);
+  });
+
+  it('skips the total area check in PARTIAL and bounds the balcony by the maximum', () => {
+    const partial = (balconyAreaSqm: number) =>
+      configuration({ scope: 'PARTIAL', totalAreaSqm: null, balconyAreaSqm });
+    expect(checkLimits(partial(200), limits)).toEqual([]);
+    expect(checkLimits(partial(501), limits)).toEqual([
+      { field: 'balconyAreaSqm', min: 0, max: limits.totalAreaSqm.max },
     ]);
   });
 

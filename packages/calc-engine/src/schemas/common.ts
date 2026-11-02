@@ -6,10 +6,18 @@ export const LocalizedTextSchema = z.object({
 });
 export type LocalizedText = z.infer<typeof LocalizedTextSchema>;
 
-export const FinishLevelSchema = z.enum(['ROUGH', 'PRE_FINISH']);
+export const ScopeSchema = z.enum(['FULL', 'PARTIAL']);
+export type Scope = z.infer<typeof ScopeSchema>;
+
+export const FinishLevelSchema = z.enum(['ROUGH', 'PRE_FINISH', 'LIVED_IN']);
 export type FinishLevel = z.infer<typeof FinishLevelSchema>;
 
-export const RuleLevelSchema = z.enum(['OBJECT', 'CATEGORY', 'MATERIAL_TYPE']);
+export const RuleLevelSchema = z.enum([
+  'OBJECT',
+  'CATEGORY',
+  'MATERIAL_TYPE',
+  'SURFACE',
+]);
 export type RuleLevel = z.infer<typeof RuleLevelSchema>;
 
 export const RateSourceSchema = z.enum(['NBU', 'MANUAL']);
@@ -41,6 +49,8 @@ export const RoomTypeCodeSchema = z.enum([
   'KITCHEN',
   'KITCHEN_LIVING',
   'BATHROOM',
+  'HALLWAY',
+  'STORAGE',
 ]);
 export type RoomTypeCode = z.infer<typeof RoomTypeCodeSchema>;
 
@@ -55,6 +65,9 @@ export const SectionSchema = z.enum([
   'ADDITIONAL',
 ]);
 export type Section = z.infer<typeof SectionSchema>;
+
+export const LineComponentKindSchema = z.enum(['MATERIAL', 'LABOR', 'PREP']);
+export type LineComponentKind = z.infer<typeof LineComponentKindSchema>;
 
 export const LineStatusSchema = z.enum([
   'OK',

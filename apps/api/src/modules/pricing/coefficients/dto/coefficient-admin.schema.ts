@@ -2,10 +2,16 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { auditSchema } from '../../../../common/concurrency/audit.schema';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
+import { coefficientGroupSchema } from './coefficient-input.schema';
 
 export const coefficientUsageSchema = z.object({
   ruleId: z.uuid(),
   ruleName: localizedNameDraftSchema,
+});
+
+export const coefficientOptionUsageSchema = z.object({
+  optionId: z.uuid(),
+  optionName: localizedNameDraftSchema,
 });
 
 export const coefficientAdminSchema = z
@@ -15,7 +21,9 @@ export const coefficientAdminSchema = z
     name: localizedNameDraftSchema,
     value: z.number(),
     unit: localizedNameDraftSchema,
+    group: coefficientGroupSchema,
     usedBy: z.array(coefficientUsageSchema),
+    usedByOptions: z.array(coefficientOptionUsageSchema),
     revision: z.uuid(),
   })
   .extend(auditSchema.shape);
@@ -25,6 +33,9 @@ export const coefficientListResponseSchema = z.object({
 });
 
 export type CoefficientUsage = z.infer<typeof coefficientUsageSchema>;
+export type CoefficientOptionUsage = z.infer<
+  typeof coefficientOptionUsageSchema
+>;
 export type CoefficientAdmin = z.infer<typeof coefficientAdminSchema>;
 export type CoefficientListResponse = z.infer<
   typeof coefficientListResponseSchema

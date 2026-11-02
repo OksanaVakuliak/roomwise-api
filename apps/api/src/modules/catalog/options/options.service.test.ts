@@ -6,6 +6,7 @@ import {
   OptionUnit,
   PublicationStatus,
 } from '../../../generated/prisma/enums';
+import type { CoefficientsReadService } from '../../pricing/coefficients-read/coefficients-read.service';
 import type { ImageUrlBuilder } from '../images/image-urls';
 import { OptionsService } from './options.service';
 
@@ -30,6 +31,12 @@ function createImageUrls(): ImageUrlBuilder {
   } as unknown as ImageUrlBuilder;
 }
 
+function createCoefficients(existing: string[] = []): CoefficientsReadService {
+  return {
+    lockExistingKeys: vi.fn().mockResolvedValue(new Set(existing)),
+  } as unknown as CoefficientsReadService;
+}
+
 function createOptionRow(overrides: Record<string, unknown> = {}) {
   return {
     id: OPTION_ID,
@@ -50,6 +57,8 @@ function createOptionRow(overrides: Record<string, unknown> = {}) {
     updatedById: ADMIN_ID,
     updatedBy: { id: ADMIN_ID, login: 'admin' },
     optionRoomTypes: [],
+    priceCoefficientKeys: [],
+    scopes: ['FULL', 'PARTIAL'],
     ...overrides,
   };
 }
@@ -107,6 +116,8 @@ function baseCreateInput(overrides: Record<string, unknown> = {}) {
     confirmZeroPrice: false,
     unit: OptionUnit.ROOM_SQM,
     roomTypeIds: [] as string[],
+    priceCoefficientKeys: [] as string[],
+    scopes: ['FULL', 'PARTIAL'] as ('FULL' | 'PARTIAL')[],
     ...overrides,
   };
 }
@@ -115,7 +126,11 @@ describe('OptionsService.list', () => {
   it('filters by kind when provided', async () => {
     const findMany = vi.fn().mockResolvedValue([]);
     const prisma = createPrisma({ option: { findMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.list({ kind: OptionKind.ADDITIONAL });
 
@@ -127,7 +142,11 @@ describe('OptionsService.list', () => {
   it('returns every kind when no filter is given', async () => {
     const findMany = vi.fn().mockResolvedValue([]);
     const prisma = createPrisma({ option: { findMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.list({});
 
@@ -137,12 +156,38 @@ describe('OptionsService.list', () => {
   });
 });
 
+describe('OptionsService.get', () => {
+  it('maps priceCoefficientKeys and scopes', async () => {
+    const findUnique = vi.fn().mockResolvedValue(
+      createOptionRow({
+        priceCoefficientKeys: ['waste'],
+        scopes: ['PARTIAL'],
+      }),
+    );
+    const prisma = createPrisma({ option: { findUnique } });
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
+
+    const result = await service.get(OPTION_ID);
+
+    expect(result.priceCoefficientKeys).toEqual(['waste']);
+    expect(result.scopes).toEqual(['PARTIAL']);
+  });
+});
+
 describe('OptionsService.create', () => {
   it('creates a draft option with the next sort order scoped to its kind', async () => {
     const aggregate = vi.fn().mockResolvedValue({ _max: { sortOrder: 2 } });
     const create = vi.fn().mockResolvedValue(createOptionRow());
     const prisma = createPrisma({ option: { aggregate, create } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.create(baseCreateInput(), ADMIN_ID);
 
@@ -174,7 +219,11 @@ describe('OptionsService.create', () => {
       .mockRejectedValueOnce(p2002)
       .mockResolvedValueOnce(createOptionRow());
     const prisma = createPrisma({ option: { aggregate, create } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.create(baseCreateInput(), ADMIN_ID);
 
@@ -202,7 +251,11 @@ describe('OptionsService.create', () => {
     });
     const create = vi.fn().mockRejectedValue(p2002);
     const prisma = createPrisma({ option: { aggregate, create } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(service.create(baseCreateInput(), ADMIN_ID)).rejects.toBe(
       p2002,
@@ -212,7 +265,11 @@ describe('OptionsService.create', () => {
 
   it('rejects zero price without confirmation', async () => {
     const prisma = createPrisma();
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.create(
@@ -225,7 +282,11 @@ describe('OptionsService.create', () => {
   it('allows zero price when confirmed', async () => {
     const create = vi.fn().mockResolvedValue(createOptionRow());
     const prisma = createPrisma({ option: { create } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.create(
       baseCreateInput({ priceCents: 0, confirmZeroPrice: true }),
@@ -237,7 +298,11 @@ describe('OptionsService.create', () => {
 
   it('rejects non-empty roomTypeIds for a PIECE option', async () => {
     const prisma = createPrisma();
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.create(
@@ -254,7 +319,11 @@ describe('OptionsService.create', () => {
 
   it('rejects non-empty roomTypeIds for a PROJECT option', async () => {
     const prisma = createPrisma();
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.create(
@@ -266,7 +335,11 @@ describe('OptionsService.create', () => {
 
   it('rejects a PIECE option missing both quantity bounds', async () => {
     const prisma = createPrisma();
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.create(baseCreateInput({ unit: OptionUnit.PIECE }), ADMIN_ID),
@@ -275,7 +348,11 @@ describe('OptionsService.create', () => {
 
   it('rejects a PIECE option where min exceeds max with VALIDATION_FAILED on maxQuantity', async () => {
     const prisma = createPrisma();
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.create(
@@ -295,7 +372,11 @@ describe('OptionsService.create', () => {
   it('nulls quantity bounds for non-PIECE units even when provided', async () => {
     const create = vi.fn().mockResolvedValue(createOptionRow());
     const prisma = createPrisma({ option: { create } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.create(
       baseCreateInput({
@@ -322,7 +403,11 @@ describe('OptionsService.create', () => {
       option: { create },
       roomType: { findMany: roomTypeFindMany },
     });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.create(
       baseCreateInput({ roomTypeIds: ['room-1', 'room-2'] }),
@@ -345,7 +430,11 @@ describe('OptionsService.create', () => {
     const prisma = createPrisma({
       roomType: { findMany: roomTypeFindMany },
     });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.create(
@@ -358,10 +447,62 @@ describe('OptionsService.create', () => {
     });
   });
 
+  it('stores priceCoefficientKeys and scopes', async () => {
+    const create = vi.fn().mockResolvedValue(createOptionRow());
+    const prisma = createPrisma({ option: { create } });
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(['waste']),
+    );
+
+    await service.create(
+      baseCreateInput({
+        priceCoefficientKeys: ['waste'],
+        scopes: ['PARTIAL'],
+      }),
+      ADMIN_ID,
+    );
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          priceCoefficientKeys: ['waste'],
+          scopes: ['PARTIAL'],
+        }),
+      }),
+    );
+  });
+
+  it('rejects an unknown coefficient key', async () => {
+    const create = vi.fn();
+    const prisma = createPrisma({ option: { create } });
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(['waste']),
+    );
+
+    await expect(
+      service.create(
+        baseCreateInput({ priceCoefficientKeys: ['waste', 'missing'] }),
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: 'UNKNOWN_COEFFICIENT',
+      params: { priceCoefficientKeys: ['missing'] },
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('rejects an unknown image id', async () => {
     const imageFindMany = vi.fn().mockResolvedValue([]);
     const prisma = createPrisma({ image: { findMany: imageFindMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.create(baseCreateInput({ imageId: 'missing-image' }), ADMIN_ID),
@@ -380,7 +521,11 @@ describe('OptionsService.update', () => {
       .mockResolvedValueOnce(createOptionRow())
       .mockResolvedValueOnce({ revision: NEXT_REVISION });
     const prisma = createPrisma({ option: { updateMany, findUnique } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.update(OPTION_ID, { revision: REVISION }, ADMIN_ID),
@@ -399,7 +544,11 @@ describe('OptionsService.update', () => {
       }),
     );
     const prisma = createPrisma({ option: { findUnique } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.update(
@@ -423,7 +572,11 @@ describe('OptionsService.update', () => {
       }),
     );
     const prisma = createPrisma({ option: { findUnique } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.update(
@@ -440,7 +593,11 @@ describe('OptionsService.update', () => {
   it('rejects switching to PIECE without quantity bounds', async () => {
     const findUnique = vi.fn().mockResolvedValue(createOptionRow());
     const prisma = createPrisma({ option: { findUnique } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.update(
@@ -454,7 +611,11 @@ describe('OptionsService.update', () => {
   it('rejects providing roomTypeIds while switching to a non-perRoom unit', async () => {
     const findUnique = vi.fn().mockResolvedValue(createOptionRow());
     const prisma = createPrisma({ option: { findUnique } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.update(
@@ -477,7 +638,11 @@ describe('OptionsService.update', () => {
       option: { findUnique, updateMany },
       optionRoomType: { deleteMany },
     });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.update(
       OPTION_ID,
@@ -499,7 +664,11 @@ describe('OptionsService.update', () => {
       optionRoomType: { deleteMany, createMany },
       roomType: { findMany: roomTypeFindMany },
     });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.update(
       OPTION_ID,
@@ -513,6 +682,73 @@ describe('OptionsService.update', () => {
     });
   });
 
+  it('updates priceCoefficientKeys and scopes when provided', async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ option: { updateMany } });
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(['waste']),
+    );
+
+    await service.update(
+      OPTION_ID,
+      {
+        priceCoefficientKeys: ['waste'],
+        scopes: ['FULL'],
+        revision: REVISION,
+      },
+      ADMIN_ID,
+    );
+
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          priceCoefficientKeys: ['waste'],
+          scopes: ['FULL'],
+        }),
+      }),
+    );
+  });
+
+  it('leaves priceCoefficientKeys and scopes untouched when not provided', async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrisma({ option: { updateMany } });
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
+
+    await service.update(OPTION_ID, { revision: REVISION }, ADMIN_ID);
+
+    const data = updateMany.mock.calls[0]?.[0].data;
+    expect(data).not.toHaveProperty('priceCoefficientKeys');
+    expect(data).not.toHaveProperty('scopes');
+  });
+
+  it('rejects an unknown coefficient key on patch', async () => {
+    const updateMany = vi.fn();
+    const prisma = createPrisma({ option: { updateMany } });
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
+
+    await expect(
+      service.update(
+        OPTION_ID,
+        { priceCoefficientKeys: ['missing'], revision: REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: 'UNKNOWN_COEFFICIENT',
+      params: { priceCoefficientKeys: ['missing'] },
+    });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
   it('moves the option to the end of the new kind when kind changes', async () => {
     const findUnique = vi.fn().mockResolvedValue(createOptionRow());
     const aggregate = vi.fn().mockResolvedValue({ _max: { sortOrder: 4 } });
@@ -520,7 +756,11 @@ describe('OptionsService.update', () => {
     const prisma = createPrisma({
       option: { findUnique, aggregate, updateMany },
     });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.update(
       OPTION_ID,
@@ -555,7 +795,11 @@ describe('OptionsService.update', () => {
     const prisma = createPrisma({
       option: { findUnique, aggregate, updateMany },
     });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.update(
       OPTION_ID,
@@ -582,7 +826,11 @@ describe('OptionsService.update', () => {
   it('rejects zero price without confirmation on patch', async () => {
     const findUnique = vi.fn().mockResolvedValue(createOptionRow());
     const prisma = createPrisma({ option: { findUnique } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.update(
@@ -601,7 +849,11 @@ describe('OptionsService.update', () => {
       );
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = createPrisma({ option: { findUnique, updateMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.update(
@@ -621,7 +873,11 @@ describe('OptionsService.update', () => {
       );
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = createPrisma({ option: { findUnique, updateMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.update(
       OPTION_ID,
@@ -644,7 +900,11 @@ describe('OptionsService.update coded option', () => {
     const updateMany = vi.fn();
     const findUnique = vi.fn().mockResolvedValue(codedRow());
     const prisma = createPrisma({ option: { findUnique, updateMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.update(OPTION_ID, { ...patch, revision: REVISION }, ADMIN_ID),
@@ -664,7 +924,11 @@ describe('OptionsService.update coded option', () => {
       );
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = createPrisma({ option: { findUnique, updateMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     const result = await service.update(
       OPTION_ID,
@@ -688,7 +952,11 @@ describe('OptionsService.reorder', () => {
       .fn()
       .mockResolvedValue([{ id: 'option-1' }, { id: 'option-2' }]);
     const prisma = createPrisma({ option: { findMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.reorder(
@@ -702,7 +970,11 @@ describe('OptionsService.reorder', () => {
     const findMany = vi.fn().mockResolvedValue([{ id: 'option-1' }]);
     const update = vi.fn().mockResolvedValue({});
     const prisma = createPrisma({ option: { findMany, update } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.reorder(
       { kind: OptionKind.ADDITIONAL, ids: ['option-1'] },
@@ -720,7 +992,11 @@ describe('OptionsService.reorder', () => {
       .mockResolvedValue([{ id: 'option-1' }, { id: 'option-2' }]);
     const update = vi.fn().mockResolvedValue({});
     const prisma = createPrisma({ option: { findMany, update } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.reorder(
       { kind: OptionKind.ENGINEERING, ids: ['option-2', 'option-1'] },
@@ -747,7 +1023,11 @@ describe('OptionsService.reorder', () => {
       .mockResolvedValue([{ id: 'option-1' }, { id: 'option-2' }]);
     const update = vi.fn().mockResolvedValue({});
     const prisma = createPrisma({ option: { findMany, update } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.reorder(
       { kind: OptionKind.ENGINEERING, ids: ['option-2', 'option-1'] },
@@ -779,7 +1059,11 @@ describe('OptionsService.reorder', () => {
       clientVersion: 'test',
     });
     prisma.$transaction = vi.fn().mockRejectedValue(p2025);
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.reorder(
@@ -799,7 +1083,11 @@ describe('OptionsService.reorder', () => {
       { code: 'P2034', clientVersion: 'test' },
     );
     prisma.$transaction = vi.fn().mockRejectedValue(p2034);
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.reorder(
@@ -819,7 +1107,11 @@ describe('OptionsService.reorder', () => {
       clientVersion: 'test',
     });
     prisma.$transaction = vi.fn().mockRejectedValue(p2002);
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.reorder(
@@ -838,7 +1130,11 @@ describe('OptionsService.updateStatus', () => {
       priceCents: 3500,
     });
     const prisma = createPrisma({ option: { findUnique } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.updateStatus(
@@ -865,7 +1161,11 @@ describe('OptionsService.updateStatus', () => {
       );
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = createPrisma({ option: { findUnique, updateMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     const result = await service.updateStatus(
       OPTION_ID,
@@ -889,7 +1189,11 @@ describe('OptionsService.updateStatus', () => {
       );
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = createPrisma({ option: { findUnique, updateMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     const result = await service.updateStatus(
       OPTION_ID,
@@ -914,7 +1218,11 @@ describe('OptionsService.updateStatus coded option', () => {
       description: localized('Warms', 'Обігрів'),
     });
     const prisma = createPrisma({ option: { findUnique, updateMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(
       service.updateStatus(OPTION_ID, { status, revision: REVISION }, ADMIN_ID),
@@ -942,7 +1250,11 @@ describe('OptionsService.updateStatus coded option', () => {
       );
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = createPrisma({ option: { findUnique, updateMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     const result = await service.updateStatus(
       OPTION_ID,
@@ -973,7 +1285,11 @@ describe('OptionsService.updateStatus coded option outside PUBLISHED', () => {
       );
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = createPrisma({ option: { findUnique, updateMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     const result = await service.updateStatus(
       OPTION_ID,
@@ -990,7 +1306,11 @@ describe('OptionsService.remove', () => {
   it('deletes an existing option', async () => {
     const deleteMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = createPrisma({ option: { deleteMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await service.remove(OPTION_ID);
 
@@ -1000,7 +1320,11 @@ describe('OptionsService.remove', () => {
   it('rejects deleting an unknown option', async () => {
     const findUnique = vi.fn().mockResolvedValue(null);
     const prisma = createPrisma({ option: { findUnique } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(service.remove(OPTION_ID)).rejects.toMatchObject({
       code: 'NOT_FOUND',
@@ -1013,7 +1337,11 @@ describe('OptionsService.remove', () => {
       .fn()
       .mockResolvedValue(createOptionRow({ code: 'HEATED_FLOOR' }));
     const prisma = createPrisma({ option: { findUnique, deleteMany } });
-    const service = new OptionsService(prisma, createImageUrls());
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
 
     await expect(service.remove(OPTION_ID)).rejects.toMatchObject({
       code: 'OPTION_CODE_PROTECTED',

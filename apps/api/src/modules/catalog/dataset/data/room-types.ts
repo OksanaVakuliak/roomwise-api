@@ -37,6 +37,8 @@ export const roomTypes: SeedRoomType[] = [
       categoryIds.wallpaper,
       categoryIds.ceilingFinish,
       categoryIds.skirtingBoards,
+      categoryIds.doors,
+      categoryIds.lighting,
     ],
   },
   {
@@ -49,6 +51,7 @@ export const roomTypes: SeedRoomType[] = [
       categoryIds.wallTile,
       categoryIds.wallPaint,
       categoryIds.ceilingFinish,
+      categoryIds.doors,
       categoryIds.plumbingFixtures,
       categoryIds.lighting,
     ],
@@ -66,7 +69,9 @@ export const roomTypes: SeedRoomType[] = [
       categoryIds.wallpaper,
       categoryIds.ceilingFinish,
       categoryIds.skirtingBoards,
+      categoryIds.doors,
       categoryIds.lighting,
+      categoryIds.plumbingFixtures,
     ],
   },
   {
@@ -77,9 +82,11 @@ export const roomTypes: SeedRoomType[] = [
     categoryIds: [
       categoryIds.floorTile,
       categoryIds.wallTile,
+      categoryIds.wallPaint,
       categoryIds.ceilingFinish,
-      categoryIds.plumbingFixtures,
       categoryIds.doors,
+      categoryIds.lighting,
+      categoryIds.plumbingFixtures,
     ],
   },
 ];

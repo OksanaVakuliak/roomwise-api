@@ -746,6 +746,8 @@ describe('PublicCatalogService.getEngineering', () => {
         unit: OptionUnit.ROOM_SQM,
         minQuantity: null,
         maxQuantity: null,
+        priceCoefficientKeys: ['heated_floor_extra'],
+        scopes: ['FULL'],
         optionRoomTypes: [
           { roomType: { code: RoomTypeCode.BATHROOM } },
           { roomType: { code: RoomTypeCode.KITCHEN } },
@@ -829,6 +831,8 @@ describe('PublicCatalogService.getEngineering', () => {
       RoomTypeCode.BATHROOM,
       RoomTypeCode.KITCHEN,
     ]);
+    expect(roomSqm?.priceCoefficientKeys).toEqual(['heated_floor_extra']);
+    expect(roomSqm?.scopes).toEqual(['FULL']);
 
     const roomAll = result.options.find(
       (option) => option.id === 'option-room-all',

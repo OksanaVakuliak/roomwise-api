@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
+import type { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
 import type { PricingDataService } from '../pricing-data/pricing-data.service';
 import { CoefficientsService } from './coefficients.service';
 import { coefficientValueSchema } from './dto/coefficient-input.schema';
@@ -10,6 +11,7 @@ const ADMIN_ID = 'admin-1';
 const COEFFICIENT_ID = 'coefficient-1';
 const CURRENT_REVISION = 'revision-1';
 const RULE_ID = 'rule-1';
+const OPTION_ID = 'option-1';
 
 function localized(en: string, uk: string) {
   return { en, uk };
@@ -22,6 +24,7 @@ function coefficientRow(overrides: Record<string, unknown> = {}) {
     name: localized('Tile glue', 'Клей для плитки'),
     value: new Prisma.Decimal('4.5'),
     unit: localized('$ per sqm', '$ за м²'),
+    group: 'MATERIAL_EXTRA',
     revision: CURRENT_REVISION,
     updatedAt: new Date('2026-10-01T12:00:00.000Z'),
     updatedBy: { id: ADMIN_ID, login: 'admin' },
@@ -49,6 +52,7 @@ function setup(
   options: {
     coefficient?: Record<string, unknown>;
     rule?: Record<string, unknown>;
+    options?: Array<{ id: string; name: unknown; keys?: string[] }>;
     lockedRows?: Array<{ key: string; revision: string }>;
   } = {},
 ) {
@@ -79,12 +83,23 @@ function setup(
     callback(prisma),
   );
   const pricingData = { invalidate: vi.fn() };
+  const optionRows = options.options ?? [];
+  const catalog = {
+    optionsUsingCoefficient: vi.fn().mockResolvedValue(optionRows),
+    optionsUsingCoefficients: vi.fn().mockResolvedValue(
+      optionRows.map((option) => ({
+        ...option,
+        keys: option.keys ?? ['tile_glue'],
+      })),
+    ),
+  };
   const service = new CoefficientsService(
     prisma as unknown as PrismaService,
     pricingData as unknown as PricingDataService,
+    catalog as unknown as CatalogPricingReadService,
   );
 
-  return { service, prisma, coefficient, rule, queryRaw, pricingData };
+  return { service, prisma, coefficient, rule, catalog, queryRaw, pricingData };
 }
 
 describe('CoefficientsService.list', () => {
@@ -104,10 +119,46 @@ describe('CoefficientsService.list', () => {
         key: 'tile_glue',
         value: 4.5,
         usedBy: [{ ruleId: RULE_ID, ruleName: localized('Floor', 'Підлога') }],
+        usedByOptions: [],
+        group: 'MATERIAL_EXTRA',
         updatedAt: '2026-10-01T12:00:00.000Z',
         updatedBy: { id: ADMIN_ID, login: 'admin' },
       }),
       expect.objectContaining({ key: 'unused', usedBy: [] }),
+    ]);
+  });
+});
+
+describe('CoefficientsService.list filters and options', () => {
+  it('filters by group', async () => {
+    const { service, coefficient } = setup();
+
+    await service.list('LABOR');
+
+    expect(coefficient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { group: 'LABOR' } }),
+    );
+  });
+
+  it('does not filter without a group', async () => {
+    const { service, coefficient } = setup();
+
+    await service.list();
+
+    expect(coefficient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: undefined }),
+    );
+  });
+
+  it('lists the options that use each coefficient', async () => {
+    const { service } = setup({
+      options: [{ id: OPTION_ID, name: localized('Wiring', 'Проводка') }],
+    });
+
+    const result = await service.list();
+
+    expect(result.items[0].usedByOptions).toEqual([
+      { optionId: OPTION_ID, optionName: localized('Wiring', 'Проводка') },
     ]);
   });
 });
@@ -118,6 +169,7 @@ describe('CoefficientsService.create', () => {
     name: localized('Tile glue', 'Клей для плитки'),
     value: 4.5,
     unit: localized('$ per sqm', '$ за м²'),
+    group: 'MATERIAL_EXTRA' as const,
   };
 
   it('creates the coefficient and invalidates the pricing data', async () => {
@@ -132,6 +184,18 @@ describe('CoefficientsService.create', () => {
     );
     expect(result).toMatchObject({ key: 'tile_glue', usedBy: [] });
     expect(pricingData.invalidate).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores the given group', async () => {
+    const { service, coefficient } = setup();
+
+    await service.create({ ...input, group: 'LABOR' }, ADMIN_ID);
+
+    expect(coefficient.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ group: 'LABOR' }),
+      }),
+    );
   });
 
   it('maps a duplicate key to KEY_TAKEN', async () => {
@@ -168,6 +232,45 @@ describe('CoefficientsService.update', () => {
       }),
     );
     expect(pricingData.invalidate).toHaveBeenCalledTimes(1);
+  });
+
+  it('changes the group of a coefficient that is in use', async () => {
+    const { service, coefficient } = setup();
+
+    await service.update(
+      COEFFICIENT_ID,
+      { group: 'LABOR', revision: CURRENT_REVISION },
+      ADMIN_ID,
+    );
+
+    expect(coefficient.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ group: 'LABOR' }),
+      }),
+    );
+  });
+
+  it('rejects renaming a key used by options', async () => {
+    const { service, coefficient } = setup({
+      options: [{ id: OPTION_ID, name: localized('Wiring', 'Проводка') }],
+    });
+
+    await expect(
+      service.update(
+        COEFFICIENT_ID,
+        { key: 'glue', revision: CURRENT_REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.COEFFICIENT_IN_USE,
+      params: {
+        rules: [],
+        options: [
+          { optionId: OPTION_ID, optionName: localized('Wiring', 'Проводка') },
+        ],
+      },
+    });
+    expect(coefficient.updateMany).not.toHaveBeenCalled();
   });
 
   it('does not check usage when the key is unchanged', async () => {
@@ -325,6 +428,25 @@ describe('CoefficientsService.remove', () => {
       code: ERROR_CODES.COEFFICIENT_IN_USE,
       params: {
         rules: [{ ruleId: RULE_ID, ruleName: localized('Floor', 'Підлога') }],
+        options: [],
+      },
+    });
+    expect(coefficient.delete).not.toHaveBeenCalled();
+    expect(pricingData.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('rejects deleting a coefficient used by options', async () => {
+    const { service, coefficient, pricingData } = setup({
+      options: [{ id: OPTION_ID, name: localized('Wiring', 'Проводка') }],
+    });
+
+    await expect(service.remove(COEFFICIENT_ID)).rejects.toMatchObject({
+      code: ERROR_CODES.COEFFICIENT_IN_USE,
+      params: {
+        rules: [],
+        options: [
+          { optionId: OPTION_ID, optionName: localized('Wiring', 'Проводка') },
+        ],
       },
     });
     expect(coefficient.delete).not.toHaveBeenCalled();

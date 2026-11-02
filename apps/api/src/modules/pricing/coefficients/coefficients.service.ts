@@ -5,17 +5,21 @@ import {
 } from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
+import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { isPrismaError } from '../../../common/prisma/prisma-error';
 import type { Prisma } from '../../../generated/prisma/client';
+import { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
 import { PricingDataService } from '../pricing-data/pricing-data.service';
 import type {
   CoefficientAdmin,
   CoefficientListResponse,
+  CoefficientOptionUsage,
   CoefficientUsage,
 } from './dto/coefficient-admin.schema';
 import type { CoefficientInput } from './dto/coefficient-input.schema';
+import type { CoefficientListQuery } from './dto/coefficient-list-query.schema';
 import type { UpdateCoefficientInput } from './dto/update-coefficient.schema';
 
 const COEFFICIENT_ADMIN_INCLUDE = {
@@ -38,17 +42,31 @@ function toUsage(rules: RuleUsageRow[]): CoefficientUsage[] {
   }));
 }
 
+function toOptionUsage(
+  options: Array<{ id: string; name: LocalizedText }>,
+): CoefficientOptionUsage[] {
+  return options.map((option) => ({
+    optionId: option.id,
+    optionName: option.name,
+  }));
+}
+
 @Injectable()
 export class CoefficientsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(PricingDataService)
     private readonly pricingData: PricingDataService,
+    @Inject(CatalogPricingReadService)
+    private readonly catalog: CatalogPricingReadService,
   ) {}
 
-  async list(): Promise<CoefficientListResponse> {
-    const [rows, rules] = await Promise.all([
+  async list(
+    group?: CoefficientListQuery['group'],
+  ): Promise<CoefficientListResponse> {
+    const [rows, rules, options] = await Promise.all([
       this.prisma.coefficient.findMany({
+        where: group === undefined ? undefined : { group },
         include: COEFFICIENT_ADMIN_INCLUDE,
         orderBy: { key: 'asc' },
       }),
@@ -56,6 +74,7 @@ export class CoefficientsService {
         where: { coefficientKeys: { isEmpty: false } },
         select: { id: true, name: true, coefficientKeys: true },
       }),
+      this.catalog.optionsUsingCoefficients(),
     ]);
 
     return {
@@ -64,6 +83,9 @@ export class CoefficientsService {
           row,
           toUsage(
             rules.filter((rule) => rule.coefficientKeys.includes(row.key)),
+          ),
+          toOptionUsage(
+            options.filter((option) => option.keys.includes(row.key)),
           ),
         ),
       ),
@@ -83,6 +105,7 @@ export class CoefficientsService {
           name: input.name,
           value: input.value,
           unit: input.unit,
+          group: input.group,
           updatedById: adminId,
         },
         include: COEFFICIENT_ADMIN_INCLUDE,
@@ -93,7 +116,7 @@ export class CoefficientsService {
 
     this.pricingData.invalidate();
 
-    return this.present(created, []);
+    return this.present(created, [], []);
   }
 
   async update(
@@ -125,6 +148,7 @@ export class CoefficientsService {
                 name: input.name,
                 value: input.value,
                 unit: input.unit,
+                group: input.group,
                 revision: mutation.revision,
                 updatedAt: mutation.updatedAt,
                 updatedById: mutation.updatedById,
@@ -183,10 +207,11 @@ export class CoefficientsService {
       where: { coefficientKeys: { has: key } },
       select: { id: true, name: true },
     });
+    const options = await this.catalog.optionsUsingCoefficient(key, tx);
 
-    if (rules.length > 0) {
+    if (rules.length > 0 || options.length > 0) {
       throw new AppError(ERROR_CODES.COEFFICIENT_IN_USE, {
-        params: { rules: toUsage(rules) },
+        params: { rules: toUsage(rules), options: toOptionUsage(options) },
       });
     }
   }
@@ -202,6 +227,7 @@ export class CoefficientsService {
   private present(
     row: CoefficientWithRelations,
     usedBy: CoefficientUsage[],
+    usedByOptions: CoefficientOptionUsage[],
   ): CoefficientAdmin {
     return {
       id: row.id,
@@ -209,7 +235,9 @@ export class CoefficientsService {
       name: toLocalizedText(row.name),
       value: row.value.toNumber(),
       unit: toLocalizedText(row.unit),
+      group: row.group,
       usedBy,
+      usedByOptions,
       revision: row.revision,
       updatedAt: row.updatedAt.toISOString(),
       updatedBy: row.updatedBy,
@@ -226,11 +254,14 @@ export class CoefficientsService {
       throw new AppError(ERROR_CODES.NOT_FOUND);
     }
 
-    const rules = await this.prisma.pricingRule.findMany({
-      where: { coefficientKeys: { has: row.key } },
-      select: { id: true, name: true },
-    });
+    const [rules, options] = await Promise.all([
+      this.prisma.pricingRule.findMany({
+        where: { coefficientKeys: { has: row.key } },
+        select: { id: true, name: true },
+      }),
+      this.catalog.optionsUsingCoefficient(row.key),
+    ]);
 
-    return this.present(row, toUsage(rules));
+    return this.present(row, toUsage(rules), toOptionUsage(options));
   }
 }

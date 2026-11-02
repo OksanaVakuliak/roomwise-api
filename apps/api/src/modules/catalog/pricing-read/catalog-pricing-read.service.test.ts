@@ -8,6 +8,7 @@ import {
   ProductUnit,
   PublicationStatus,
   RoomTypeCode,
+  Scope,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
 import { CatalogPricingReadService } from './catalog-pricing-read.service';
@@ -181,6 +182,8 @@ describe('CatalogPricingReadService', () => {
           unit: OptionUnit.PIECE,
           minQuantity: 1,
           maxQuantity: 4,
+          priceCoefficientKeys: ['wire', 'cable'],
+          scopes: [Scope.PARTIAL, Scope.FULL],
           status: PublicationStatus.ARCHIVED,
           optionRoomTypes: [
             { roomType: { code: RoomTypeCode.KITCHEN } },
@@ -198,11 +201,28 @@ describe('CatalogPricingReadService', () => {
         priceCents: 1500,
         unit: OptionUnit.PIECE,
         roomTypeCodes: [RoomTypeCode.BEDROOM, RoomTypeCode.KITCHEN],
+        priceCoefficientKeys: ['cable', 'wire'],
+        scopes: [Scope.FULL, Scope.PARTIAL],
         minQuantity: 1,
         maxQuantity: 4,
         available: false,
       },
     ]);
+  });
+
+  it('lists the options that use a coefficient key', async () => {
+    const { service, prisma } = createService({
+      option: [{ id: 'option-1', name: { en: 'Wiring', uk: 'Проводка' } }],
+    });
+
+    await expect(service.optionsUsingCoefficient('wire')).resolves.toEqual([
+      { id: 'option-1', name: { en: 'Wiring', uk: 'Проводка' } },
+    ]);
+    expect(prisma.option.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { priceCoefficientKeys: { has: 'wire' } },
+      }),
+    );
   });
 
   it('returns the category ids that exist', async () => {

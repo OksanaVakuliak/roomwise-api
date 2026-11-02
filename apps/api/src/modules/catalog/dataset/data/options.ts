@@ -3,6 +3,7 @@ import {
   OptionKind,
   OptionUnit,
   PublicationStatus,
+  Scope,
 } from '../../../../generated/prisma/enums';
 import type { SeedOption } from '../catalog-dataset.schema';
 import { seedImages } from './images';
@@ -17,6 +18,8 @@ export const optionIds = {
   finalCleaning: '5a97a151-7717-46c8-a37b-a4ba1c6bbe06',
   furnitureAssembly: '618851f4-19b7-4896-9315-ffea68d64987',
   designConsultation: '31df1807-dcdd-47cd-80ab-630303b8b392',
+  replaceElectrics: '2def5cc9-4a8a-4666-be59-ea6aab04dc45',
+  replacePipes: '9e86c4a3-f369-4ec6-a36b-a89a44af72df',
 } as const;
 
 export const options: SeedOption[] = [
@@ -36,11 +39,7 @@ export const options: SeedOption[] = [
     maxQuantity: null,
     sortOrder: 0,
     status: PublicationStatus.PUBLISHED,
-    roomTypeIds: [
-      roomTypeIds.bathroom,
-      roomTypeIds.kitchen,
-      roomTypeIds.kitchenLiving,
-    ],
+    roomTypeIds: [],
   },
   {
     id: optionIds.airConditioning,
@@ -113,6 +112,56 @@ export const options: SeedOption[] = [
     sortOrder: 4,
     status: PublicationStatus.PUBLISHED,
     roomTypeIds: [],
+  },
+  {
+    id: optionIds.replaceElectrics,
+    code: null,
+    kind: OptionKind.ENGINEERING,
+    name: {
+      en: 'Replace wiring in the room',
+      uk: 'Заміна електрики в приміщенні',
+    },
+    description: {
+      en: 'Full replacement of the electrical wiring in the room, priced per square meter of the room.',
+      uk: 'Повна заміна електропроводки в приміщенні, вартість рахується за квадратний метр приміщення.',
+    },
+    imageId: null,
+    priceCents: 2020,
+    unit: OptionUnit.ROOM_SQM,
+    minQuantity: null,
+    maxQuantity: null,
+    sortOrder: 5,
+    status: PublicationStatus.PUBLISHED,
+    roomTypeIds: [],
+    priceCoefficientKeys: ['eng_electrics_sqm', 'mat_electrics_sqm'],
+    scopes: [Scope.PARTIAL],
+  },
+  {
+    id: optionIds.replacePipes,
+    code: null,
+    kind: OptionKind.ENGINEERING,
+    name: {
+      en: 'Replace pipes in the room',
+      uk: 'Заміна труб у приміщенні',
+    },
+    description: {
+      en: 'Replacement of water supply and drainage pipes in a wet room, priced per room.',
+      uk: 'Заміна труб водопостачання та каналізації в мокрому приміщенні, вартість рахується за приміщення.',
+    },
+    imageId: null,
+    priceCents: 16900,
+    unit: OptionUnit.ROOM,
+    minQuantity: null,
+    maxQuantity: null,
+    sortOrder: 6,
+    status: PublicationStatus.PUBLISHED,
+    roomTypeIds: [
+      roomTypeIds.bathroom,
+      roomTypeIds.kitchen,
+      roomTypeIds.kitchenLiving,
+    ],
+    priceCoefficientKeys: ['eng_plumbing_room', 'mat_plumbing_room'],
+    scopes: [Scope.PARTIAL],
   },
   {
     id: optionIds.finalCleaning,

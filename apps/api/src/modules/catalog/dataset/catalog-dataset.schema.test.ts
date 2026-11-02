@@ -110,16 +110,9 @@ describe('catalogDatasetSchema', () => {
 
   it('rejects duplicate ids inside an option roomTypeIds list', () => {
     const dataset = cloneDataset();
-    const perRoomOption = dataset.options.find(
-      (option) => option.roomTypeIds.length > 0,
-    );
-    if (!perRoomOption) {
-      throw new Error('Expected at least one seed option with roomTypeIds');
-    }
-    perRoomOption.roomTypeIds = [
-      perRoomOption.roomTypeIds[0],
-      perRoomOption.roomTypeIds[0],
-    ];
+    const perRoomOption = dataset.options[0];
+    const roomTypeId = dataset.roomTypes[0].id;
+    perRoomOption.roomTypeIds = [roomTypeId, roomTypeId];
 
     const result = catalogDatasetSchema.safeParse(dataset);
 

@@ -342,6 +342,8 @@ export class PublicCatalogService {
         roomTypeCodes: option.optionRoomTypes.map(
           (entry) => entry.roomType.code,
         ),
+        priceCoefficientKeys: option.priceCoefficientKeys,
+        scopes: option.scopes,
         minQuantity: option.minQuantity,
         maxQuantity: option.maxQuantity,
       })),

@@ -10,11 +10,13 @@ import { PUBLIC_WRITE_LIMITS_PER_HOUR } from '../../src/common/throttling/public
 import { LeadStatus, Locale } from '../../src/generated/prisma/enums';
 import { createTestApp, type TestApp } from './app-factory';
 import {
+  buildEmptyPartialConfiguration,
   buildNamedBedroomsConfiguration,
   buildProjectsConfiguration,
   newIdempotencyKey,
   projectsStyleId,
   seedProjectsData,
+  withPackageIncludedInBase,
 } from './projects-fixtures';
 
 const SEED_TIMEOUT_MS = 120_000;
@@ -255,6 +257,28 @@ describe('leads e2e', () => {
       );
 
       expect(response.status).toBe(400);
+    });
+
+    it('rejects a draft with nothing picked in a partial renovation with EMPTY_ESTIMATE', async () => {
+      const calculationsBefore = await testApp.prisma.calculation.count();
+      const leadsBefore = await testApp.prisma.lead.count();
+      const configuration = buildEmptyPartialConfiguration();
+
+      const response = await withPackageIncludedInBase(testApp, () =>
+        submit(
+          leadBody({
+            calculation: undefined,
+            draft: { ...draft(), configuration },
+          }),
+        ),
+      );
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.EMPTY_ESTIMATE);
+      await expect(testApp.prisma.calculation.count()).resolves.toBe(
+        calculationsBefore,
+      );
+      await expect(testApp.prisma.lead.count()).resolves.toBe(leadsBefore);
     });
 
     it('rejects a lead without consent and phone', async () => {

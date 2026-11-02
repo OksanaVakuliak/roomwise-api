@@ -2728,7 +2728,7 @@
             }
           },
           "422": {
-            "description": "IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED",
+            "description": "IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | UNKNOWN_COEFFICIENT | ZERO_PRICE_NOT_CONFIRMED",
             "content": {
               "application/json": {
                 "schema": {
@@ -2880,7 +2880,7 @@
             }
           },
           "422": {
-            "description": "IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | ZERO_PRICE_NOT_CONFIRMED",
+            "description": "IMAGE_NOT_FOUND | QUANTITY_BOUNDS_REQUIRED | ROOM_TYPES_NOT_ALLOWED | ROOM_TYPE_NOT_FOUND | UNKNOWN_COEFFICIENT | ZERO_PRICE_NOT_CONFIRMED",
             "content": {
               "application/json": {
                 "schema": {
@@ -3617,225 +3617,26 @@
         ]
       }
     },
-    "/api/v1/admin/pricing/base-rates": {
-      "get": {
-        "operationId": "BaseRatesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseRateListResponseDto_Output"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "UNAUTHENTICATED",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "rw_session": []
-          }
-        ],
-        "tags": [
-          "BaseRates"
-        ]
-      },
-      "post": {
-        "operationId": "BaseRatesController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BaseRateInputDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseRateAdminDto_Output"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "UNAUTHENTICATED",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "RANGE_OVERLAP",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "rw_session": []
-          }
-        ],
-        "tags": [
-          "BaseRates"
-        ]
-      }
-    },
-    "/api/v1/admin/pricing/base-rates/{id}": {
-      "patch": {
-        "operationId": "BaseRatesController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateBaseRateDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseRateAdminDto_Output"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "UNAUTHENTICATED",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "NOT_FOUND",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "RANGE_OVERLAP, STALE_REVISION",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "rw_session": []
-          }
-        ],
-        "tags": [
-          "BaseRates"
-        ]
-      },
-      "delete": {
-        "operationId": "BaseRatesController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Deleted."
-          },
-          "401": {
-            "description": "UNAUTHENTICATED",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "NOT_FOUND",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "rw_session": []
-          }
-        ],
-        "tags": [
-          "BaseRates"
-        ]
-      }
-    },
     "/api/v1/admin/pricing/coefficients": {
       "get": {
         "operationId": "CoefficientsController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "group",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "LABOR",
+                "PREPARATION",
+                "ROUGH_MATERIAL",
+                "ENGINEERING",
+                "MATERIAL_EXTRA"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -4241,7 +4042,7 @@
             }
           },
           "422": {
-            "description": "INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED",
+            "description": "INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED | EMPTY_ESTIMATE",
             "content": {
               "application/json": {
                 "schema": {
@@ -4555,7 +4356,7 @@
             }
           },
           "422": {
-            "description": "PHONE_INVALID | INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED",
+            "description": "PHONE_INVALID | INPUT_OUT_OF_BOUNDS | UNKNOWN_REFERENCE | STYLE_NOT_FOUND | IDEMPOTENCY_KEY_REUSED | EMPTY_ESTIMATE",
             "content": {
               "application/json": {
                 "schema": {
@@ -5500,7 +5301,9 @@
                     "BEDROOM",
                     "KITCHEN",
                     "KITCHEN_LIVING",
-                    "BATHROOM"
+                    "BATHROOM",
+                    "HALLWAY",
+                    "STORAGE"
                   ]
                 },
                 "name": {
@@ -5880,7 +5683,9 @@
                     "BEDROOM",
                     "KITCHEN",
                     "KITCHEN_LIVING",
-                    "BATHROOM"
+                    "BATHROOM",
+                    "HALLWAY",
+                    "STORAGE"
                   ]
                 },
                 "categoryId": {
@@ -6076,7 +5881,25 @@
                       "BEDROOM",
                       "KITCHEN",
                       "KITCHEN_LIVING",
-                      "BATHROOM"
+                      "BATHROOM",
+                      "HALLWAY",
+                      "STORAGE"
+                    ]
+                  }
+                },
+                "priceCoefficientKeys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "scopes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "FULL",
+                      "PARTIAL"
                     ]
                   }
                 },
@@ -6116,6 +5939,8 @@
                 "unit",
                 "perRoom",
                 "roomTypeCodes",
+                "priceCoefficientKeys",
+                "scopes",
                 "minQuantity",
                 "maxQuantity"
               ],
@@ -6195,7 +6020,9 @@
                     "BEDROOM",
                     "KITCHEN",
                     "KITCHEN_LIVING",
-                    "BATHROOM"
+                    "BATHROOM",
+                    "HALLWAY",
+                    "STORAGE"
                   ]
                 },
                 "name": {
@@ -6371,7 +6198,9 @@
               "BEDROOM",
               "KITCHEN",
               "KITCHEN_LIVING",
-              "BATHROOM"
+              "BATHROOM",
+              "HALLWAY",
+              "STORAGE"
             ]
           },
           "name": {
@@ -6583,7 +6412,9 @@
                       "BEDROOM",
                       "KITCHEN",
                       "KITCHEN_LIVING",
-                      "BATHROOM"
+                      "BATHROOM",
+                      "HALLWAY",
+                      "STORAGE"
                     ]
                   }
                 },
@@ -6747,7 +6578,9 @@
                 "BEDROOM",
                 "KITCHEN",
                 "KITCHEN_LIVING",
-                "BATHROOM"
+                "BATHROOM",
+                "HALLWAY",
+                "STORAGE"
               ]
             }
           },
@@ -8860,7 +8693,9 @@
                     "BEDROOM",
                     "KITCHEN",
                     "KITCHEN_LIVING",
-                    "BATHROOM"
+                    "BATHROOM",
+                    "HALLWAY",
+                    "STORAGE"
                   ]
                 },
                 "roomTypeId": {
@@ -9793,6 +9628,22 @@
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   }
                 },
+                "priceCoefficientKeys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "scopes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "FULL",
+                      "PARTIAL"
+                    ]
+                  }
+                },
                 "sortOrder": {
                   "type": "integer",
                   "minimum": 0,
@@ -9855,6 +9706,8 @@
                 "minQuantity",
                 "maxQuantity",
                 "roomTypeIds",
+                "priceCoefficientKeys",
+                "scopes",
                 "sortOrder",
                 "status",
                 "revision",
@@ -10019,6 +9872,22 @@
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
           },
+          "priceCoefficientKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FULL",
+                "PARTIAL"
+              ]
+            }
+          },
           "sortOrder": {
             "type": "integer",
             "minimum": 0,
@@ -10081,6 +9950,8 @@
           "minQuantity",
           "maxQuantity",
           "roomTypeIds",
+          "priceCoefficientKeys",
+          "scopes",
           "sortOrder",
           "status",
           "revision",
@@ -10172,6 +10043,29 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "priceCoefficientKeys": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{1,40}$"
+            }
+          },
+          "scopes": {
+            "default": [
+              "FULL",
+              "PARTIAL"
+            ],
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FULL",
+                "PARTIAL"
+              ]
             }
           }
         },
@@ -10288,6 +10182,24 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "priceCoefficientKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{1,40}$"
+            }
+          },
+          "scopes": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FULL",
+                "PARTIAL"
+              ]
             }
           },
           "revision": {
@@ -10452,49 +10364,20 @@
                   "max"
                 ],
                 "additionalProperties": false
+              },
+              "missingAreaHintSqm": {
+                "type": "number",
+                "minimum": 0
               }
             },
             "required": [
               "totalAreaSqm",
               "rooms",
               "roomSideM",
-              "roomHeightM"
+              "roomHeightM",
+              "missingAreaHintSqm"
             ],
             "additionalProperties": false
-          },
-          "baseRates": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "finishLevel": {
-                  "type": "string",
-                  "enum": [
-                    "ROUGH",
-                    "PRE_FINISH"
-                  ]
-                },
-                "areaFromSqm": {
-                  "type": "number",
-                  "minimum": 0
-                },
-                "areaToSqm": {
-                  "type": "number"
-                },
-                "rateCentsPerSqm": {
-                  "type": "integer",
-                  "exclusiveMinimum": 0,
-                  "maximum": 9007199254740991
-                }
-              },
-              "required": [
-                "finishLevel",
-                "areaFromSqm",
-                "areaToSqm",
-                "rateCentsPerSqm"
-              ],
-              "additionalProperties": false
-            }
           },
           "coefficients": {
             "type": "object",
@@ -10518,19 +10401,28 @@
                   "enum": [
                     "OBJECT",
                     "CATEGORY",
-                    "MATERIAL_TYPE"
+                    "MATERIAL_TYPE",
+                    "SURFACE"
                   ]
                 },
                 "categoryId": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "materialTypeId": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "name": {
@@ -10550,14 +10442,47 @@
                   "additionalProperties": false
                 },
                 "quantityFormula": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
+                },
+                "surface": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "FLOOR",
+                        "WALLS",
+                        "CEILING"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "baseComponent": {
+                  "type": "boolean"
                 },
                 "costFormula": {
                   "type": "string",
                   "maxLength": 500
+                },
+                "laborFormula": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "sortOrder": {
                   "type": "integer",
@@ -10572,7 +10497,10 @@
                 "materialTypeId",
                 "name",
                 "quantityFormula",
+                "surface",
+                "baseComponent",
                 "costFormula",
+                "laborFormula",
                 "sortOrder"
               ],
               "additionalProperties": false
@@ -10801,6 +10729,23 @@
                     "type": "string"
                   }
                 },
+                "priceCoefficientKeys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "scopes": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "FULL",
+                      "PARTIAL"
+                    ]
+                  }
+                },
                 "minQuantity": {
                   "anyOf": [
                     {
@@ -10836,6 +10781,8 @@
                 "priceCents",
                 "unit",
                 "roomTypeCodes",
+                "priceCoefficientKeys",
+                "scopes",
                 "minQuantity",
                 "maxQuantity",
                 "available"
@@ -10848,7 +10795,6 @@
           "version",
           "exchangeRate",
           "limits",
-          "baseRates",
           "coefficients",
           "rules",
           "roomTypes",
@@ -10866,16 +10812,32 @@
           "configuration": {
             "type": "object",
             "properties": {
+              "scope": {
+                "default": "FULL",
+                "type": "string",
+                "enum": [
+                  "FULL",
+                  "PARTIAL"
+                ]
+              },
               "finishLevel": {
                 "type": "string",
                 "enum": [
                   "ROUGH",
-                  "PRE_FINISH"
+                  "PRE_FINISH",
+                  "LIVED_IN"
                 ]
               },
               "totalAreaSqm": {
-                "type": "number",
-                "exclusiveMinimum": 0
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "balconyAreaSqm": {
                 "type": "number",
@@ -10904,7 +10866,9 @@
                         "BEDROOM",
                         "KITCHEN",
                         "KITCHEN_LIVING",
-                        "BATHROOM"
+                        "BATHROOM",
+                        "HALLWAY",
+                        "STORAGE"
                       ]
                     },
                     "lengthM": {
@@ -10931,9 +10895,13 @@
                             "type": "string"
                           },
                           "productId": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           }
                         },
@@ -11084,51 +11052,83 @@
                       ]
                     },
                     "roomClientId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "categoryId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "productId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "optionId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "packageItemId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "ruleId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "quantity": {
-                      "type": [
-                        "number",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "unit": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "unitPriceCents": {
@@ -11159,6 +11159,39 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "components": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "MATERIAL",
+                              "LABOR",
+                              "PREP"
+                            ]
+                          },
+                          "ruleId": {
+                            "type": "string"
+                          },
+                          "amountCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "sharedWithCategoryId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "ruleId",
+                          "amountCents"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "warnings": {
                       "type": "array",
@@ -11377,7 +11410,8 @@
                   "enum": [
                     "OBJECT",
                     "CATEGORY",
-                    "MATERIAL_TYPE"
+                    "MATERIAL_TYPE",
+                    "SURFACE"
                   ]
                 },
                 "categoryId": {
@@ -11404,6 +11438,24 @@
                     }
                   ]
                 },
+                "surface": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "FLOOR",
+                        "WALLS",
+                        "CEILING"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "baseComponent": {
+                  "type": "boolean"
+                },
                 "name": {
                   "type": "object",
                   "properties": {
@@ -11423,13 +11475,27 @@
                   "additionalProperties": false
                 },
                 "quantityFormula": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "costFormula": {
                   "type": "string"
+                },
+                "laborFormula": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "coefficientKeys": {
                   "type": "array",
@@ -11486,9 +11552,12 @@
                 "level",
                 "categoryId",
                 "materialTypeId",
+                "surface",
+                "baseComponent",
                 "name",
                 "quantityFormula",
                 "costFormula",
+                "laborFormula",
                 "coefficientKeys",
                 "sortOrder",
                 "orphaned",
@@ -11550,7 +11619,8 @@
             "enum": [
               "OBJECT",
               "CATEGORY",
-              "MATERIAL_TYPE"
+              "MATERIAL_TYPE",
+              "SURFACE"
             ]
           },
           "categoryId": {
@@ -11571,6 +11641,21 @@
                 "type": "string",
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "surface": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "FLOOR",
+                  "WALLS",
+                  "CEILING"
+                ]
               },
               {
                 "type": "null"
@@ -11610,6 +11695,22 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 500
+          },
+          "laborFormula": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseComponent": {
+            "default": false,
+            "type": "boolean"
           }
         },
         "required": [
@@ -11631,7 +11732,8 @@
             "enum": [
               "OBJECT",
               "CATEGORY",
-              "MATERIAL_TYPE"
+              "MATERIAL_TYPE",
+              "SURFACE"
             ]
           },
           "categoryId": {
@@ -11658,6 +11760,24 @@
               }
             ]
           },
+          "surface": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "FLOOR",
+                  "WALLS",
+                  "CEILING"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseComponent": {
+            "type": "boolean"
+          },
           "name": {
             "type": "object",
             "properties": {
@@ -11677,13 +11797,27 @@
             "additionalProperties": false
           },
           "quantityFormula": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "costFormula": {
             "type": "string"
+          },
+          "laborFormula": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "coefficientKeys": {
             "type": "array",
@@ -11740,9 +11874,12 @@
           "level",
           "categoryId",
           "materialTypeId",
+          "surface",
+          "baseComponent",
           "name",
           "quantityFormula",
           "costFormula",
+          "laborFormula",
           "coefficientKeys",
           "sortOrder",
           "orphaned",
@@ -11760,7 +11897,8 @@
             "enum": [
               "OBJECT",
               "CATEGORY",
-              "MATERIAL_TYPE"
+              "MATERIAL_TYPE",
+              "SURFACE"
             ]
           },
           "quantityFormula": {
@@ -11780,6 +11918,18 @@
             "minLength": 1,
             "maxLength": 500
           },
+          "laborFormula": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sample": {
             "type": "object",
             "properties": {
@@ -11793,7 +11943,9 @@
                       "BEDROOM",
                       "KITCHEN",
                       "KITCHEN_LIVING",
-                      "BATHROOM"
+                      "BATHROOM",
+                      "HALLWAY",
+                      "STORAGE"
                     ]
                   },
                   "lengthM": {
@@ -11847,12 +11999,30 @@
                   "wastePercent"
                 ]
               },
+              "surfaceArea": {
+                "type": "number",
+                "minimum": 0
+              },
               "object": {
                 "type": "object",
                 "properties": {
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "FULL",
+                      "PARTIAL"
+                    ]
+                  },
                   "totalAreaSqm": {
-                    "type": "number",
-                    "exclusiveMinimum": 0
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "balconyAreaSqm": {
                     "type": "number",
@@ -11865,7 +12035,8 @@
                     "type": "string",
                     "enum": [
                       "ROUGH",
-                      "PRE_FINISH"
+                      "PRE_FINISH",
+                      "LIVED_IN"
                     ]
                   },
                   "roomsCount": {
@@ -11877,15 +12048,37 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 9007199254740991
+                  },
+                  "roomsFloorArea": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "roomsWallArea": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "roomsPerimeter": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "wetRoomsCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
+                  "scope",
                   "totalAreaSqm",
                   "balconyAreaSqm",
                   "balconyTiles",
                   "finishLevel",
                   "roomsCount",
-                  "bathroomsCount"
+                  "bathroomsCount",
+                  "roomsFloorArea",
+                  "roomsWallArea",
+                  "roomsPerimeter",
+                  "wetRoomsCount"
                 ]
               }
             },
@@ -11904,12 +12097,28 @@
         "type": "object",
         "properties": {
           "quantity": {
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "amountCents": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "laborCents": {
             "anyOf": [
               {
                 "type": "integer",
@@ -11927,10 +12136,16 @@
               "type": "string"
             },
             "additionalProperties": {
-              "type": [
-                "number",
-                "boolean",
-                "string"
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string"
+                }
               ]
             }
           },
@@ -11973,6 +12188,7 @@
         "required": [
           "quantity",
           "amountCents",
+          "laborCents",
           "variables",
           "coefficients",
           "error"
@@ -12032,6 +12248,21 @@
             "minLength": 1,
             "maxLength": 500
           },
+          "laborFormula": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseComponent": {
+            "type": "boolean"
+          },
           "revision": {
             "type": "string",
             "format": "uuid",
@@ -12051,7 +12282,8 @@
             "enum": [
               "OBJECT",
               "CATEGORY",
-              "MATERIAL_TYPE"
+              "MATERIAL_TYPE",
+              "SURFACE"
             ]
           },
           "quantityFormula": {
@@ -12070,6 +12302,18 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 500
+          },
+          "laborFormula": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -12098,7 +12342,8 @@
                   "type": "string",
                   "enum": [
                     "quantity",
-                    "cost"
+                    "cost",
+                    "labor"
                   ]
                 },
                 "code": {
@@ -12120,9 +12365,13 @@
                     "type": "string"
                   },
                   "additionalProperties": {
-                    "type": [
-                      "string",
-                      "number"
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
                     ]
                   }
                 }
@@ -12141,268 +12390,6 @@
           "valid",
           "coefficientKeys",
           "errors"
-        ],
-        "additionalProperties": false
-      },
-      "BaseRateListResponseDto_Output": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "finishLevel": {
-                  "type": "string",
-                  "enum": [
-                    "ROUGH",
-                    "PRE_FINISH"
-                  ]
-                },
-                "areaFromSqm": {
-                  "type": "number"
-                },
-                "areaToSqm": {
-                  "type": "number"
-                },
-                "rateCentsPerSqm": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "revision": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "updatedAt": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-                },
-                "updatedBy": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                        },
-                        "login": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "login"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "finishLevel",
-                "areaFromSqm",
-                "areaToSqm",
-                "rateCentsPerSqm",
-                "revision",
-                "updatedAt",
-                "updatedBy"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "gaps": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "finishLevel": {
-                  "type": "string",
-                  "enum": [
-                    "ROUGH",
-                    "PRE_FINISH"
-                  ]
-                },
-                "fromSqm": {
-                  "type": "number"
-                },
-                "toSqm": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "finishLevel",
-                "fromSqm",
-                "toSqm"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "items",
-          "gaps"
-        ],
-        "additionalProperties": false
-      },
-      "BaseRateInputDto": {
-        "type": "object",
-        "properties": {
-          "finishLevel": {
-            "type": "string",
-            "enum": [
-              "ROUGH",
-              "PRE_FINISH"
-            ]
-          },
-          "areaFromSqm": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 99999.99,
-            "multipleOf": 0.01
-          },
-          "areaToSqm": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 99999.99,
-            "multipleOf": 0.01
-          },
-          "rateCentsPerSqm": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 2147483647
-          }
-        },
-        "required": [
-          "finishLevel",
-          "areaFromSqm",
-          "areaToSqm",
-          "rateCentsPerSqm"
-        ],
-        "additionalProperties": false
-      },
-      "BaseRateAdminDto_Output": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "finishLevel": {
-            "type": "string",
-            "enum": [
-              "ROUGH",
-              "PRE_FINISH"
-            ]
-          },
-          "areaFromSqm": {
-            "type": "number"
-          },
-          "areaToSqm": {
-            "type": "number"
-          },
-          "rateCentsPerSqm": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "revision": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-          },
-          "updatedBy": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "format": "uuid",
-                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                  },
-                  "login": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id",
-                  "login"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "finishLevel",
-          "areaFromSqm",
-          "areaToSqm",
-          "rateCentsPerSqm",
-          "revision",
-          "updatedAt",
-          "updatedBy"
-        ],
-        "additionalProperties": false
-      },
-      "UpdateBaseRateDto": {
-        "type": "object",
-        "properties": {
-          "finishLevel": {
-            "type": "string",
-            "enum": [
-              "ROUGH",
-              "PRE_FINISH"
-            ]
-          },
-          "areaFromSqm": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 99999.99,
-            "multipleOf": 0.01
-          },
-          "areaToSqm": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 99999.99,
-            "multipleOf": 0.01
-          },
-          "rateCentsPerSqm": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 2147483647
-          },
-          "revision": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-          }
-        },
-        "required": [
-          "revision"
         ],
         "additionalProperties": false
       },
@@ -12461,6 +12448,16 @@
                   ],
                   "additionalProperties": false
                 },
+                "group": {
+                  "type": "string",
+                  "enum": [
+                    "LABOR",
+                    "PREPARATION",
+                    "ROUGH_MATERIAL",
+                    "ENGINEERING",
+                    "MATERIAL_EXTRA"
+                  ]
+                },
                 "usedBy": {
                   "type": "array",
                   "items": {
@@ -12493,6 +12490,42 @@
                     "required": [
                       "ruleId",
                       "ruleName"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "usedByOptions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "optionId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "optionName": {
+                        "type": "object",
+                        "properties": {
+                          "en": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "uk": {
+                            "type": "string",
+                            "maxLength": 120
+                          }
+                        },
+                        "required": [
+                          "en",
+                          "uk"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "optionId",
+                      "optionName"
                     ],
                     "additionalProperties": false
                   }
@@ -12539,7 +12572,9 @@
                 "name",
                 "value",
                 "unit",
+                "group",
                 "usedBy",
+                "usedByOptions",
                 "revision",
                 "updatedAt",
                 "updatedBy"
@@ -12598,6 +12633,17 @@
             "required": [
               "en",
               "uk"
+            ]
+          },
+          "group": {
+            "default": "MATERIAL_EXTRA",
+            "type": "string",
+            "enum": [
+              "LABOR",
+              "PREPARATION",
+              "ROUGH_MATERIAL",
+              "ENGINEERING",
+              "MATERIAL_EXTRA"
             ]
           }
         },
@@ -12659,6 +12705,16 @@
             ],
             "additionalProperties": false
           },
+          "group": {
+            "type": "string",
+            "enum": [
+              "LABOR",
+              "PREPARATION",
+              "ROUGH_MATERIAL",
+              "ENGINEERING",
+              "MATERIAL_EXTRA"
+            ]
+          },
           "usedBy": {
             "type": "array",
             "items": {
@@ -12691,6 +12747,42 @@
               "required": [
                 "ruleId",
                 "ruleName"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "usedByOptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "optionId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "optionName": {
+                  "type": "object",
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "uk": {
+                      "type": "string",
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "en",
+                    "uk"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "optionId",
+                "optionName"
               ],
               "additionalProperties": false
             }
@@ -12737,7 +12829,9 @@
           "name",
           "value",
           "unit",
+          "group",
           "usedBy",
+          "usedByOptions",
           "revision",
           "updatedAt",
           "updatedBy"
@@ -12789,6 +12883,16 @@
             "required": [
               "en",
               "uk"
+            ]
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "LABOR",
+              "PREPARATION",
+              "ROUGH_MATERIAL",
+              "ENGINEERING",
+              "MATERIAL_EXTRA"
             ]
           },
           "revision": {
@@ -12913,10 +13017,14 @@
             ]
           },
           "lastError": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "staleSince": {
             "anyOf": [
@@ -12960,16 +13068,32 @@
           "configuration": {
             "type": "object",
             "properties": {
+              "scope": {
+                "default": "FULL",
+                "type": "string",
+                "enum": [
+                  "FULL",
+                  "PARTIAL"
+                ]
+              },
               "finishLevel": {
                 "type": "string",
                 "enum": [
                   "ROUGH",
-                  "PRE_FINISH"
+                  "PRE_FINISH",
+                  "LIVED_IN"
                 ]
               },
               "totalAreaSqm": {
-                "type": "number",
-                "exclusiveMinimum": 0
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "balconyAreaSqm": {
                 "type": "number",
@@ -12998,7 +13122,9 @@
                         "BEDROOM",
                         "KITCHEN",
                         "KITCHEN_LIVING",
-                        "BATHROOM"
+                        "BATHROOM",
+                        "HALLWAY",
+                        "STORAGE"
                       ]
                     },
                     "lengthM": {
@@ -13025,9 +13151,13 @@
                             "type": "string"
                           },
                           "productId": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           }
                         },
@@ -13093,9 +13223,16 @@
             ]
           },
           "styleId": {
-            "type": "string",
-            "format": "uuid",
-            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "clientPricingVersion": {
             "type": "string",
@@ -13173,16 +13310,32 @@
               "configuration": {
                 "type": "object",
                 "properties": {
+                  "scope": {
+                    "default": "FULL",
+                    "type": "string",
+                    "enum": [
+                      "FULL",
+                      "PARTIAL"
+                    ]
+                  },
                   "finishLevel": {
                     "type": "string",
                     "enum": [
                       "ROUGH",
-                      "PRE_FINISH"
+                      "PRE_FINISH",
+                      "LIVED_IN"
                     ]
                   },
                   "totalAreaSqm": {
-                    "type": "number",
-                    "exclusiveMinimum": 0
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "balconyAreaSqm": {
                     "type": "number",
@@ -13211,7 +13364,9 @@
                             "BEDROOM",
                             "KITCHEN",
                             "KITCHEN_LIVING",
-                            "BATHROOM"
+                            "BATHROOM",
+                            "HALLWAY",
+                            "STORAGE"
                           ]
                         },
                         "lengthM": {
@@ -13238,9 +13393,13 @@
                                 "type": "string"
                               },
                               "productId": {
-                                "type": [
-                                  "string",
-                                  "null"
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
                                 ]
                               }
                             },
@@ -13299,6 +13458,7 @@
                   }
                 },
                 "required": [
+                  "scope",
                   "finishLevel",
                   "totalAreaSqm",
                   "balconyAreaSqm",
@@ -13324,7 +13484,9 @@
                         "BEDROOM",
                         "KITCHEN",
                         "KITCHEN_LIVING",
-                        "BATHROOM"
+                        "BATHROOM",
+                        "HALLWAY",
+                        "STORAGE"
                       ]
                     },
                     "lengthM": {
@@ -13391,51 +13553,83 @@
                       ]
                     },
                     "roomClientId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "categoryId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "productId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "optionId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "packageItemId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "ruleId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "quantity": {
-                      "type": [
-                        "number",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "unit": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "unitPriceCents": {
@@ -13466,6 +13660,39 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "components": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "MATERIAL",
+                              "LABOR",
+                              "PREP"
+                            ]
+                          },
+                          "ruleId": {
+                            "type": "string"
+                          },
+                          "amountCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "sharedWithCategoryId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "ruleId",
+                          "amountCents"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "warnings": {
                       "type": "array",
@@ -13516,33 +13743,53 @@
                       ]
                     },
                     "roomName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "categoryName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "optionName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "packageItemName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "ruleName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "product": {
@@ -13809,15 +14056,23 @@
                               "type": "string"
                             },
                             "productId": {
-                              "type": [
-                                "string",
-                                "null"
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
                               ]
                             },
                             "optionId": {
-                              "type": [
-                                "string",
-                                "null"
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
                               ]
                             }
                           },
@@ -14011,16 +14266,32 @@
           "configuration": {
             "type": "object",
             "properties": {
+              "scope": {
+                "default": "FULL",
+                "type": "string",
+                "enum": [
+                  "FULL",
+                  "PARTIAL"
+                ]
+              },
               "finishLevel": {
                 "type": "string",
                 "enum": [
                   "ROUGH",
-                  "PRE_FINISH"
+                  "PRE_FINISH",
+                  "LIVED_IN"
                 ]
               },
               "totalAreaSqm": {
-                "type": "number",
-                "exclusiveMinimum": 0
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "balconyAreaSqm": {
                 "type": "number",
@@ -14049,7 +14320,9 @@
                         "BEDROOM",
                         "KITCHEN",
                         "KITCHEN_LIVING",
-                        "BATHROOM"
+                        "BATHROOM",
+                        "HALLWAY",
+                        "STORAGE"
                       ]
                     },
                     "lengthM": {
@@ -14076,9 +14349,13 @@
                             "type": "string"
                           },
                           "productId": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           }
                         },
@@ -14137,6 +14414,7 @@
               }
             },
             "required": [
+              "scope",
               "finishLevel",
               "totalAreaSqm",
               "balconyAreaSqm",
@@ -14162,7 +14440,9 @@
                     "BEDROOM",
                     "KITCHEN",
                     "KITCHEN_LIVING",
-                    "BATHROOM"
+                    "BATHROOM",
+                    "HALLWAY",
+                    "STORAGE"
                   ]
                 },
                 "lengthM": {
@@ -14229,51 +14509,83 @@
                   ]
                 },
                 "roomClientId": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "categoryId": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "productId": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "optionId": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "packageItemId": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "ruleId": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "quantity": {
-                  "type": [
-                    "number",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "unit": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "unitPriceCents": {
@@ -14304,6 +14616,39 @@
                       "type": "null"
                     }
                   ]
+                },
+                "components": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "MATERIAL",
+                          "LABOR",
+                          "PREP"
+                        ]
+                      },
+                      "ruleId": {
+                        "type": "string"
+                      },
+                      "amountCents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "sharedWithCategoryId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "ruleId",
+                      "amountCents"
+                    ],
+                    "additionalProperties": false
+                  }
                 },
                 "warnings": {
                   "type": "array",
@@ -14354,33 +14699,53 @@
                   ]
                 },
                 "roomName": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "categoryName": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "optionName": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "packageItemName": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "ruleName": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "product": {
@@ -14647,15 +15012,23 @@
                           "type": "string"
                         },
                         "productId": {
-                          "type": [
-                            "string",
-                            "null"
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
                           ]
                         },
                         "optionId": {
-                          "type": [
-                            "string",
-                            "null"
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
                           ]
                         }
                       },
@@ -14768,16 +15141,32 @@
               "configuration": {
                 "type": "object",
                 "properties": {
+                  "scope": {
+                    "default": "FULL",
+                    "type": "string",
+                    "enum": [
+                      "FULL",
+                      "PARTIAL"
+                    ]
+                  },
                   "finishLevel": {
                     "type": "string",
                     "enum": [
                       "ROUGH",
-                      "PRE_FINISH"
+                      "PRE_FINISH",
+                      "LIVED_IN"
                     ]
                   },
                   "totalAreaSqm": {
-                    "type": "number",
-                    "exclusiveMinimum": 0
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "balconyAreaSqm": {
                     "type": "number",
@@ -14806,7 +15195,9 @@
                             "BEDROOM",
                             "KITCHEN",
                             "KITCHEN_LIVING",
-                            "BATHROOM"
+                            "BATHROOM",
+                            "HALLWAY",
+                            "STORAGE"
                           ]
                         },
                         "lengthM": {
@@ -14833,9 +15224,13 @@
                                 "type": "string"
                               },
                               "productId": {
-                                "type": [
-                                  "string",
-                                  "null"
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
                                 ]
                               }
                             },
@@ -14901,9 +15296,16 @@
                 ]
               },
               "styleId": {
-                "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "clientPricingVersion": {
                 "type": "string",
@@ -15249,9 +15651,13 @@
                   "type": "string"
                 },
                 "email": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "expiredAtSubmission": {
@@ -15340,10 +15746,14 @@
             "type": "string"
           },
           "email": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "expiredAtSubmission": {
             "type": "boolean"
@@ -15357,16 +15767,24 @@
             "type": "boolean"
           },
           "comment": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "consentText": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "consentAt": {
             "type": "string",
@@ -15468,9 +15886,13 @@
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                 },
                 "text": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "createdAt": {
@@ -15569,16 +15991,32 @@
               "configuration": {
                 "type": "object",
                 "properties": {
+                  "scope": {
+                    "default": "FULL",
+                    "type": "string",
+                    "enum": [
+                      "FULL",
+                      "PARTIAL"
+                    ]
+                  },
                   "finishLevel": {
                     "type": "string",
                     "enum": [
                       "ROUGH",
-                      "PRE_FINISH"
+                      "PRE_FINISH",
+                      "LIVED_IN"
                     ]
                   },
                   "totalAreaSqm": {
-                    "type": "number",
-                    "exclusiveMinimum": 0
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "balconyAreaSqm": {
                     "type": "number",
@@ -15607,7 +16045,9 @@
                             "BEDROOM",
                             "KITCHEN",
                             "KITCHEN_LIVING",
-                            "BATHROOM"
+                            "BATHROOM",
+                            "HALLWAY",
+                            "STORAGE"
                           ]
                         },
                         "lengthM": {
@@ -15634,9 +16074,13 @@
                                 "type": "string"
                               },
                               "productId": {
-                                "type": [
-                                  "string",
-                                  "null"
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
                                 ]
                               }
                             },
@@ -15695,6 +16139,7 @@
                   }
                 },
                 "required": [
+                  "scope",
                   "finishLevel",
                   "totalAreaSqm",
                   "balconyAreaSqm",
@@ -15720,7 +16165,9 @@
                         "BEDROOM",
                         "KITCHEN",
                         "KITCHEN_LIVING",
-                        "BATHROOM"
+                        "BATHROOM",
+                        "HALLWAY",
+                        "STORAGE"
                       ]
                     },
                     "lengthM": {
@@ -15787,51 +16234,83 @@
                       ]
                     },
                     "roomClientId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "categoryId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "productId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "optionId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "packageItemId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "ruleId": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "quantity": {
-                      "type": [
-                        "number",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "unit": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "unitPriceCents": {
@@ -15862,6 +16341,39 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "components": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "MATERIAL",
+                              "LABOR",
+                              "PREP"
+                            ]
+                          },
+                          "ruleId": {
+                            "type": "string"
+                          },
+                          "amountCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "sharedWithCategoryId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "ruleId",
+                          "amountCents"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "warnings": {
                       "type": "array",
@@ -15912,33 +16424,53 @@
                       ]
                     },
                     "roomName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "categoryName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "optionName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "packageItemName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "ruleName": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "product": {
@@ -16205,15 +16737,23 @@
                               "type": "string"
                             },
                             "productId": {
-                              "type": [
-                                "string",
-                                "null"
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
                               ]
                             },
                             "optionId": {
-                              "type": [
-                                "string",
-                                "null"
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
                               ]
                             }
                           },
@@ -16367,10 +16907,14 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           },
           "text": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "createdAt": {
             "type": "string",

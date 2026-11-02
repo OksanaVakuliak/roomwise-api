@@ -85,6 +85,8 @@ describe('estimates e2e', () => {
       expect(response.headers['cache-control']).toBe(CACHE_CONTROL_HEADER);
       expect(data.version).toMatch(/^[0-9a-f]{16}$/);
       expect(data.exchangeRate?.rate).toBe(RATE);
+      expect(data).not.toHaveProperty('baseRates');
+      expect(data.limits.missingAreaHintSqm).toBeGreaterThanOrEqual(0);
     });
 
     it('marks only the heated floor option with its code', async () => {
@@ -93,6 +95,14 @@ describe('estimates e2e', () => {
       expect(coded.map((option) => [option.id, option.code])).toEqual([
         [optionIds.heatedFloor, 'HEATED_FLOOR'],
       ]);
+    });
+
+    it('allows the heated floor option in every room type', () => {
+      const option = data.options.find(
+        (item) => item.id === optionIds.heatedFloor,
+      );
+
+      expect(option?.roomTypeCodes).toEqual([]);
     });
 
     it('answers 304 when If-None-Match carries the current version', async () => {
@@ -349,6 +359,34 @@ describe('estimates e2e', () => {
       },
     );
 
+    it('prices the heated floor option in a bedroom without warnings', async () => {
+      const room = {
+        ...samples[0].rooms[0],
+        roomTypeCode: 'BEDROOM' as const,
+        heatedFloor: true,
+      };
+      const configuration: Configuration = {
+        ...samples[0],
+        rooms: [room],
+        options: [
+          { optionId: optionIds.heatedFloor, roomClientIds: [room.clientId] },
+        ],
+      };
+
+      const response = await request(testApp.http)
+        .post('/api/v1/public/estimates')
+        .send({ configuration })
+        .expect(200);
+
+      const line = response.body.estimate.lines.find(
+        (item: { optionId?: string }) =>
+          item.optionId === optionIds.heatedFloor,
+      );
+      expect(line.quantity).toBeGreaterThan(0);
+      expect(line.amountCents).toBeGreaterThan(0);
+      expect(line.warnings).toEqual([]);
+    });
+
     describe('warnings', () => {
       const floorCategory = () => {
         const category = data.categories.find(
@@ -388,6 +426,9 @@ describe('estimates e2e', () => {
         ],
       });
 
+      const withoutAreaHint = (warnings: Array<{ code: string }>) =>
+        warnings.filter(({ code }) => code !== 'ROOMS_AREA_BELOW_TOTAL');
+
       const post = async (configuration: Configuration) => {
         const response = await request(testApp.http)
           .post('/api/v1/public/estimates')
@@ -409,7 +450,9 @@ describe('estimates e2e', () => {
           params: { productId: product.id },
         };
         expect(line.warnings).toEqual([warning]);
-        expect(result.warnings).toEqual([{ ...warning, lineId: line.id }]);
+        expect(withoutAreaHint(result.warnings)).toEqual([
+          { ...warning, lineId: line.id },
+        ]);
         expect(result.totals.usdCents).toBeGreaterThan(0);
       });
 
@@ -418,7 +461,7 @@ describe('estimates e2e', () => {
           heatedFloorConfiguration(floorProduct(true).id),
         );
 
-        expect(result.warnings).toEqual([]);
+        expect(withoutAreaHint(result.warnings)).toEqual([]);
       });
 
       it('warns when the rooms outgrow the total area', async () => {

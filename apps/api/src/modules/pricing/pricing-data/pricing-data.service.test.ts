@@ -3,11 +3,7 @@ import { Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
-import {
-  FinishLevel,
-  RuleLevel,
-  SurfaceKind,
-} from '../../../generated/prisma/enums';
+import { RuleLevel, SurfaceKind } from '../../../generated/prisma/enums';
 import type { CatalogChangeNotifier } from '../../catalog/common/catalog-change.notifier';
 import type { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
 import type { ExchangeRateService } from '../exchange-rate/exchange-rate.service';
@@ -29,7 +25,10 @@ function ruleRow(overrides: Record<string, unknown> = {}) {
     materialTypeId: null,
     name: { en: 'Rule', uk: 'Правило' },
     quantityFormula: 'floorArea',
+    surface: null,
+    baseComponent: false,
     costFormula: 'quantity * price',
+    laborFormula: null,
     coefficientKeys: [],
     sortOrder: 0,
     ...overrides,
@@ -55,21 +54,12 @@ function createService(fixture: Fixture = {}) {
           roomSideMaxM: decimal('30.00'),
           roomHeightMinM: decimal('2.20'),
           roomHeightMaxM: decimal('5.00'),
+          missingAreaHintSqm: decimal('5.00'),
         }
       : fixture.settings;
 
   const prisma = {
     pricingSettings: { findUnique: vi.fn().mockResolvedValue(settings) },
-    baseRate: {
-      findMany: vi.fn().mockResolvedValue([
-        {
-          finishLevel: FinishLevel.ROUGH,
-          areaFromSqm: decimal('15.00'),
-          areaToSqm: decimal('500.01'),
-          rateCentsPerSqm: 9500,
-        },
-      ]),
-    },
     coefficient: {
       findMany: vi.fn().mockResolvedValue([
         { key: 'tile_glue', value: decimal('10.0000') },
@@ -126,15 +116,9 @@ describe('PricingDataService', () => {
       rooms: { min: 1, max: 15 },
       roomSideM: { min: 1, max: 30 },
       roomHeightM: { min: 2.2, max: 5 },
+      missingAreaHintSqm: 5,
     });
-    expect(data.baseRates).toEqual([
-      {
-        finishLevel: FinishLevel.ROUGH,
-        areaFromSqm: 15,
-        areaToSqm: 500.01,
-        rateCentsPerSqm: 9500,
-      },
-    ]);
+    expect(data).not.toHaveProperty('baseRates');
     expect(data.coefficients).toEqual({ tile_glue: 10, laminate_underlay: 2 });
     expect(data.categories).toEqual([
       { id: CATEGORY_ID, wastePercent: 10, surface: SurfaceKind.FLOOR },
@@ -151,6 +135,55 @@ describe('PricingDataService', () => {
     expect(first.version).toMatch(/^[0-9a-f]{16}$/);
     expect(second.version).toBe(first.version);
     expect(changed.version).not.toBe(first.version);
+  });
+
+  it('maps surface rules and drops the NONE marker', async () => {
+    const surface = ruleRow({
+      id: '99999999-9999-4999-8999-999999999999',
+      level: RuleLevel.SURFACE,
+      categoryId: null,
+      quantityFormula: null,
+      surface: SurfaceKind.FLOOR,
+    });
+    const category = ruleRow({
+      surface: SurfaceKind.NONE,
+      baseComponent: false,
+      laborFormula: 'quantity * 2',
+    });
+    const { service } = createService({ rules: [category, surface] });
+
+    const data = await service.get();
+
+    expect(PricingDataSchema.safeParse(data).success).toBe(true);
+    expect(data.rules.map((rule) => [rule.id, rule.surface])).toEqual([
+      [surface.id, 'FLOOR'],
+      [category.id, null],
+    ]);
+    expect(data.rules[1].laborFormula).toBe('quantity * 2');
+  });
+
+  it('changes the version when a rule or the limits change', async () => {
+    const base = await createService().service.get();
+    const labor = await createService({
+      rules: [ruleRow({ laborFormula: 'quantity' })],
+    }).service.get();
+    const hint = await createService({
+      settings: {
+        id: 1,
+        totalAreaMinSqm: decimal('15.00'),
+        totalAreaMaxSqm: decimal('500.00'),
+        roomsMin: 1,
+        roomsMax: 15,
+        roomSideMinM: decimal('1.00'),
+        roomSideMaxM: decimal('30.00'),
+        roomHeightMinM: decimal('2.20'),
+        roomHeightMaxM: decimal('5.00'),
+        missingAreaHintSqm: decimal('7.50'),
+      },
+    }).service.get();
+
+    expect(labor.version).not.toBe(base.version);
+    expect(hint.version).not.toBe(base.version);
   });
 
   it('excludes rules that point to a missing category or material type', async () => {

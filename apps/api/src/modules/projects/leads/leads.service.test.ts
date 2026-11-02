@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../common/http/app-error';
+import { ERROR_CODES } from '../../../common/http/error-codes';
 import { IdempotencyScope, LeadStatus } from '../../../generated/prisma/enums';
 import { publicIdFromUuid } from '../calculations/public-id';
 import { LeadsService } from './leads.service';
@@ -231,6 +232,19 @@ describe('LeadsService.create', () => {
     expect(calculations.prepareNew).not.toHaveBeenCalled();
     expect(calculations.findStoredVersion).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('propagates an empty estimate without opening a transaction', async () => {
+    const { service, prisma, calculations, idempotency } = createService();
+    calculations.prepareNew.mockRejectedValue(
+      new AppError(ERROR_CODES.EMPTY_ESTIMATE),
+    );
+
+    await expect(submit(service, draftInput)).rejects.toMatchObject({
+      code: ERROR_CODES.EMPTY_ESTIMATE,
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(idempotency.record).not.toHaveBeenCalled();
   });
 
   it('propagates a missing calculation without opening a transaction', async () => {

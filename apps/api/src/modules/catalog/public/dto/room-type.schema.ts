@@ -1,6 +1,7 @@
+import { RoomTypeCodeSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { RoomTypeCode, SurfaceKind } from '../../../../generated/prisma/enums';
+import { SurfaceKind } from '../../../../generated/prisma/enums';
 
 export const PERCENT_MAX = 100;
 
@@ -14,7 +15,7 @@ export const publicRoomTypeCategorySchema = z.object({
 
 export const publicRoomTypeSchema = z.object({
   id: z.uuid(),
-  code: z.enum(RoomTypeCode),
+  code: RoomTypeCodeSchema,
   name: z.string(),
   categories: z.array(publicRoomTypeCategorySchema),
 });

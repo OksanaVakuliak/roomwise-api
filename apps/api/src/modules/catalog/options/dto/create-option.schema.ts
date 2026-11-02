@@ -1,9 +1,11 @@
+import { ScopeSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import {
   localizedDescriptionDraftSchema,
   localizedNameDraftSchema,
 } from '../../../../common/i18n/localized-text.schema';
+import { coefficientKeySchema } from '../../../../common/pricing/coefficient-key.schema';
 import { OptionKind, OptionUnit } from '../../../../generated/prisma/enums';
 
 export const OPTION_QUANTITY_MIN = 1;
@@ -30,6 +32,19 @@ export const roomTypeIdsSchema = z
     }
   });
 
+export const priceCoefficientKeysSchema = z
+  .array(coefficientKeySchema)
+  .refine((keys) => new Set(keys).size === keys.length, {
+    message: 'Duplicate coefficient key',
+  });
+
+export const scopesSchema = z
+  .array(ScopeSchema)
+  .min(1)
+  .refine((scopes) => new Set(scopes).size === scopes.length, {
+    message: 'Duplicate scope',
+  });
+
 export const createOptionSchema = z
   .object({
     kind: z.enum(OptionKind),
@@ -52,6 +67,8 @@ export const createOptionSchema = z
       .max(OPTION_QUANTITY_MAX)
       .optional(),
     roomTypeIds: roomTypeIdsSchema,
+    priceCoefficientKeys: priceCoefficientKeysSchema.default([]),
+    scopes: scopesSchema.default(['FULL', 'PARTIAL']),
   })
   .strict()
   .superRefine((data, ctx) => {

@@ -5,7 +5,7 @@ import { versionViewSchema } from '../../presenters/version-view.schema';
 
 export const saveCalculationRequestSchema = z.object({
   configuration: ConfigurationSchema,
-  styleId: z.uuid(),
+  styleId: z.uuid().nullable(),
   clientPricingVersion: PricingDataSchema.shape.version,
   clientTotalUsdCents: z.number().int().nonnegative(),
 });

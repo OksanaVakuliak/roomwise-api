@@ -5,8 +5,8 @@ import type {
   EstimateLine,
   PricingData,
 } from '../schemas';
+import { objectVariables } from '../variables';
 import { additionalLines } from './additional';
-import { baseLine } from './base';
 import { engineeringLines } from './engineering';
 import { materialLines } from './materials';
 import { objectRuleLines } from './object-rules';
@@ -26,10 +26,11 @@ export function estimate(
   data: PricingData,
 ): Estimate {
   const rate = data.exchangeRate?.rate ?? null;
+  const variables = objectVariables(configuration);
   const lines = [
-    baseLine(configuration, data),
-    ...objectRuleLines(configuration, data),
-    ...materialLines(configuration, data),
+    ...objectRuleLines(configuration, data, 'BASE', variables),
+    ...objectRuleLines(configuration, data, 'OBJECT', variables),
+    ...materialLines(configuration, data, variables),
     ...engineeringLines(configuration, data),
     ...additionalLines(configuration, data),
   ].map((line) => withKopecks(line, rate));
@@ -39,7 +40,7 @@ export function estimate(
     exchangeRate: data.exchangeRate,
     lines,
     totals: computeTotals(lines, rate !== null),
-    warnings: estimateWarnings(lines, configuration, rate),
+    warnings: estimateWarnings(lines, configuration, rate, data.limits),
     incomplete: isIncomplete(lines),
   };
 }

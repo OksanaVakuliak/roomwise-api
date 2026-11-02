@@ -1,21 +1,37 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
+import {
+  type RuleSurface,
+  ruleSurfaceSchema,
+} from '../../../../common/pricing/rule-surface.schema';
 import { RuleLevel } from '../../../../generated/prisma/enums';
 
 export const FORMULA_MAX_LENGTH = 500;
 
 export const formulaSchema = z.string().min(1).max(FORMULA_MAX_LENGTH);
 
-export interface RuleShape {
+export interface FormulaShape {
   level: RuleLevel;
+  quantityFormula?: string | null;
+  laborFormula?: string | null;
+}
+
+export interface RuleShape extends FormulaShape {
   categoryId?: string | null;
   materialTypeId?: string | null;
-  quantityFormula?: string | null;
+  surface?: RuleSurface | null;
+  baseComponent?: boolean;
 }
 
 export interface RuleShapeIssue {
-  path: 'categoryId' | 'materialTypeId' | 'quantityFormula';
+  path:
+    | 'categoryId'
+    | 'materialTypeId'
+    | 'surface'
+    | 'quantityFormula'
+    | 'laborFormula'
+    | 'baseComponent';
   message: string;
 }
 
@@ -23,10 +39,10 @@ function expectField(
   issues: RuleShapeIssue[],
   level: RuleLevel,
   path: RuleShapeIssue['path'],
-  value: string | null | undefined,
+  value: unknown,
   required: boolean,
 ): void {
-  const present = value !== undefined && value !== null;
+  const present = value !== undefined && value !== null && value !== false;
 
   if (required && !present) {
     issues.push({ path, message: `${path} is required for ${level}` });
@@ -37,9 +53,10 @@ function expectField(
   }
 }
 
-export function findQuantityFormulaIssues(
-  rule: Pick<RuleShape, 'level' | 'quantityFormula'>,
-): RuleShapeIssue[] {
+const isPricedLevel = (level: RuleLevel): boolean =>
+  level === RuleLevel.CATEGORY || level === RuleLevel.MATERIAL_TYPE;
+
+export function findFormulaShapeIssues(rule: FormulaShape): RuleShapeIssue[] {
   const issues: RuleShapeIssue[] = [];
 
   expectField(
@@ -47,7 +64,14 @@ export function findQuantityFormulaIssues(
     rule.level,
     'quantityFormula',
     rule.quantityFormula,
-    rule.level !== RuleLevel.OBJECT,
+    isPricedLevel(rule.level),
+  );
+  expectField(
+    issues,
+    rule.level,
+    'laborFormula',
+    isPricedLevel(rule.level) ? undefined : rule.laborFormula,
+    false,
   );
 
   return issues;
@@ -61,7 +85,7 @@ export function findRuleShapeIssues(rule: RuleShape): RuleShapeIssue[] {
     rule.level,
     'categoryId',
     rule.categoryId,
-    rule.level !== RuleLevel.OBJECT,
+    isPricedLevel(rule.level),
   );
   expectField(
     issues,
@@ -70,8 +94,22 @@ export function findRuleShapeIssues(rule: RuleShape): RuleShapeIssue[] {
     rule.materialTypeId,
     rule.level === RuleLevel.MATERIAL_TYPE,
   );
+  expectField(
+    issues,
+    rule.level,
+    'surface',
+    rule.surface,
+    rule.level === RuleLevel.SURFACE,
+  );
+  expectField(
+    issues,
+    rule.level,
+    'baseComponent',
+    rule.level === RuleLevel.OBJECT ? undefined : rule.baseComponent,
+    false,
+  );
 
-  return [...issues, ...findQuantityFormulaIssues(rule)];
+  return [...issues, ...findFormulaShapeIssues(rule)];
 }
 
 export function addShapeIssues(
@@ -92,9 +130,12 @@ export const ruleInputSchema = z
     level: z.enum(RuleLevel),
     categoryId: z.uuid().nullable().optional(),
     materialTypeId: z.uuid().nullable().optional(),
+    surface: ruleSurfaceSchema.nullable().optional(),
     name: localizedNameDraftSchema,
     quantityFormula: formulaSchema.nullable().optional(),
     costFormula: formulaSchema,
+    laborFormula: formulaSchema.nullable().optional(),
+    baseComponent: z.boolean().default(false),
   })
   .superRefine((rule, context) => {
     addShapeIssues(findRuleShapeIssues(rule), context);

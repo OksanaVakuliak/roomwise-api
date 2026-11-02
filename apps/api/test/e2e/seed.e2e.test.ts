@@ -9,7 +9,6 @@ import {
   OptionUnit,
   ProductUnit,
   PublicationStatus,
-  RoomTypeCode,
   SurfaceKind,
 } from '../../src/generated/prisma/client';
 import { verifyPassword } from '../../src/modules/auth/password-hasher';
@@ -27,14 +26,9 @@ const MAX_PRODUCTS_PER_CATEGORY = 8;
 const ROOM_TYPE_COUNT = 5;
 const STYLE_COUNT = 3;
 const ENGINEERING_ITEM_COUNT = 4;
-const ENGINEERING_OPTION_COUNT = 5;
+const ENGINEERING_OPTION_COUNT = 7;
 const MIN_ADDITIONAL_OPTION_COUNT = 2;
 const MIN_CATEGORIES_WITH_PRODUCTS_PER_ROOM_TYPE = 4;
-const HEATED_FLOOR_ROOM_TYPES = [
-  RoomTypeCode.BATHROOM,
-  RoomTypeCode.KITCHEN,
-  RoomTypeCode.KITCHEN_LIVING,
-].sort();
 
 const dataset: CatalogDataset = catalogDataset;
 
@@ -493,7 +487,16 @@ describe('seed e2e (US5)', () => {
     const roomTypeCodes = (heatedFloorOption?.optionRoomTypes ?? [])
       .map((entry) => entry.roomType.code)
       .sort();
-    expect(roomTypeCodes).toEqual(HEATED_FLOOR_ROOM_TYPES);
+    expect(roomTypeCodes).toEqual([]);
+
+    const response = await request(testApp.http)
+      .get('/api/v1/public/engineering')
+      .query({ lang: 'en' });
+    const publicOption = response.body.options.find(
+      (option: { id: string }) => option.id === optionIds.heatedFloor,
+    );
+    expect(response.status).toBe(200);
+    expect(publicOption.roomTypeCodes).toEqual([]);
 
     const heatedFloorProduct = await testApp.prisma.product.findFirst({
       where: {

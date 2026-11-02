@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { RuleLevel } from '../../../../generated/prisma/enums';
 import {
   addShapeIssues,
-  findQuantityFormulaIssues,
+  findFormulaShapeIssues,
   formulaSchema,
 } from './rule-input.schema';
 
@@ -11,13 +11,14 @@ export const validateFormulasBaseSchema = z.object({
   level: z.enum(RuleLevel),
   quantityFormula: formulaSchema.nullable().optional(),
   costFormula: formulaSchema,
+  laborFormula: formulaSchema.nullable().optional(),
 });
 
 export function refineQuantityFormula(
   rule: z.infer<typeof validateFormulasBaseSchema>,
   context: z.RefinementCtx,
 ): void {
-  addShapeIssues(findQuantityFormulaIssues(rule), context);
+  addShapeIssues(findFormulaShapeIssues(rule), context);
 }
 
 export const validateFormulasSchema = validateFormulasBaseSchema.superRefine(
@@ -25,7 +26,7 @@ export const validateFormulasSchema = validateFormulasBaseSchema.superRefine(
 );
 
 export const formulaIssueSchema = z.object({
-  formula: z.enum(['quantity', 'cost']),
+  formula: z.enum(['quantity', 'cost', 'labor']),
   code: z.string(),
   position: z.int(),
   length: z.int(),

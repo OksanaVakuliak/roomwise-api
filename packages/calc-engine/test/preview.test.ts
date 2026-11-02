@@ -22,12 +22,17 @@ const sample: RuleSample = RuleSampleSchema.parse({
   },
   product: { priceCents: 1800, unit: 'SQM', wastePercent: 5 },
   object: {
+    scope: 'FULL',
     totalAreaSqm: 62,
     balconyAreaSqm: 4,
     balconyTiles: true,
     finishLevel: 'PRE_FINISH',
     roomsCount: 1,
     bathroomsCount: 1,
+    roomsFloorArea: 50,
+    roomsWallArea: 135,
+    roomsPerimeter: 50,
+    wetRoomsCount: 2,
   },
 });
 
@@ -45,6 +50,7 @@ describe('previewRule', () => {
     expect(preview).toEqual({
       quantity: 21,
       amountCents: 42000,
+      laborCents: null,
       variables: { floorArea: 20, waste: 0.05, price: 18, quantity: 21 },
       coefficients: { underlay: 2 },
       error: null,
@@ -79,6 +85,7 @@ describe('previewRule', () => {
     ).toEqual({
       quantity: null,
       amountCents: 30000,
+      laborCents: null,
       variables: { balconyTiles: true, balconyArea: 4 },
       coefficients: { balcony_tile: 75 },
       error: null,
@@ -136,6 +143,65 @@ describe('previewRule', () => {
         params: { maxCents: MAX_LINE_CENTS },
       },
     });
+  });
+
+  it('exposes the new object variables to the formulas', () => {
+    const preview = previewRule({
+      level: 'OBJECT',
+      quantityFormula: null,
+      costFormula:
+        "scope == 'FULL' ? roomsFloorArea + roomsWallArea + roomsPerimeter + wetRoomsCount : 0",
+      coefficients: {},
+      sample,
+    });
+    expect(preview.error).toBeNull();
+    expect(preview.amountCents).toBe(23700);
+    expect(preview.variables).toEqual({
+      scope: 'FULL',
+      roomsFloorArea: 50,
+      roomsWallArea: 135,
+      roomsPerimeter: 50,
+      wetRoomsCount: 2,
+    });
+  });
+
+  it('previews a surface rule with the surface area and no quantity', () => {
+    const preview = previewRule({
+      level: 'SURFACE',
+      quantityFormula: null,
+      costFormula: 'surfaceArea * coef.rate + floorArea',
+      coefficients: { rate: 2 },
+      sample: { ...sample, surfaceArea: 10 },
+    });
+    expect(preview.error).toBeNull();
+    expect(preview.amountCents).toBe(4000);
+    expect(preview.variables).toEqual({ surfaceArea: 10, floorArea: 20 });
+  });
+
+  it('reports an incomplete surface sample', () => {
+    const rule = {
+      level: 'SURFACE',
+      quantityFormula: null,
+      costFormula: 'surfaceArea',
+      coefficients: {},
+    } as const;
+    expect(previewRule({ ...rule, sample }).error).toEqual({
+      code: 'SAMPLE_INCOMPLETE',
+      params: { missing: 'surfaceArea' },
+    });
+    expect(
+      previewRule({
+        ...rule,
+        sample: { ...sample, surfaceArea: 1, room: undefined },
+      }).error,
+    ).toEqual({ code: 'SAMPLE_INCOMPLETE', params: { missing: 'room' } });
+    expect(
+      previewRule({
+        ...rule,
+        quantityFormula: 'surfaceArea',
+        sample: { ...sample, surfaceArea: 1 },
+      }).error,
+    ).toEqual({ code: 'QUANTITY_FORMULA_MISMATCH' });
   });
 
   it('reports an incomplete sample', () => {
@@ -198,5 +264,123 @@ describe('previewRule', () => {
       result.lines.find((item) => item.id === 'OBJECT:rule-balcony-tile')
         ?.amountCents,
     );
+  });
+});
+
+describe('previewRule in a partial renovation', () => {
+  const partialSample = RuleSampleSchema.parse({
+    ...sample,
+    object: { ...sample.object, scope: 'PARTIAL', totalAreaSqm: null },
+  });
+
+  it('uses the rooms floor area as totalArea', () => {
+    const preview = previewRule({
+      level: 'OBJECT',
+      quantityFormula: null,
+      costFormula: 'totalArea * 2',
+      coefficients: {},
+      sample: { object: partialSample.object },
+    });
+    expect(preview.amountCents).toBe(10000);
+    expect(preview.variables).toEqual({ totalArea: 50 });
+  });
+
+  it('keeps totalAreaSqm as totalArea in a full renovation', () => {
+    const preview = previewRule({
+      level: 'OBJECT',
+      quantityFormula: null,
+      costFormula: 'totalArea',
+      coefficients: {},
+      sample: { object: sample.object },
+    });
+    expect(preview.variables).toEqual({ totalArea: 62 });
+  });
+
+  it('requires totalAreaSqm in FULL and rejects it in PARTIAL', () => {
+    expect(
+      RuleSampleSchema.safeParse({
+        ...sample,
+        object: { ...sample.object, totalAreaSqm: null },
+      }).success,
+    ).toBe(false);
+    expect(
+      RuleSampleSchema.safeParse({
+        ...sample,
+        object: { ...sample.object, scope: 'PARTIAL' },
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('previewRule labor formula', () => {
+  const withLabor = { ...floorRule, laborFormula: 'quantity * coef.labor' };
+  const coefficients = { underlay: 2, labor: 4 };
+
+  it('previews the labor cost next to the material cost', () => {
+    const preview = previewRule({ ...withLabor, coefficients });
+    expect(preview).toEqual({
+      quantity: 21,
+      amountCents: 42000,
+      laborCents: 8400,
+      variables: { floorArea: 20, waste: 0.05, price: 18, quantity: 21 },
+      coefficients,
+      error: null,
+    });
+    expect(RulePreviewSchema.parse(preview)).toEqual(preview);
+  });
+
+  it('has no labor result without a labor formula', () => {
+    expect(previewRule(floorRule).laborCents).toBeNull();
+    expect(
+      previewRule({ ...floorRule, laborFormula: null }).laborCents,
+    ).toBeNull();
+  });
+
+  it('references the labor formula variables and coefficients', () => {
+    const preview = previewRule({
+      ...floorRule,
+      laborFormula: 'wallArea * coef.labor',
+      coefficients,
+    });
+    expect(preview.variables).toHaveProperty('wallArea');
+    expect(preview.coefficients).toEqual({ underlay: 2, labor: 4 });
+  });
+
+  it('reports a labor error and keeps the material cost', () => {
+    const preview = previewRule({
+      ...withLabor,
+      laborFormula: 'quantity * coef.missing',
+      coefficients,
+    });
+    expect(preview).toMatchObject({
+      amountCents: 42000,
+      laborCents: null,
+      error: { code: 'UNKNOWN_COEFFICIENT' },
+    });
+  });
+
+  it('reports a labor amount beyond the line limit', () => {
+    const preview = previewRule({
+      ...withLabor,
+      laborFormula: `quantity * ${MAX_LINE_CENTS}`,
+      coefficients,
+    });
+    expect(preview).toMatchObject({
+      amountCents: 42000,
+      laborCents: null,
+      error: { code: 'AMOUNT_OUT_OF_RANGE' },
+    });
+  });
+
+  it('ignores a labor formula on object rules', () => {
+    const preview = previewRule({
+      level: 'OBJECT',
+      quantityFormula: null,
+      costFormula: 'balconyArea',
+      laborFormula: 'balconyArea',
+      coefficients: {},
+      sample: { object: sample.object },
+    });
+    expect(preview.laborCents).toBeNull();
   });
 });
