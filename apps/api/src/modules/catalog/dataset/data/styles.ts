@@ -14,7 +14,7 @@ export const styleIds = {
   classic: '383be0f1-c52c-4eb8-a4b5-cad58c82056a',
 } as const;
 
-type DefaultProductByCategory = Record<string, string>;
+type DefaultProductByCategory = Record<string, string | null>;
 type RoomTypeOverrides = Record<string, Record<string, string | null>>;
 
 function buildDefaultMaterials(
@@ -26,6 +26,12 @@ function buildDefaultMaterials(
       const override = overrides[roomType.id]?.[categoryId];
       const productId =
         override === undefined ? defaultByCategory[categoryId] : override;
+
+      if (productId === undefined) {
+        throw new Error(
+          `Style default missing for room type ${roomType.code} category ${categoryId}`,
+        );
+      }
 
       return productId
         ? [{ roomTypeId: roomType.id, categoryId, productId }]
@@ -64,6 +70,7 @@ const loftDefaultMaterials = buildDefaultMaterials(
   {
     [categoryIds.floorCovering]: productIds.greySpcVinylPlank,
     [categoryIds.wallPaint]: productIds.deepGraphiteWallPaint,
+    [categoryIds.wallpaper]: null,
     [categoryIds.wallTile]: productIds.terrazzoEffectWallTile,
     [categoryIds.floorTile]: productIds.rawConcreteEffectFloorTile,
     [categoryIds.ceilingFinish]: productIds.darkSlatMdfCeilingPanel,
