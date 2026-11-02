@@ -623,6 +623,8 @@ describe('public catalog e2e', () => {
       expect([...roomSqmOption.roomTypeCodes].sort()).toEqual(
         [RoomTypeCode.BATHROOM, RoomTypeCode.KITCHEN].sort(),
       );
+      expect(roomSqmOption.priceCoefficientKeys).toEqual([]);
+      expect([...roomSqmOption.scopes].sort()).toEqual(['FULL', 'PARTIAL']);
       expect(roomSqmOption.minQuantity).toBeNull();
       expect(roomSqmOption.maxQuantity).toBeNull();
 

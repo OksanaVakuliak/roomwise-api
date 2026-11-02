@@ -1,3 +1,4 @@
+import { ScopeSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { auditSchema } from '../../../../common/concurrency/audit.schema';
@@ -27,6 +28,8 @@ export const optionAdminSchema = z
     minQuantity: z.number().int().nullable(),
     maxQuantity: z.number().int().nullable(),
     roomTypeIds: z.array(z.uuid()),
+    priceCoefficientKeys: z.array(z.string()),
+    scopes: z.array(ScopeSchema),
     sortOrder: z.number().int().nonnegative(),
     status: z.enum(PublicationStatus),
     revision: z.uuid(),

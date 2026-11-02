@@ -84,6 +84,38 @@ describe('createOptionSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('defaults priceCoefficientKeys and scopes when omitted', () => {
+    const result = createOptionSchema.parse(baseInput());
+
+    expect(result.priceCoefficientKeys).toEqual([]);
+    expect(result.scopes).toEqual(['FULL', 'PARTIAL']);
+  });
+
+  it('rejects empty scopes with an error on scopes', () => {
+    const result = createOptionSchema.safeParse(baseInput({ scopes: [] }));
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.path).toEqual(['scopes']);
+    }
+  });
+
+  it('rejects repeated scopes', () => {
+    const result = createOptionSchema.safeParse(
+      baseInput({ scopes: ['FULL', 'FULL'] }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an unknown scope', () => {
+    const result = createOptionSchema.safeParse(
+      baseInput({ scopes: ['SOME'] }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects an unknown field', () => {
     const result = createOptionSchema.safeParse(
       baseInput({ status: 'PUBLISHED' }),

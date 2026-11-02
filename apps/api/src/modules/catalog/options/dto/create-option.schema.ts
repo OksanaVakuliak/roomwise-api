@@ -1,3 +1,4 @@
+import { ScopeSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import {
@@ -30,6 +31,15 @@ export const roomTypeIdsSchema = z
     }
   });
 
+export const priceCoefficientKeysSchema = z.array(z.string().min(1));
+
+export const scopesSchema = z
+  .array(ScopeSchema)
+  .min(1)
+  .refine((scopes) => new Set(scopes).size === scopes.length, {
+    message: 'Duplicate scope',
+  });
+
 export const createOptionSchema = z
   .object({
     kind: z.enum(OptionKind),
@@ -52,6 +62,8 @@ export const createOptionSchema = z
       .max(OPTION_QUANTITY_MAX)
       .optional(),
     roomTypeIds: roomTypeIdsSchema,
+    priceCoefficientKeys: priceCoefficientKeysSchema.default([]),
+    scopes: scopesSchema.default(['FULL', 'PARTIAL']),
   })
   .strict()
   .superRefine((data, ctx) => {

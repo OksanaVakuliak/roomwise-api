@@ -1,10 +1,10 @@
+import { RoomTypeCodeSchema, ScopeSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import {
   OptionCode,
   OptionKind,
   OptionUnit,
-  RoomTypeCode,
 } from '../../../../generated/prisma/enums';
 import { imageRefSchema } from './image-ref.schema';
 
@@ -29,7 +29,9 @@ export const engineeringOptionSchema = z.object({
   priceCents: z.number().int().nonnegative(),
   unit: z.enum(OptionUnit),
   perRoom: z.boolean(),
-  roomTypeCodes: z.array(z.enum(RoomTypeCode)),
+  roomTypeCodes: z.array(RoomTypeCodeSchema),
+  priceCoefficientKeys: z.array(z.string()),
+  scopes: z.array(ScopeSchema),
   minQuantity: z.number().int().min(1).max(QUANTITY_MAX).nullable(),
   maxQuantity: z.number().int().min(1).max(QUANTITY_MAX).nullable(),
 });

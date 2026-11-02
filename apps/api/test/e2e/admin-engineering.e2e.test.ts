@@ -86,6 +86,8 @@ interface PublicEngineeringOption {
   unit: string;
   perRoom: boolean;
   roomTypeCodes: string[];
+  priceCoefficientKeys: string[];
+  scopes: string[];
   minQuantity: number | null;
   maxQuantity: number | null;
 }
@@ -477,6 +479,94 @@ describe('admin engineering e2e', () => {
       expect(response.body.status).toBe(PublicationStatus.DRAFT);
       expect(typeof response.body.id).toBe('string');
       expect(typeof response.body.revision).toBe('string');
+    });
+
+    it('defaults priceCoefficientKeys to empty and scopes to FULL and PARTIAL', async () => {
+      const response = await createOption();
+
+      expect(response.status).toBe(201);
+      expect(response.body.priceCoefficientKeys).toEqual([]);
+      expect([...response.body.scopes].sort()).toEqual(['FULL', 'PARTIAL']);
+    });
+
+    it('stores existing coefficient keys and scopes and exposes them publicly once published', async () => {
+      const key = `option_price_${randomUUID()}`;
+      await testApp.prisma.coefficient.create({
+        data: {
+          key,
+          name: { en: key, uk: key },
+          value: 1,
+          unit: { en: '', uk: '' },
+        },
+      });
+
+      const created = await createOption({
+        priceCoefficientKeys: [key],
+        scopes: ['PARTIAL'],
+      });
+
+      expect(created.status).toBe(201);
+      expect(created.body.priceCoefficientKeys).toEqual([key]);
+      expect(created.body.scopes).toEqual(['PARTIAL']);
+
+      await request(testApp.http)
+        .post(`/api/v1/admin/options/${created.body.id}/status`)
+        .set('Cookie', adminCookie)
+        .send({
+          status: PublicationStatus.PUBLISHED,
+          revision: created.body.revision,
+        })
+        .expect(200);
+
+      const publicData = await getPublicEngineering(testApp.http);
+      const option = publicData.options.find(
+        (item) => item.id === created.body.id,
+      );
+      expect(option?.priceCoefficientKeys).toEqual([key]);
+      expect(option?.scopes).toEqual(['PARTIAL']);
+    });
+
+    it('rejects an unknown coefficient key on create with UNKNOWN_COEFFICIENT', async () => {
+      const response = await createOption({
+        priceCoefficientKeys: ['missing_coefficient_key'],
+      });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.UNKNOWN_COEFFICIENT);
+    });
+
+    it('rejects an unknown coefficient key on patch with UNKNOWN_COEFFICIENT', async () => {
+      const created = await createOption();
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/options/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({
+          priceCoefficientKeys: ['missing_coefficient_key'],
+          revision: created.body.revision,
+        });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.UNKNOWN_COEFFICIENT);
+    });
+
+    it('rejects empty scopes on create with VALIDATION_FAILED', async () => {
+      const response = await createOption({ scopes: [] });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('rejects empty scopes on patch with VALIDATION_FAILED', async () => {
+      const created = await createOption();
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/options/${created.body.id}`)
+        .set('Cookie', adminCookie)
+        .send({ scopes: [], revision: created.body.revision });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
     });
 
     it('shows a null code on a created option', async () => {

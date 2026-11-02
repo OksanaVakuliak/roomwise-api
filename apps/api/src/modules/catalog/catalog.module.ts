@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CoefficientsReadModule } from '../pricing/coefficients-read/coefficients-read.module';
 import { CategoriesController } from './categories/categories.controller';
 import { CategoriesService } from './categories/categories.service';
 import { CatalogChangeInterceptor } from './common/catalog-change.interceptor';
@@ -28,6 +29,7 @@ import { StylesController } from './styles/styles.controller';
 import { StylesService } from './styles/styles.service';
 
 @Module({
+  imports: [CoefficientsReadModule],
   controllers: [
     PublicCatalogController,
     ImagesController,

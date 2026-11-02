@@ -17,6 +17,7 @@ import {
   OptionUnit,
   PublicationStatus,
 } from '../../../generated/prisma/enums';
+import { CoefficientsReadService } from '../../pricing/coefficients-read/coefficients-read.service';
 import { assertRoomTypesExist } from '../common/assert-room-types-exist';
 import { assertZeroPriceConfirmed } from '../common/assert-zero-price-confirmed';
 import { isPerRoomUnit } from '../common/is-per-room-unit';
@@ -57,6 +58,8 @@ export class OptionsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ImageUrlBuilder) private readonly imageUrls: ImageUrlBuilder,
+    @Inject(CoefficientsReadService)
+    private readonly coefficients: CoefficientsReadService,
   ) {}
 
   async list(query: ListOptionsQuery): Promise<OptionAdminListResponse> {
@@ -97,6 +100,7 @@ export class OptionsService {
       perRoom && input.roomTypeIds.length > 0
         ? assertRoomTypesExist(this.prisma, input.roomTypeIds)
         : Promise.resolve(),
+      this.assertCoefficientKeysExist(input.priceCoefficientKeys),
     ]);
 
     return this.createWithSortOrder(input, adminId, perRoom, bounds, false);
@@ -126,6 +130,8 @@ export class OptionsService {
           unit: input.unit,
           minQuantity: bounds.minQuantity,
           maxQuantity: bounds.maxQuantity,
+          priceCoefficientKeys: input.priceCoefficientKeys,
+          scopes: input.scopes,
           sortOrder,
           status: PublicationStatus.DRAFT,
           updatedById: adminId,
@@ -228,6 +234,9 @@ export class OptionsService {
       input.roomTypeIds !== undefined && perRoom && input.roomTypeIds.length > 0
         ? assertRoomTypesExist(this.prisma, input.roomTypeIds)
         : Promise.resolve(),
+      input.priceCoefficientKeys !== undefined
+        ? this.assertCoefficientKeysExist(input.priceCoefficientKeys)
+        : Promise.resolve(),
     ]);
 
     if (existing.status === PublicationStatus.PUBLISHED) {
@@ -308,6 +317,10 @@ export class OptionsService {
               ? { priceCents: input.priceCents }
               : {}),
             ...(input.unit !== undefined ? { unit: input.unit } : {}),
+            ...(input.priceCoefficientKeys !== undefined
+              ? { priceCoefficientKeys: input.priceCoefficientKeys }
+              : {}),
+            ...(input.scopes !== undefined ? { scopes: input.scopes } : {}),
             minQuantity: bounds.minQuantity,
             maxQuantity: bounds.maxQuantity,
             ...sortOrderUpdate,
@@ -542,6 +555,17 @@ export class OptionsService {
     return this.toOptionAdmin(option);
   }
 
+  private async assertCoefficientKeysExist(keys: string[]): Promise<void> {
+    const existing = await this.coefficients.existingKeys(keys);
+    const missing = [...new Set(keys)].filter((key) => !existing.has(key));
+
+    if (missing.length > 0) {
+      throw new AppError(ERROR_CODES.UNKNOWN_COEFFICIENT, {
+        params: { priceCoefficientKeys: missing },
+      });
+    }
+  }
+
   private toOptionAdmin(option: OptionWithRelations): OptionAdmin {
     return {
       id: option.id,
@@ -556,6 +580,8 @@ export class OptionsService {
       minQuantity: option.minQuantity,
       maxQuantity: option.maxQuantity,
       roomTypeIds: option.optionRoomTypes.map((entry) => entry.roomTypeId),
+      priceCoefficientKeys: option.priceCoefficientKeys,
+      scopes: option.scopes,
       sortOrder: option.sortOrder,
       status: option.status,
       revision: option.revision,
