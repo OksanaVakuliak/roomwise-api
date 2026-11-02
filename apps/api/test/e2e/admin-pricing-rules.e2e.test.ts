@@ -816,8 +816,13 @@ describe('admin pricing rules e2e', () => {
         .filter((item) => item.level === 'OBJECT')
         .map((item) => item.id);
 
+      const seededObjectIds = pricingDataset.rules
+        .filter((rule) => rule.level === 'OBJECT')
+        .sort((left, right) => left.sortOrder - right.sortOrder)
+        .map((rule) => rule.id);
+
       expect(objectIds).toEqual([
-        ruleIds.balconyTile,
+        ...seededObjectIds,
         first.body.id,
         second.body.id,
       ]);
