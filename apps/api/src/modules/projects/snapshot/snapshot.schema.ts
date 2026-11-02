@@ -11,6 +11,7 @@ import {
   RuleLevelSchema,
 } from '@roomwise/calc-engine';
 import { z } from 'zod';
+import { ruleSurfaceSchema } from '../../../common/pricing/rule-surface.schema';
 
 export const SNAPSHOT_SCHEMA_VERSION = 2;
 
@@ -57,7 +58,7 @@ const SnapshotRuleSchema = z.object({
   materialTypeId: z.string().nullable(),
   quantityFormula: z.string().nullable(),
   costFormula: z.string(),
-  surface: z.enum(['FLOOR', 'WALLS', 'CEILING']).nullable().optional(),
+  surface: ruleSurfaceSchema.nullable().optional(),
   baseComponent: z.boolean().optional(),
   laborFormula: z.string().nullable().optional(),
 });

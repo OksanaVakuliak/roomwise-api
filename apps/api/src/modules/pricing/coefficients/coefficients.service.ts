@@ -85,9 +85,7 @@ export class CoefficientsService {
             rules.filter((rule) => rule.coefficientKeys.includes(row.key)),
           ),
           toOptionUsage(
-            options
-              .filter((option) => option.keys.includes(row.key))
-              .map(({ id, name }) => ({ id, name })),
+            options.filter((option) => option.keys.includes(row.key)),
           ),
         ),
       ),
@@ -209,7 +207,7 @@ export class CoefficientsService {
       where: { coefficientKeys: { has: key } },
       select: { id: true, name: true },
     });
-    const options = await this.catalog.optionsUsingCoefficient(key);
+    const options = await this.catalog.optionsUsingCoefficient(key, tx);
 
     if (rules.length > 0 || options.length > 0) {
       throw new AppError(ERROR_CODES.COEFFICIENT_IN_USE, {
@@ -256,12 +254,13 @@ export class CoefficientsService {
       throw new AppError(ERROR_CODES.NOT_FOUND);
     }
 
-    const rules = await this.prisma.pricingRule.findMany({
-      where: { coefficientKeys: { has: row.key } },
-      select: { id: true, name: true },
-    });
-
-    const options = await this.catalog.optionsUsingCoefficient(row.key);
+    const [rules, options] = await Promise.all([
+      this.prisma.pricingRule.findMany({
+        where: { coefficientKeys: { has: row.key } },
+        select: { id: true, name: true },
+      }),
+      this.catalog.optionsUsingCoefficient(row.key),
+    ]);
 
     return this.present(row, toUsage(rules), toOptionUsage(options));
   }

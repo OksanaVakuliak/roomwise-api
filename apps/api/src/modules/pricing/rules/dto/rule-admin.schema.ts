@@ -2,8 +2,8 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { auditSchema } from '../../../../common/concurrency/audit.schema';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
+import { ruleSurfaceSchema } from '../../../../common/pricing/rule-surface.schema';
 import { RuleLevel } from '../../../../generated/prisma/enums';
-import { ruleSurfaceSchema } from './rule-input.schema';
 
 export const ruleAdminSchema = z
   .object({

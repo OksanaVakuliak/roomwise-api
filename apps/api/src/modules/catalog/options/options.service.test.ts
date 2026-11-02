@@ -33,7 +33,7 @@ function createImageUrls(): ImageUrlBuilder {
 
 function createCoefficients(existing: string[] = []): CoefficientsReadService {
   return {
-    existingKeys: vi.fn().mockResolvedValue(new Set(existing)),
+    lockExistingKeys: vi.fn().mockResolvedValue(new Set(existing)),
   } as unknown as CoefficientsReadService;
 }
 

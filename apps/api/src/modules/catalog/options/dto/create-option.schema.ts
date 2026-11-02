@@ -5,6 +5,7 @@ import {
   localizedDescriptionDraftSchema,
   localizedNameDraftSchema,
 } from '../../../../common/i18n/localized-text.schema';
+import { coefficientKeySchema } from '../../../../common/pricing/coefficient-key.schema';
 import { OptionKind, OptionUnit } from '../../../../generated/prisma/enums';
 
 export const OPTION_QUANTITY_MIN = 1;
@@ -31,7 +32,11 @@ export const roomTypeIdsSchema = z
     }
   });
 
-export const priceCoefficientKeysSchema = z.array(z.string().min(1));
+export const priceCoefficientKeysSchema = z
+  .array(coefficientKeySchema)
+  .refine((keys) => new Set(keys).size === keys.length, {
+    message: 'Duplicate coefficient key',
+  });
 
 export const scopesSchema = z
   .array(ScopeSchema)

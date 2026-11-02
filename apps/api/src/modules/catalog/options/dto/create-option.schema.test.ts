@@ -91,6 +91,22 @@ describe('createOptionSchema', () => {
     expect(result.scopes).toEqual(['FULL', 'PARTIAL']);
   });
 
+  it('rejects duplicate priceCoefficientKeys', () => {
+    const result = createOptionSchema.safeParse(
+      baseInput({ priceCoefficientKeys: ['paint_extra', 'paint_extra'] }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a malformed coefficient key', () => {
+    const result = createOptionSchema.safeParse(
+      baseInput({ priceCoefficientKeys: ['Bad Key'] }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects empty scopes with an error on scopes', () => {
     const result = createOptionSchema.safeParse(baseInput({ scopes: [] }));
 

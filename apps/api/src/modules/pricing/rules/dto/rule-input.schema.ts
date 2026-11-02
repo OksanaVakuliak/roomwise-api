@@ -1,19 +1,15 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
-import { RuleLevel, SurfaceKind } from '../../../../generated/prisma/enums';
+import {
+  type RuleSurface,
+  ruleSurfaceSchema,
+} from '../../../../common/pricing/rule-surface.schema';
+import { RuleLevel } from '../../../../generated/prisma/enums';
 
 export const FORMULA_MAX_LENGTH = 500;
 
 export const formulaSchema = z.string().min(1).max(FORMULA_MAX_LENGTH);
-
-export const ruleSurfaceSchema = z.enum([
-  SurfaceKind.FLOOR,
-  SurfaceKind.WALLS,
-  SurfaceKind.CEILING,
-]);
-
-export type RuleSurface = z.infer<typeof ruleSurfaceSchema>;
 
 export interface FormulaShape {
   level: RuleLevel;

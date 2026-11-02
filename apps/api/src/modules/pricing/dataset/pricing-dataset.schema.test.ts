@@ -193,6 +193,12 @@ describe('pricingDatasetSchema', () => {
       });
     });
 
+    it('rejects the NONE surface', () => {
+      expect(
+        parse([{ ...surfaceRule, surface: SurfaceKind.NONE }]).success,
+      ).toBe(false);
+    });
+
     it('rejects a surface rule without a surface', () => {
       expect(parse([{ ...surfaceRule, surface: null }]).success).toBe(false);
     });

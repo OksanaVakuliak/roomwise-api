@@ -22,6 +22,22 @@ describe('patchOptionSchema', () => {
     }
   });
 
+  it('rejects duplicate priceCoefficientKeys', () => {
+    const result = patchOptionSchema.safeParse(
+      baseInput({ priceCoefficientKeys: ['paint_extra', 'paint_extra'] }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a malformed coefficient key', () => {
+    const result = patchOptionSchema.safeParse(
+      baseInput({ priceCoefficientKeys: ['Bad Key'] }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects minQuantity greater than maxQuantity when both are patched', () => {
     const result = patchOptionSchema.safeParse(
       baseInput({ minQuantity: 5, maxQuantity: 2 }),

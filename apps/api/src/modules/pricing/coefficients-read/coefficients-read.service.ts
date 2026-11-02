@@ -1,19 +1,19 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
+import type { Prisma } from '../../../generated/prisma/client';
 
 @Injectable()
 export class CoefficientsReadService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
-
-  async existingKeys(keys: string[]): Promise<Set<string>> {
+  async lockExistingKeys(
+    tx: Prisma.TransactionClient,
+    keys: string[],
+  ): Promise<Set<string>> {
     if (keys.length === 0) {
       return new Set();
     }
 
-    const rows = await this.prisma.coefficient.findMany({
-      where: { key: { in: [...new Set(keys)] } },
-      select: { key: true },
-    });
+    const rows = await tx.$queryRaw<Array<{ key: string }>>`
+      SELECT "key" FROM "coefficients" WHERE "key" = ANY(${[...new Set(keys)]}) FOR SHARE
+    `;
 
     return new Set(rows.map((row) => row.key));
   }

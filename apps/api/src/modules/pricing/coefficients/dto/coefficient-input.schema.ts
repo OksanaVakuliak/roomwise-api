@@ -1,20 +1,14 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
+import { coefficientKeySchema } from '../../../../common/pricing/coefficient-key.schema';
+import { CoefficientGroup } from '../../../../generated/prisma/enums';
 
-export const COEFFICIENT_KEY_PATTERN = /^[a-z][a-z0-9_]{1,40}$/;
 export const COEFFICIENT_VALUE_MAX = 99_999_999.9999;
 export const COEFFICIENT_VALUE_STEP = 0.0001;
 
-export const coefficientGroupSchema = z.enum([
-  'LABOR',
-  'PREPARATION',
-  'ROUGH_MATERIAL',
-  'ENGINEERING',
-  'MATERIAL_EXTRA',
-]);
+export const coefficientGroupSchema = z.enum(CoefficientGroup);
 
-export const coefficientKeySchema = z.string().regex(COEFFICIENT_KEY_PATTERN);
 export const coefficientValueSchema = z
   .number()
   .min(0)
@@ -27,7 +21,7 @@ export const coefficientInputSchema = z
     name: localizedNameDraftSchema,
     value: coefficientValueSchema,
     unit: localizedNameDraftSchema,
-    group: coefficientGroupSchema.default('MATERIAL_EXTRA'),
+    group: coefficientGroupSchema.default(CoefficientGroup.MATERIAL_EXTRA),
   })
   .strict();
 

@@ -1,12 +1,9 @@
 import { z } from 'zod';
 import { localizedNameSchema } from '../../../common/i18n/localized-text.schema';
-import {
-  CoefficientGroup,
-  RuleLevel,
-  SurfaceKind,
-} from '../../../generated/prisma/enums';
+import { coefficientKeySchema } from '../../../common/pricing/coefficient-key.schema';
+import { ruleSurfaceSchema } from '../../../common/pricing/rule-surface.schema';
+import { CoefficientGroup, RuleLevel } from '../../../generated/prisma/enums';
 
-export const COEFFICIENT_KEY_PATTERN = /^[a-z][a-z0-9_]{1,40}$/;
 export const FORMULA_MAX_LENGTH = 500;
 const DEFAULT_MISSING_AREA_HINT_SQM = 5;
 
@@ -27,7 +24,7 @@ export const seedPricingLimitsSchema = z.object({
 export type SeedPricingLimits = z.input<typeof seedPricingLimitsSchema>;
 
 export const seedCoefficientSchema = z.object({
-  key: z.string().regex(COEFFICIENT_KEY_PATTERN),
+  key: coefficientKeySchema,
   name: localizedNameSchema,
   value: z.number().min(0),
   unit: localizedNameSchema,
@@ -41,7 +38,7 @@ export const seedPricingRuleSchema = z
     level: z.enum(RuleLevel),
     categoryId: z.uuid().nullable(),
     materialTypeId: z.uuid().nullable(),
-    surface: z.enum(SurfaceKind).nullable().default(null),
+    surface: ruleSurfaceSchema.nullable().default(null),
     baseComponent: z.boolean().default(false),
     name: localizedNameSchema,
     quantityFormula: z.string().max(FORMULA_MAX_LENGTH).nullable(),
@@ -52,7 +49,7 @@ export const seedPricingRuleSchema = z
       .max(FORMULA_MAX_LENGTH)
       .nullable()
       .default(null),
-    coefficientKeys: z.array(z.string().regex(COEFFICIENT_KEY_PATTERN)),
+    coefficientKeys: z.array(coefficientKeySchema),
     sortOrder: z.int().nonnegative(),
   })
   .superRefine((rule, ctx) => {

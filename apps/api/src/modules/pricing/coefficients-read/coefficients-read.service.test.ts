@@ -1,44 +1,44 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { PrismaService } from '../../../common/prisma/prisma.service';
+import type { Prisma } from '../../../generated/prisma/client';
 import { CoefficientsReadService } from './coefficients-read.service';
 
-function createService(rows: { key: string }[]) {
-  const findMany = vi.fn().mockResolvedValue(rows);
-  const prisma = { coefficient: { findMany } } as unknown as PrismaService;
+function createTx(rows: { key: string }[]) {
+  const $queryRaw = vi.fn().mockResolvedValue(rows);
 
-  return { service: new CoefficientsReadService(prisma), findMany };
+  return {
+    tx: { $queryRaw } as unknown as Prisma.TransactionClient,
+    $queryRaw,
+  };
 }
 
 describe('CoefficientsReadService', () => {
   it('returns only the keys that exist', async () => {
-    const { service, findMany } = createService([{ key: 'a' }]);
+    const { tx, $queryRaw } = createTx([{ key: 'a' }]);
 
-    const result = await service.existingKeys(['a', 'b']);
+    const result = await new CoefficientsReadService().lockExistingKeys(tx, [
+      'a',
+      'b',
+    ]);
 
     expect(result).toEqual(new Set(['a']));
-    expect(findMany).toHaveBeenCalledWith({
-      where: { key: { in: ['a', 'b'] } },
-      select: { key: true },
-    });
+    expect($queryRaw).toHaveBeenCalledTimes(1);
+    expect(String($queryRaw.mock.calls[0][0].join(''))).toContain('FOR SHARE');
   });
 
   it('queries each repeated key once', async () => {
-    const { service, findMany } = createService([{ key: 'a' }]);
+    const { tx, $queryRaw } = createTx([{ key: 'a' }]);
 
-    await service.existingKeys(['a', 'a']);
+    await new CoefficientsReadService().lockExistingKeys(tx, ['a', 'a']);
 
-    expect(findMany).toHaveBeenCalledWith({
-      where: { key: { in: ['a'] } },
-      select: { key: true },
-    });
+    expect($queryRaw.mock.calls[0][1]).toEqual(['a']);
   });
 
   it('skips the query for an empty list', async () => {
-    const { service, findMany } = createService([]);
+    const { tx, $queryRaw } = createTx([]);
 
-    const result = await service.existingKeys([]);
+    const result = await new CoefficientsReadService().lockExistingKeys(tx, []);
 
     expect(result.size).toBe(0);
-    expect(findMany).not.toHaveBeenCalled();
+    expect($queryRaw).not.toHaveBeenCalled();
   });
 });

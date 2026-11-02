@@ -1,9 +1,9 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
+import { coefficientKeySchema } from '../../../../common/pricing/coefficient-key.schema';
 import {
   coefficientGroupSchema,
-  coefficientKeySchema,
   coefficientValueSchema,
 } from './coefficient-input.schema';
 

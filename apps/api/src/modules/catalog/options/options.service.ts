@@ -100,7 +100,6 @@ export class OptionsService {
       perRoom && input.roomTypeIds.length > 0
         ? assertRoomTypesExist(this.prisma, input.roomTypeIds)
         : Promise.resolve(),
-      this.assertCoefficientKeysExist(input.priceCoefficientKeys),
     ]);
 
     return this.createWithSortOrder(input, adminId, perRoom, bounds, false);
@@ -120,31 +119,35 @@ export class OptionsService {
     const sortOrder = (aggregate._max.sortOrder ?? -1) + 1;
 
     try {
-      const created = await this.prisma.option.create({
-        data: {
-          kind: input.kind,
-          name: input.name,
-          description: input.description,
-          imageId: input.imageId ?? null,
-          priceCents: input.priceCents,
-          unit: input.unit,
-          minQuantity: bounds.minQuantity,
-          maxQuantity: bounds.maxQuantity,
-          priceCoefficientKeys: input.priceCoefficientKeys,
-          scopes: input.scopes,
-          sortOrder,
-          status: PublicationStatus.DRAFT,
-          updatedById: adminId,
-          optionRoomTypes:
-            perRoom && input.roomTypeIds.length > 0
-              ? {
-                  create: input.roomTypeIds.map((roomTypeId) => ({
-                    roomTypeId,
-                  })),
-                }
-              : undefined,
-        },
-        include: OPTION_ADMIN_INCLUDE,
+      const created = await this.prisma.$transaction(async (tx) => {
+        await this.assertCoefficientKeysExist(tx, input.priceCoefficientKeys);
+
+        return tx.option.create({
+          data: {
+            kind: input.kind,
+            name: input.name,
+            description: input.description,
+            imageId: input.imageId ?? null,
+            priceCents: input.priceCents,
+            unit: input.unit,
+            minQuantity: bounds.minQuantity,
+            maxQuantity: bounds.maxQuantity,
+            priceCoefficientKeys: input.priceCoefficientKeys,
+            scopes: input.scopes,
+            sortOrder,
+            status: PublicationStatus.DRAFT,
+            updatedById: adminId,
+            optionRoomTypes:
+              perRoom && input.roomTypeIds.length > 0
+                ? {
+                    create: input.roomTypeIds.map((roomTypeId) => ({
+                      roomTypeId,
+                    })),
+                  }
+                : undefined,
+          },
+          include: OPTION_ADMIN_INCLUDE,
+        });
       });
 
       return this.toOptionAdmin(created);
@@ -234,9 +237,6 @@ export class OptionsService {
       input.roomTypeIds !== undefined && perRoom && input.roomTypeIds.length > 0
         ? assertRoomTypesExist(this.prisma, input.roomTypeIds)
         : Promise.resolve(),
-      input.priceCoefficientKeys !== undefined
-        ? this.assertCoefficientKeysExist(input.priceCoefficientKeys)
-        : Promise.resolve(),
     ]);
 
     if (existing.status === PublicationStatus.PUBLISHED) {
@@ -292,6 +292,10 @@ export class OptionsService {
 
     try {
       return await this.prisma.$transaction(async (tx) => {
+        if (input.priceCoefficientKeys !== undefined) {
+          await this.assertCoefficientKeysExist(tx, input.priceCoefficientKeys);
+        }
+
         let sortOrderUpdate: { sortOrder: number } | Record<string, never> = {};
 
         if (kindChanged) {
@@ -555,8 +559,11 @@ export class OptionsService {
     return this.toOptionAdmin(option);
   }
 
-  private async assertCoefficientKeysExist(keys: string[]): Promise<void> {
-    const existing = await this.coefficients.existingKeys(keys);
+  private async assertCoefficientKeysExist(
+    tx: Prisma.TransactionClient,
+    keys: string[],
+  ): Promise<void> {
+    const existing = await this.coefficients.lockExistingKeys(tx, keys);
     const missing = [...new Set(keys)].filter((key) => !existing.has(key));
 
     if (missing.length > 0) {

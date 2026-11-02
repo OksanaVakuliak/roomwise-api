@@ -10,6 +10,7 @@ import type {
 import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import type { Prisma } from '../../../generated/prisma/client';
 import { PublicationStatus } from '../../../generated/prisma/enums';
 
 @Injectable()
@@ -147,8 +148,9 @@ export class CatalogPricingReadService {
 
   async optionsUsingCoefficient(
     key: string,
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<Array<{ id: string; name: LocalizedText }>> {
-    const rows = await this.prisma.option.findMany({
+    const rows = await client.option.findMany({
       where: { priceCoefficientKeys: { has: key } },
       select: { id: true, name: true },
       orderBy: { id: 'asc' },

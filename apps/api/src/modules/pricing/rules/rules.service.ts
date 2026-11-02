@@ -8,6 +8,7 @@ import { updateWithRevision } from '../../../common/concurrency/revision';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
+import type { RuleSurface } from '../../../common/pricing/rule-surface.schema';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { isPrismaError } from '../../../common/prisma/prisma-error';
 import type { Prisma } from '../../../generated/prisma/client';
@@ -16,11 +17,7 @@ import { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pr
 import { PricingDataService } from '../pricing-data/pricing-data.service';
 import type { PreviewRuleInput } from './dto/preview-rule.schema';
 import type { RuleAdmin, RuleListResponse } from './dto/rule-admin.schema';
-import {
-  findRuleShapeIssues,
-  type RuleInput,
-  type RuleSurface,
-} from './dto/rule-input.schema';
+import { findRuleShapeIssues, type RuleInput } from './dto/rule-input.schema';
 import type { RuleOrderInput } from './dto/rule-order.schema';
 import type { UpdateRuleInput } from './dto/update-rule.schema';
 import type {
