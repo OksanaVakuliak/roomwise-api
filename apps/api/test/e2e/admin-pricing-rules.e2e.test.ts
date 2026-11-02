@@ -409,6 +409,13 @@ describe('admin pricing rules e2e', () => {
 
         await authed('delete', `${RULES_PATH}/${created.body.id}`).expect(204);
       } finally {
+        await testApp.prisma.pricingRule.deleteMany({
+          where: {
+            level: 'SURFACE',
+            surface: 'FLOOR',
+            id: { not: ruleIds.floorPreparation },
+          },
+        });
         await testApp.prisma.$transaction(
           (tx) =>
             testApp.app.get(PricingDatasetService).upsert(pricingDataset, tx),

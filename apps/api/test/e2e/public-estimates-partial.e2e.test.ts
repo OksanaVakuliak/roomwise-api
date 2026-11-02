@@ -26,6 +26,8 @@ const QUANTITY_PRECISION = 1000;
 const ROOM_HEIGHT_M = 2.7;
 const BEDROOM_LENGTH_M = 4;
 const BEDROOM_WIDTH_M = 3;
+const KITCHEN_LENGTH_M = 4;
+const KITCHEN_WIDTH_M = 3;
 const BATHROOM_LENGTH_M = 3;
 const BATHROOM_WIDTH_M = 2;
 const BALCONY_AREA_SQM = 5;
@@ -107,8 +109,8 @@ function kitchen(selections: Selections = []): RoomConfiguration {
   return room(
     'kitchen',
     'KITCHEN',
-    BEDROOM_LENGTH_M,
-    BEDROOM_WIDTH_M,
+    KITCHEN_LENGTH_M,
+    KITCHEN_WIDTH_M,
     selections,
   );
 }
@@ -317,7 +319,7 @@ describe('public estimates of partial renovation on seed e2e', () => {
         estimate,
         materialLineId('kitchen', categoryIds.wallTile),
       );
-      const wallArea = 2 * (BEDROOM_LENGTH_M + BEDROOM_WIDTH_M) * ROOM_HEIGHT_M;
+      const wallArea = 2 * (KITCHEN_LENGTH_M + KITCHEN_WIDTH_M) * ROOM_HEIGHT_M;
       const prepPerSqmCents =
         coefficientCents('prep_wall_plaster') +
         coefficientCents('mat_wall_plaster') +

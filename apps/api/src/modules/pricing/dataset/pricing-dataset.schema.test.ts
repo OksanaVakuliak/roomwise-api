@@ -69,7 +69,7 @@ describe('pricingDataset', () => {
     );
 
     for (const option of catalogDataset.options) {
-      for (const key of option.priceCoefficientKeys ?? []) {
+      for (const key of option.priceCoefficientKeys) {
         expect(coefficientKeys.has(key), `${option.id} ${key}`).toBe(true);
       }
     }
