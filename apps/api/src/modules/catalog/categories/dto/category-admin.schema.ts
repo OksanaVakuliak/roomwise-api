@@ -1,10 +1,10 @@
+import { RoomTypeCodeSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { auditSchema } from '../../../../common/concurrency/audit.schema';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
 import {
   PublicationStatus,
-  RoomTypeCode,
   SurfaceKind,
 } from '../../../../generated/prisma/enums';
 
@@ -18,7 +18,7 @@ export const categoryAdminSchema = z
     surface: z.enum(SurfaceKind),
     status: z.enum(PublicationStatus),
     productCount: z.number().int().nonnegative(),
-    roomTypeCodes: z.array(z.enum(RoomTypeCode)),
+    roomTypeCodes: z.array(RoomTypeCodeSchema),
     revision: z.uuid(),
   })
   .extend(auditSchema.shape);

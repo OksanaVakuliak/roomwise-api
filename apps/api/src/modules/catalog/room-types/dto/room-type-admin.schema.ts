@@ -1,10 +1,10 @@
+import { RoomTypeCodeSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { auditSchema } from '../../../../common/concurrency/audit.schema';
 import { localizedNameDraftSchema } from '../../../../common/i18n/localized-text.schema';
 import {
   PublicationStatus,
-  RoomTypeCode,
   SurfaceKind,
 } from '../../../../generated/prisma/enums';
 
@@ -18,7 +18,7 @@ export const roomTypeCategoryAdminSchema = z.object({
 export const roomTypeAdminSchema = z
   .object({
     id: z.uuid(),
-    code: z.enum(RoomTypeCode),
+    code: RoomTypeCodeSchema,
     name: localizedNameDraftSchema,
     categories: z.array(roomTypeCategoryAdminSchema),
     revision: z.uuid(),

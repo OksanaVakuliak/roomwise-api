@@ -1,9 +1,9 @@
+import { RoomTypeCodeSchema } from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { RoomTypeCode } from '../../../../generated/prisma/enums';
 
 export const publicDefaultMaterialItemSchema = z.object({
-  roomTypeCode: z.enum(RoomTypeCode),
+  roomTypeCode: RoomTypeCodeSchema,
   categoryId: z.uuid(),
   productId: z.uuid().nullable(),
 });
