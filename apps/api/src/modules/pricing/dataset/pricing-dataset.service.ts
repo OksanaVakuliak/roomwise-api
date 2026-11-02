@@ -8,7 +8,6 @@ const SETTINGS_ID = 1;
 
 export interface PricingDatasetRows {
   limits: Prisma.PricingSettingsUncheckedCreateInput;
-  baseRates: Prisma.BaseRateCreateManyInput[];
   coefficients: Prisma.CoefficientCreateManyInput[];
   rules: Prisma.PricingRuleCreateManyInput[];
 }
@@ -35,12 +34,6 @@ export function buildPricingDatasetRows(
 ): PricingDatasetRows {
   return {
     limits: buildLimitsRow(dataset.limits),
-    baseRates: dataset.baseRates.map((rate) => ({
-      finishLevel: rate.finishLevel,
-      areaFromSqm: rate.areaFromSqm,
-      areaToSqm: rate.areaToSqm,
-      rateCentsPerSqm: rate.rateCentsPerSqm,
-    })),
     coefficients: dataset.coefficients.map((coefficient) => ({
       key: coefficient.key,
       name: coefficient.name,
@@ -98,15 +91,6 @@ export class PricingDatasetService {
       update: limits,
     });
 
-    for (const rate of rows.baseRates) {
-      const { finishLevel, areaFromSqm, ...data } = rate;
-      await tx.baseRate.upsert({
-        where: { finishLevel_areaFromSqm: { finishLevel, areaFromSqm } },
-        create: rate,
-        update: { ...data, ...rewrittenBySeed() },
-      });
-    }
-
     for (const coefficient of rows.coefficients) {
       const { key, value: _value, ...data } = coefficient;
       await tx.coefficient.upsert({
@@ -131,9 +115,7 @@ export class PricingDatasetService {
     await tx.exchangeRate.deleteMany({ where: { source: RateSource.MANUAL } });
     await tx.pricingRule.deleteMany({});
     await tx.coefficient.deleteMany({});
-    await tx.baseRate.deleteMany({});
 
-    await tx.baseRate.createMany({ data: rows.baseRates });
     await tx.coefficient.createMany({ data: rows.coefficients });
     await tx.pricingRule.createMany({ data: rows.rules });
 

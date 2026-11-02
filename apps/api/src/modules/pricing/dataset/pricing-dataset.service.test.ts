@@ -15,7 +15,6 @@ import {
 
 const MODELS = [
   'pricingSettings',
-  'baseRate',
   'coefficient',
   'pricingRule',
   'exchangeRate',
@@ -129,28 +128,6 @@ describe('PricingDatasetService.upsert', () => {
     expect(call.update).not.toHaveProperty('id');
     expect(call.update).not.toHaveProperty('manualRateId');
     expect(call.update.totalAreaMaxSqm).toBe(500);
-  });
-
-  it('upserts base rates by finish level and range start', async () => {
-    const { tx, argsOf } = createTx();
-
-    await new PricingDatasetService().upsert(pricingDataset, tx);
-
-    const calls = argsOf('baseRate', 'upsert') as Array<{
-      where: {
-        finishLevel_areaFromSqm: { finishLevel: string; areaFromSqm: number };
-      };
-      update: { updatedById: null; revision: string };
-    }>;
-    expect(calls).toHaveLength(pricingDataset.baseRates.length);
-    pricingDataset.baseRates.forEach((rate, index) => {
-      expect(calls[index].where.finishLevel_areaFromSqm).toEqual({
-        finishLevel: rate.finishLevel,
-        areaFromSqm: rate.areaFromSqm,
-      });
-      expect(calls[index].update.updatedById).toBeNull();
-      expect(calls[index].update.revision).toEqual(expect.any(String));
-    });
   });
 
   it('upserts coefficients by key with a fresh revision', async () => {
@@ -311,20 +288,14 @@ describe('PricingDatasetService.replace', () => {
     );
   });
 
-  it('clears rates, coefficients and rules, then inserts the dataset', async () => {
+  it('clears coefficients and rules, then inserts the dataset', async () => {
     const { tx, steps, argsOf } = createTx();
 
     await new PricingDatasetService().replace(pricingDataset, tx);
 
-    for (const model of ['pricingRule', 'coefficient', 'baseRate']) {
+    for (const model of ['pricingRule', 'coefficient']) {
       expect(argsOf(model, 'deleteMany')).toEqual([{}]);
     }
-    expect(steps().lastIndexOf('baseRate.deleteMany')).toBeLessThan(
-      steps().indexOf('baseRate.createMany'),
-    );
-    expect(argsOf('baseRate', 'createMany')).toEqual([
-      { data: buildPricingDatasetRows(pricingDataset).baseRates },
-    ]);
     expect(argsOf('coefficient', 'createMany')).toHaveLength(1);
     expect(argsOf('pricingRule', 'createMany')).toEqual([
       { data: buildPricingDatasetRows(pricingDataset).rules },

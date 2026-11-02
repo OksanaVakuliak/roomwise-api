@@ -2,17 +2,12 @@ import { validateFormula } from '@roomwise/calc-engine';
 import { describe, expect, it } from 'vitest';
 import {
   CoefficientGroup,
-  FinishLevel,
   RuleLevel,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
 import { catalogDataset } from '../../catalog/dataset/data';
 import { pricingDataset } from './data';
 import { pricingDatasetSchema } from './pricing-dataset.schema';
-
-function withBaseRates(baseRates: unknown[]) {
-  return { ...pricingDataset, baseRates };
-}
 
 describe('pricingDataset', () => {
   it('has a category rule for every seeded category', () => {
@@ -102,20 +97,6 @@ describe('pricingDataset', () => {
     });
   });
 
-  it('covers 15 to 500 m² for both finish levels without gaps', () => {
-    for (const finishLevel of Object.values(FinishLevel)) {
-      const ranges = pricingDataset.baseRates
-        .filter((rate) => rate.finishLevel === finishLevel)
-        .sort((a, b) => a.areaFromSqm - b.areaFromSqm);
-
-      expect(ranges[0].areaFromSqm).toBe(15);
-      expect(ranges.at(-1)?.areaToSqm).toBeGreaterThan(500);
-      ranges.slice(1).forEach((range, index) => {
-        expect(range.areaFromSqm).toBe(ranges[index].areaToSqm);
-      });
-    }
-  });
-
   it('has formulas that are valid in the package formula language', () => {
     const coefficientKeys = pricingDataset.coefficients.map(({ key }) => key);
 
@@ -145,39 +126,6 @@ describe('pricingDataset', () => {
 });
 
 describe('pricingDatasetSchema', () => {
-  it('rejects a gap between rate ranges', () => {
-    const rates = pricingDataset.baseRates.filter(
-      (rate) =>
-        !(rate.finishLevel === FinishLevel.ROUGH && rate.areaFromSqm === 45),
-    );
-
-    expect(pricingDatasetSchema.safeParse(withBaseRates(rates)).success).toBe(
-      false,
-    );
-  });
-
-  it('rejects overlapping rate ranges', () => {
-    const rates = pricingDataset.baseRates.map((rate) =>
-      rate.finishLevel === FinishLevel.ROUGH && rate.areaFromSqm === 30
-        ? { ...rate, areaFromSqm: 25 }
-        : rate,
-    );
-
-    expect(pricingDatasetSchema.safeParse(withBaseRates(rates)).success).toBe(
-      false,
-    );
-  });
-
-  it('rejects rates that stop at the maximum area', () => {
-    const rates = pricingDataset.baseRates.map((rate) =>
-      rate.areaToSqm === 500.01 ? { ...rate, areaToSqm: 500 } : rate,
-    );
-
-    expect(pricingDatasetSchema.safeParse(withBaseRates(rates)).success).toBe(
-      false,
-    );
-  });
-
   it('rejects a rule that uses an unknown coefficient', () => {
     const rules = pricingDataset.rules.map((rule, index) =>
       index === 0 ? { ...rule, coefficientKeys: ['missing'] } : rule,

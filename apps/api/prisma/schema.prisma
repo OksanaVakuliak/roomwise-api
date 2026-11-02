@@ -122,7 +122,6 @@ model Admin {
   engineeringPackageItemUpdates EngineeringPackageItem[] @relation("EngineeringPackageItemUpdatedBy")
   optionUpdates                 Option[]                 @relation("OptionUpdatedBy")
   createdImages                 Image[]                  @relation("ImageCreatedBy")
-  baseRateUpdates               BaseRate[]               @relation("BaseRateUpdatedBy")
   coefficientUpdates            Coefficient[]            @relation("CoefficientUpdatedBy")
   pricingRuleUpdates            PricingRule[]            @relation("PricingRuleUpdatedBy")
   createdExchangeRates          ExchangeRate[]           @relation("ExchangeRateCreatedBy")
@@ -387,21 +386,6 @@ model SandboxState {
   lockedAt        DateTime? @map("locked_at") @db.Timestamptz(3)
 
   @@map("sandbox_state")
-}
-
-model BaseRate {
-  id              String      @id @default(uuid()) @db.Uuid
-  finishLevel     FinishLevel @map("finish_level")
-  areaFromSqm     Decimal     @map("area_from_sqm") @db.Decimal(7, 2)
-  areaToSqm       Decimal     @map("area_to_sqm") @db.Decimal(7, 2)
-  rateCentsPerSqm Int         @map("rate_cents_per_sqm")
-  revision        String      @default(uuid()) @db.Uuid
-  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
-  updatedById     String?     @map("updated_by_id") @db.Uuid
-  updatedBy       Admin?      @relation("BaseRateUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-
-  @@unique([finishLevel, areaFromSqm])
-  @@map("base_rates")
 }
 
 model Coefficient {

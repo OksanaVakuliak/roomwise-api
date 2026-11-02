@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { localizedNameSchema } from '../../../common/i18n/localized-text.schema';
 import {
   CoefficientGroup,
-  FinishLevel,
   RuleLevel,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
@@ -26,19 +25,6 @@ export const seedPricingLimitsSchema = z.object({
     .default(DEFAULT_MISSING_AREA_HINT_SQM),
 });
 export type SeedPricingLimits = z.input<typeof seedPricingLimitsSchema>;
-
-export const seedBaseRateSchema = z
-  .object({
-    finishLevel: z.enum(FinishLevel),
-    areaFromSqm: z.number().min(0),
-    areaToSqm: z.number(),
-    rateCentsPerSqm: z.int().positive(),
-  })
-  .refine((rate) => rate.areaToSqm > rate.areaFromSqm, {
-    message: 'areaToSqm must be above areaFromSqm',
-    path: ['areaToSqm'],
-  });
-export type SeedBaseRate = z.infer<typeof seedBaseRateSchema>;
 
 export const seedCoefficientSchema = z.object({
   key: z.string().regex(COEFFICIENT_KEY_PATTERN),
@@ -122,35 +108,6 @@ export const seedPricingRuleSchema = z
   });
 export type SeedPricingRule = z.input<typeof seedPricingRuleSchema>;
 
-function findBaseRateGap(rates: SeedBaseRate[], limits: SeedPricingLimits) {
-  const { min, max } = limits.totalAreaSqm;
-
-  for (const finishLevel of Object.values(FinishLevel)) {
-    const ranges = rates
-      .filter((rate) => rate.finishLevel === finishLevel)
-      .sort((a, b) => a.areaFromSqm - b.areaFromSqm);
-    let covered = min;
-    let previousTo: number | undefined;
-
-    for (const range of ranges) {
-      if (range.areaFromSqm > covered) {
-        return { finishLevel, from: covered, to: range.areaFromSqm };
-      }
-      if (previousTo !== undefined && range.areaFromSqm < previousTo) {
-        return { finishLevel, from: range.areaFromSqm, to: previousTo };
-      }
-      previousTo = range.areaToSqm;
-      covered = Math.max(covered, range.areaToSqm);
-    }
-
-    if (covered <= max) {
-      return { finishLevel, from: covered, to: max };
-    }
-  }
-
-  return undefined;
-}
-
 function findDuplicate(keys: string[]): string | undefined {
   const seen = new Set<string>();
   for (const key of keys) {
@@ -163,20 +120,10 @@ function findDuplicate(keys: string[]): string | undefined {
 export const pricingDatasetSchema = z
   .object({
     limits: seedPricingLimitsSchema,
-    baseRates: z.array(seedBaseRateSchema).min(1),
     coefficients: z.array(seedCoefficientSchema),
     rules: z.array(seedPricingRuleSchema),
   })
   .superRefine((dataset, ctx) => {
-    const gap = findBaseRateGap(dataset.baseRates, dataset.limits);
-    if (gap) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['baseRates'],
-        message: `${gap.finishLevel} rates have a gap or overlap between ${gap.from} and ${gap.to}`,
-      });
-    }
-
     const duplicateKey = findDuplicate(
       dataset.coefficients.map((coefficient) => coefficient.key),
     );

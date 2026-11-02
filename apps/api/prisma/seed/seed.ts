@@ -67,13 +67,12 @@ async function countCatalog(prisma: PrismaClient) {
 }
 
 async function countPricing(prisma: PrismaClient) {
-  const [baseRates, coefficients, pricingRules] = await Promise.all([
-    prisma.baseRate.count(),
+  const [coefficients, pricingRules] = await Promise.all([
     prisma.coefficient.count(),
     prisma.pricingRule.count(),
   ]);
 
-  return { baseRates, coefficients, pricingRules };
+  return { coefficients, pricingRules };
 }
 
 async function main(): Promise<void> {

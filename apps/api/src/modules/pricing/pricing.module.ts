@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { CatalogModule } from '../catalog/catalog.module';
-import { BaseRatesController } from './base-rates/base-rates.controller';
-import { BaseRatesService } from './base-rates/base-rates.service';
 import { CoefficientsController } from './coefficients/coefficients.controller';
 import { CoefficientsService } from './coefficients/coefficients.service';
 import { PricingDatasetService } from './dataset/pricing-dataset.service';
@@ -22,7 +20,6 @@ import { RulesService } from './rules/rules.service';
     PublicPricingController,
     RulesController,
     FormulasController,
-    BaseRatesController,
     CoefficientsController,
     ExchangeRateController,
   ],
@@ -31,7 +28,6 @@ import { RulesService } from './rules/rules.service';
     PricingDatasetService,
     PricingEstimateService,
     RulesService,
-    BaseRatesService,
     CoefficientsService,
     NbuClient,
     ExchangeRateService,

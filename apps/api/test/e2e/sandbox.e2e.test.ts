@@ -398,16 +398,6 @@ describe('sandbox e2e (US6)', () => {
       await prisma.pricingRule.delete({
         where: { id: pricingDataset.rules[1].id },
       });
-      const seedRate = pricingDataset.baseRates[0];
-      await prisma.baseRate.update({
-        where: {
-          finishLevel_areaFromSqm: {
-            finishLevel: seedRate.finishLevel,
-            areaFromSqm: seedRate.areaFromSqm,
-          },
-        },
-        data: { rateCentsPerSqm: 1 },
-      });
       await prisma.coefficient.create({
         data: {
           key: 'admin_added',
@@ -455,19 +445,6 @@ describe('sandbox e2e (US6)', () => {
       expect(
         await prisma.coefficient.findUnique({ where: { key: 'admin_added' } }),
       ).toBeNull();
-
-      const baseRate = await prisma.baseRate.findUniqueOrThrow({
-        where: {
-          finishLevel_areaFromSqm: {
-            finishLevel: seedRate.finishLevel,
-            areaFromSqm: seedRate.areaFromSqm,
-          },
-        },
-      });
-      expect(baseRate.rateCentsPerSqm).toBe(seedRate.rateCentsPerSqm);
-      expect(await prisma.baseRate.count()).toBe(
-        pricingDataset.baseRates.length,
-      );
 
       const rules = await prisma.pricingRule.findMany({
         where: {

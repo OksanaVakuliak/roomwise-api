@@ -228,7 +228,7 @@ function resolveRouteId(path: string): string {
     return styleIds.scandinavian;
   }
   if (
-    ['rules', 'base-rates', 'coefficients'].some((resource) =>
+    ['rules', 'coefficients'].some((resource) =>
       path.startsWith(`/api/v1/admin/pricing/${resource}/`),
     )
   ) {
