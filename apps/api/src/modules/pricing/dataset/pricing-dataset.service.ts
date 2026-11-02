@@ -2,10 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../generated/prisma/client';
 import { RateSource, RuleLevel } from '../../../generated/prisma/enums';
-import type {
-  PricingDataset,
-  SeedPricingLimits,
-} from './pricing-dataset.schema';
+import type { PricingDataset } from './pricing-dataset.schema';
 
 const SETTINGS_ID = 1;
 
@@ -17,7 +14,7 @@ export interface PricingDatasetRows {
 }
 
 export function buildLimitsRow(
-  limits: SeedPricingLimits,
+  limits: PricingDataset['limits'],
 ): Prisma.PricingSettingsUncheckedCreateInput {
   return {
     id: SETTINGS_ID,
@@ -29,6 +26,7 @@ export function buildLimitsRow(
     roomSideMaxM: limits.roomSideM.max,
     roomHeightMinM: limits.roomHeightM.min,
     roomHeightMaxM: limits.roomHeightM.max,
+    missingAreaHintSqm: limits.missingAreaHintSqm,
   };
 }
 
@@ -48,18 +46,36 @@ export function buildPricingDatasetRows(
       name: coefficient.name,
       value: coefficient.value,
       unit: coefficient.unit,
+      group: coefficient.group,
     })),
     rules: dataset.rules.map((rule) => ({
       id: rule.id,
       level: rule.level,
       categoryId: rule.categoryId,
       materialTypeId: rule.materialTypeId,
+      surface: rule.surface,
+      baseComponent: rule.baseComponent,
       name: rule.name,
       quantityFormula: rule.quantityFormula,
       costFormula: rule.costFormula,
+      laborFormula: rule.laborFormula,
       coefficientKeys: rule.coefficientKeys,
       sortOrder: rule.sortOrder,
     })),
+  };
+}
+
+function ruleTarget(
+  rule: Prisma.PricingRuleCreateManyInput,
+): Prisma.PricingRuleWhereInput {
+  if (rule.level === RuleLevel.OBJECT) return { id: rule.id };
+  if (rule.level === RuleLevel.SURFACE) {
+    return { level: rule.level, surface: rule.surface };
+  }
+  return {
+    level: rule.level,
+    categoryId: rule.categoryId,
+    materialTypeId: rule.materialTypeId,
   };
 }
 
@@ -92,10 +108,11 @@ export class PricingDatasetService {
     }
 
     for (const coefficient of rows.coefficients) {
+      const { key, value: _value, ...data } = coefficient;
       await tx.coefficient.upsert({
-        where: { key: coefficient.key },
+        where: { key },
         create: coefficient,
-        update: { ...coefficient, ...rewrittenBySeed() },
+        update: { ...data, ...rewrittenBySeed() },
       });
     }
 
@@ -133,14 +150,7 @@ export class PricingDatasetService {
     tx: Prisma.TransactionClient,
   ): Promise<void> {
     const existing = await tx.pricingRule.findFirst({
-      where:
-        rule.level === RuleLevel.OBJECT
-          ? { id: rule.id }
-          : {
-              level: rule.level,
-              categoryId: rule.categoryId,
-              materialTypeId: rule.materialTypeId,
-            },
+      where: ruleTarget(rule),
       select: { id: true },
     });
 

@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Prisma } from '../../../generated/prisma/client';
-import { RateSource, RuleLevel } from '../../../generated/prisma/enums';
+import {
+  CoefficientGroup,
+  RateSource,
+  RuleLevel,
+  SurfaceKind,
+} from '../../../generated/prisma/enums';
 import { pricingDataset } from './data';
+import type { SeedPricingRule } from './pricing-dataset.schema';
 import {
   buildPricingDatasetRows,
   PricingDatasetService,
@@ -30,6 +36,21 @@ interface RecordedCall {
   operation: string;
   args: unknown;
 }
+
+const surfaceRule = {
+  id: '77777777-7777-4777-8777-777777777777',
+  level: RuleLevel.SURFACE,
+  categoryId: null,
+  materialTypeId: null,
+  surface: SurfaceKind.FLOOR,
+  baseComponent: false,
+  name: { en: 'Floor', uk: 'Підлога' },
+  quantityFormula: null,
+  costFormula: 'floorArea * 10',
+  laborFormula: null,
+  coefficientKeys: [],
+  sortOrder: 0,
+} satisfies SeedPricingRule;
 
 function createTx(existingRules: Array<{ id: string }> = []) {
   const calls: RecordedCall[] = [];
@@ -69,6 +90,25 @@ describe('buildPricingDatasetRows', () => {
       roomSideMaxM: 30,
       roomHeightMinM: 2.2,
       roomHeightMaxM: 5,
+      missingAreaHintSqm: 5,
+    });
+  });
+
+  it('writes coefficient group and rule surface columns', () => {
+    const rows = buildPricingDatasetRows({
+      ...pricingDataset,
+      coefficients: [
+        { ...pricingDataset.coefficients[0], group: CoefficientGroup.LABOR },
+      ],
+      rules: [surfaceRule],
+    });
+
+    expect(rows.coefficients[0].group).toBe(CoefficientGroup.LABOR);
+    expect(rows.rules[0]).toMatchObject({
+      level: RuleLevel.SURFACE,
+      surface: SurfaceKind.FLOOR,
+      baseComponent: false,
+      laborFormula: null,
     });
   });
 });
@@ -128,6 +168,68 @@ describe('PricingDatasetService.upsert', () => {
     for (const call of calls) {
       expect(call.update.updatedById).toBeNull();
     }
+  });
+
+  it('keeps the stored value of an existing coefficient but refreshes its other fields', async () => {
+    const { tx, argsOf } = createTx();
+
+    await new PricingDatasetService().upsert(pricingDataset, tx);
+
+    const calls = argsOf('coefficient', 'upsert') as Array<{
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    }>;
+    for (const call of calls) {
+      expect(call.create).toHaveProperty('value');
+      expect(call.update).not.toHaveProperty('value');
+      expect(call.update).not.toHaveProperty('key');
+      expect(call.update).toHaveProperty('name');
+      expect(call.update).toHaveProperty('unit');
+      expect(call.update).toHaveProperty('group');
+    }
+  });
+
+  it('creates a new coefficient with its dataset value and group', async () => {
+    const { tx, argsOf } = createTx();
+    const coefficient = {
+      ...pricingDataset.coefficients[0],
+      key: 'brand_new',
+      value: 42,
+      group: CoefficientGroup.ENGINEERING,
+    };
+
+    await new PricingDatasetService().upsert(
+      { ...pricingDataset, coefficients: [coefficient] },
+      tx,
+    );
+
+    const [call] = argsOf('coefficient', 'upsert') as Array<{
+      where: { key: string };
+      create: Record<string, unknown>;
+    }>;
+    expect(call.where).toEqual({ key: 'brand_new' });
+    expect(call.create).toMatchObject({
+      key: 'brand_new',
+      value: 42,
+      group: CoefficientGroup.ENGINEERING,
+    });
+  });
+
+  it('looks up surface rules by surface', async () => {
+    const { tx, argsOf } = createTx();
+
+    await new PricingDatasetService().upsert(
+      { ...pricingDataset, rules: [{ ...surfaceRule }] },
+      tx,
+    );
+
+    const [lookup] = argsOf('pricingRule', 'findFirst') as Array<{
+      where: Record<string, unknown>;
+    }>;
+    expect(lookup.where).toEqual({
+      level: RuleLevel.SURFACE,
+      surface: SurfaceKind.FLOOR,
+    });
   });
 
   it('creates every rule when none exists', async () => {
@@ -227,6 +329,19 @@ describe('PricingDatasetService.replace', () => {
     expect(argsOf('pricingRule', 'createMany')).toEqual([
       { data: buildPricingDatasetRows(pricingDataset).rules },
     ]);
+  });
+
+  it('resets coefficient values to the dataset', async () => {
+    const { tx, argsOf } = createTx();
+
+    await new PricingDatasetService().replace(pricingDataset, tx);
+
+    const [call] = argsOf('coefficient', 'createMany') as Array<{
+      data: Array<{ key: string; value: number }>;
+    }>;
+    expect(call.data.map((row) => [row.key, row.value])).toEqual(
+      pricingDataset.coefficients.map((c) => [c.key, c.value]),
+    );
   });
 
   it('restores the limits', async () => {
