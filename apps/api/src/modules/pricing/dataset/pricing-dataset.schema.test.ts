@@ -63,6 +63,18 @@ describe('pricingDataset', () => {
     }
   });
 
+  it('prices seeded options only with seeded coefficients', () => {
+    const coefficientKeys = new Set(
+      pricingDataset.coefficients.map(({ key }) => key),
+    );
+
+    for (const option of catalogDataset.options) {
+      for (const key of option.priceCoefficientKeys ?? []) {
+        expect(coefficientKeys.has(key), `${option.id} ${key}`).toBe(true);
+      }
+    }
+  });
+
   it('defines the balcony tile rule at object level', () => {
     const objectRules = pricingDataset.rules.filter(
       (rule) => rule.level === RuleLevel.OBJECT,
@@ -70,21 +82,27 @@ describe('pricingDataset', () => {
 
     expect(objectRules).toHaveLength(1);
     expect(objectRules[0].costFormula).toBe(
-      'balconyTiles ? balconyArea * coef.balcony_tile : 0',
+      "balconyTiles ? balconyArea * (coef.balcony_tile + (scope == 'PARTIAL' ? coef.labor_balcony_tile : 0)) : 0",
     );
   });
 
-  it('seeds the four reference coefficients', () => {
+  it('seeds the reference coefficients with unique keys and non-zero values', () => {
+    const keys = pricingDataset.coefficients.map(({ key }) => key);
+
+    expect(new Set(keys).size).toBe(keys.length);
     expect(
       Object.fromEntries(
         pricingDataset.coefficients.map(({ key, value }) => [key, value]),
       ),
-    ).toEqual({
+    ).toMatchObject({
       laminate_underlay: 2,
       tile_glue: 10,
       tile_glue_heated: 21,
       balcony_tile: 75,
     });
+    for (const { key, value } of pricingDataset.coefficients) {
+      expect(value, key).not.toBe(0);
+    }
   });
 
   it('seeds the input limits from the spec', () => {
@@ -101,26 +119,33 @@ describe('pricingDataset', () => {
     const coefficientKeys = pricingDataset.coefficients.map(({ key }) => key);
 
     for (const rule of pricingDataset.rules) {
-      const cost = validateFormula({
-        level: rule.level,
-        kind: 'cost',
-        source: rule.costFormula,
-        coefficientKeys,
-      });
-      expect(cost.errors, rule.id).toEqual([]);
-      expect([...cost.coefficientKeys].sort(), rule.id).toEqual(
-        [...rule.coefficientKeys].sort(),
-      );
+      const used = new Set<string>();
+      const formulas = [
+        ['quantity', rule.quantityFormula],
+        ['cost', rule.costFormula],
+        ['labor', rule.laborFormula ?? null],
+      ] as const;
 
-      if (rule.quantityFormula !== null) {
-        const quantity = validateFormula({
+      for (const [kind, source] of formulas) {
+        if (source === null) {
+          continue;
+        }
+
+        const result = validateFormula({
           level: rule.level,
-          kind: 'quantity',
-          source: rule.quantityFormula,
+          kind,
+          source,
           coefficientKeys,
         });
-        expect(quantity.errors, rule.id).toEqual([]);
+        expect(result.errors, `${rule.id} ${kind}`).toEqual([]);
+        for (const key of result.coefficientKeys) {
+          used.add(key);
+        }
       }
+
+      expect([...used].sort(), rule.id).toEqual(
+        [...rule.coefficientKeys].sort(),
+      );
     }
   });
 });
