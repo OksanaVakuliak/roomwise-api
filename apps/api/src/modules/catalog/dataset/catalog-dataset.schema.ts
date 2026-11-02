@@ -3,6 +3,7 @@ import {
   localizedDescriptionSchema,
   localizedNameSchema,
 } from '../../../common/i18n/localized-text.schema';
+import { coefficientKeySchema } from '../../../common/pricing/coefficient-key.schema';
 import {
   OptionCode,
   OptionKind,
@@ -10,6 +11,7 @@ import {
   ProductUnit,
   PublicationStatus,
   RoomTypeCode,
+  Scope,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
 import { FALLBACK_COLOR_PATTERN } from '../common/fallback-color.schema';
@@ -229,6 +231,8 @@ export const seedOptionSchema = z
     sortOrder: z.int().nonnegative(),
     status: z.enum(PublicationStatus),
     roomTypeIds: z.array(z.uuid()),
+    priceCoefficientKeys: z.array(coefficientKeySchema).default([]),
+    scopes: z.array(z.enum(Scope)).min(1).default([Scope.FULL, Scope.PARTIAL]),
   })
   .superRefine((option, ctx) => {
     if (option.unit === 'PIECE') {
@@ -262,7 +266,7 @@ export const seedOptionSchema = z
       });
     }
   });
-export type SeedOption = z.infer<typeof seedOptionSchema>;
+export type SeedOption = z.input<typeof seedOptionSchema>;
 
 export const catalogDatasetSchema = z
   .object({
