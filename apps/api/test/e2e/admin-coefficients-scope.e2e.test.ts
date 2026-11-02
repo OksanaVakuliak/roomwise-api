@@ -1,7 +1,8 @@
-import type {
-  Configuration,
-  Estimate,
-  EstimateLine,
+import {
+  type Configuration,
+  type Estimate,
+  type EstimateLine,
+  toCents,
 } from '@roomwise/calc-engine';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -9,7 +10,6 @@ import { categoryIds } from '../../src/modules/catalog/dataset/data/categories';
 import { productIds } from '../../src/modules/catalog/dataset/data/products';
 import { pricingDataset } from '../../src/modules/pricing/dataset/data';
 import { ruleIds } from '../../src/modules/pricing/dataset/data/rules';
-import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
 import { createTestApp, type TestApp } from './app-factory';
 import { createAdmin, login } from './auth-helpers';
 import {
@@ -24,7 +24,6 @@ const CALCULATIONS_PATH = '/api/v1/public/calculations';
 const PRICING_DATA_PATH = '/api/v1/public/pricing-data';
 const COEFFICIENTS_PATH = '/api/v1/admin/pricing/coefficients';
 const IDEMPOTENCY_HEADER = 'Idempotency-Key';
-const CENTS_PER_DOLLAR = 100;
 const ROOM_HEIGHT_M = 2.7;
 const FLAT_TOTAL_AREA_SQM = 60;
 const FLAT_WALL_AREA_SQM = 180.9;
@@ -35,6 +34,7 @@ const PATCHED_LAMINATE_LABOR = 11.5;
 const PATCHED_WALL_PLASTER = 12;
 const LAMINATE_KEY = 'labor_laminate';
 const PLASTER_KEY = 'prep_wall_plaster';
+const WALL_PLASTER_MATERIAL_KEY = 'mat_wall_plaster';
 const BEDROOM_ID = 'bedroom';
 const LAMINATE_LINE_ID = `MATERIALS:${BEDROOM_ID}:${categoryIds.floorCovering}`;
 const PLASTER_LINE_ID = `BASE:${ruleIds.baseWallPlaster}`;
@@ -114,10 +114,6 @@ function seedValue(key: string): number {
   }
 
   return coefficient.value;
-}
-
-function cents(value: number): number {
-  return Math.round(value * CENTS_PER_DOLLAR);
 }
 
 function lineOf(estimate: Estimate, id: string): EstimateLine {
@@ -216,7 +212,17 @@ describe('admin coefficients scope e2e', () => {
       .set('Cookie', cookie)
       .send({ value, revision })
       .expect(200);
-    testApp.app.get(PricingDataService).invalidate();
+  }
+
+  async function restoreSeedValues(keys: string[]) {
+    const results = await Promise.allSettled(
+      keys.map((key) => patchCoefficient(key, seedValue(key))),
+    );
+    const failure = results.find((result) => result.status === 'rejected');
+
+    if (failure) {
+      throw failure.reason;
+    }
   }
 
   it('applies new rates to fresh estimates and keeps saved snapshots', async () => {
@@ -228,6 +234,9 @@ describe('admin coefficients scope e2e', () => {
     const savedPartialBefore = (await latest(savedPartial.publicId)).body;
     const savedFullBefore = (await latest(savedFull.publicId)).body;
 
+    expect(savedPartialBefore.priceStatus.changed).toBe(false);
+    expect(savedFullBefore.priceStatus.changed).toBe(false);
+
     try {
       await patchCoefficient(LAMINATE_KEY, PATCHED_LAMINATE_LABOR);
       await patchCoefficient(PLASTER_KEY, PATCHED_WALL_PLASTER);
@@ -236,21 +245,27 @@ describe('admin coefficients scope e2e', () => {
       const fullAfter = await estimateOf(fullConfiguration);
       const savedPartialAfter = (await latest(savedPartial.publicId)).body;
       const savedFullAfter = (await latest(savedFull.publicId)).body;
-      const plasterUnitDeltaCents =
-        cents(PATCHED_WALL_PLASTER) - cents(seedValue(PLASTER_KEY));
 
       expect(await pricingVersion()).not.toBe(versionBefore);
 
       expect(laborCents(lineOf(partialBefore, LAMINATE_LINE_ID))).toBe(
-        Math.round(BEDROOM_FLOOR_AREA_SQM * cents(seedValue(LAMINATE_KEY))),
+        toCents(BEDROOM_FLOOR_AREA_SQM * seedValue(LAMINATE_KEY)),
       );
       expect(laborCents(lineOf(partialAfter, LAMINATE_LINE_ID))).toBe(
-        Math.round(BEDROOM_FLOOR_AREA_SQM * cents(PATCHED_LAMINATE_LABOR)),
+        toCents(BEDROOM_FLOOR_AREA_SQM * PATCHED_LAMINATE_LABOR),
       );
 
+      expect(lineOf(fullBefore, PLASTER_LINE_ID).amountCents).toBe(
+        toCents(
+          FLAT_WALL_AREA_SQM *
+            (seedValue(PLASTER_KEY) + seedValue(WALL_PLASTER_MATERIAL_KEY)),
+        ),
+      );
       expect(lineOf(fullAfter, PLASTER_LINE_ID).amountCents).toBe(
-        lineOf(fullBefore, PLASTER_LINE_ID).amountCents +
-          Math.round(FLAT_WALL_AREA_SQM * plasterUnitDeltaCents),
+        toCents(
+          FLAT_WALL_AREA_SQM *
+            (PATCHED_WALL_PLASTER + seedValue(WALL_PLASTER_MATERIAL_KEY)),
+        ),
       );
 
       expect(savedPartialAfter.totals).toEqual(savedPartialBefore.totals);
@@ -273,12 +288,14 @@ describe('admin coefficients scope e2e', () => {
         fullAfter.totals.usdCents,
       );
     } finally {
-      await patchCoefficient(LAMINATE_KEY, seedValue(LAMINATE_KEY));
-      await patchCoefficient(PLASTER_KEY, seedValue(PLASTER_KEY));
+      await restoreSeedValues([LAMINATE_KEY, PLASTER_KEY]);
     }
 
     expect(await pricingVersion()).toBe(versionBefore);
     expect((await latest(savedPartial.publicId)).body.priceStatus.changed).toBe(
+      false,
+    );
+    expect((await latest(savedFull.publicId)).body.priceStatus.changed).toBe(
       false,
     );
   });
