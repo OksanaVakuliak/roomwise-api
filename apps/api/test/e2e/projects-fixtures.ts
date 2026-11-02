@@ -74,6 +74,7 @@ export function buildNamedBedroomsConfiguration(): Configuration {
 
 export function buildProjectsConfiguration(): Configuration {
   return {
+    scope: 'FULL',
     finishLevel: 'PRE_FINISH',
     totalAreaSqm: 60,
     balconyAreaSqm: 0,

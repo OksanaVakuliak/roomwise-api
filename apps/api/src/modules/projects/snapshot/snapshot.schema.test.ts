@@ -1,19 +1,22 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   SNAPSHOT_SCHEMA_VERSION,
-  type SnapshotV1,
-  SnapshotV1Schema,
+  type Snapshot,
+  SnapshotSchema,
 } from './snapshot.schema';
 
 const name = (en: string) => ({ en, uk: `${en}-uk` });
 
 const emptySection = { usdCents: 0, uahKopecks: null };
 
-const buildSnapshot = (): SnapshotV1 => ({
+const buildSnapshot = (): Snapshot => ({
   schemaVersion: SNAPSHOT_SCHEMA_VERSION,
   createdAt: '2026-10-22T10:00:00.000Z',
   pricingVersion: 'v1',
   configuration: {
+    scope: 'FULL',
     finishLevel: 'ROUGH',
     totalAreaSqm: 50,
     balconyAreaSqm: 0,
@@ -110,17 +113,17 @@ const buildSnapshot = (): SnapshotV1 => ({
   },
 });
 
-describe('SnapshotV1Schema', () => {
+describe('SnapshotSchema', () => {
   it('parses a full snapshot', () => {
-    const result = SnapshotV1Schema.safeParse(buildSnapshot());
+    const result = SnapshotSchema.safeParse(buildSnapshot());
 
     expect(result.success).toBe(true);
   });
 
-  it('rejects a different schema version', () => {
-    const result = SnapshotV1Schema.safeParse({
+  it('rejects an unknown schema version', () => {
+    const result = SnapshotSchema.safeParse({
       ...buildSnapshot(),
-      schemaVersion: 2,
+      schemaVersion: 3,
     });
 
     expect(result.success).toBe(false);
@@ -130,7 +133,7 @@ describe('SnapshotV1Schema', () => {
     const snapshot = buildSnapshot();
     const { roomName: _roomName, ...line } = snapshot.lines[0];
 
-    const result = SnapshotV1Schema.safeParse({
+    const result = SnapshotSchema.safeParse({
       ...snapshot,
       lines: [line],
     });
@@ -142,7 +145,7 @@ describe('SnapshotV1Schema', () => {
     const snapshot = buildSnapshot();
     snapshot.lines[0].product = { ...snapshot.lines[0].product!, image: null };
 
-    const result = SnapshotV1Schema.safeParse(snapshot);
+    const result = SnapshotSchema.safeParse(snapshot);
 
     expect(result.success).toBe(true);
   });
@@ -150,7 +153,7 @@ describe('SnapshotV1Schema', () => {
   it('accepts a stored snapshot whose configuration still has gas', () => {
     const snapshot = buildSnapshot();
 
-    const result = SnapshotV1Schema.safeParse({
+    const result = SnapshotSchema.safeParse({
       ...snapshot,
       configuration: { ...snapshot.configuration, gas: true },
     });
@@ -161,11 +164,36 @@ describe('SnapshotV1Schema', () => {
   it('accepts a stored snapshot whose configuration still has kitchenType', () => {
     const snapshot = buildSnapshot();
 
-    const result = SnapshotV1Schema.safeParse({
+    const result = SnapshotSchema.safeParse({
       ...snapshot,
       configuration: { ...snapshot.configuration, kitchenType: 'SEPARATE' },
     });
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe('SnapshotSchema with a stored v1 snapshot', () => {
+  const raw = JSON.parse(
+    readFileSync(join(__dirname, 'fixtures', 'snapshot-v1.json'), 'utf8'),
+  );
+  const parsed = SnapshotSchema.parse(raw);
+
+  it('reads it as a full-scope snapshot', () => {
+    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.configuration.scope).toBe('FULL');
+  });
+
+  it('keeps totals and line amounts unchanged', () => {
+    expect(parsed.estimate.totals).toEqual(raw.estimate.totals);
+    expect(parsed.lines.map((line) => line.amountCents)).toEqual(
+      raw.lines.map((line: { amountCents: number }) => line.amountCents),
+    );
+  });
+
+  it('keeps the style and the base rate', () => {
+    expect(parsed.style).toEqual(raw.style);
+    expect(parsed.style).not.toBeNull();
+    expect(parsed.pricing.baseRate).toEqual(raw.pricing.baseRate);
   });
 });

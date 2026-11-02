@@ -13,12 +13,13 @@ import type {
 } from '../../catalog/snapshot-read/catalog-snapshot-read.service';
 import type { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.service';
 import { SnapshotBuilder } from './snapshot.builder';
-import { type SnapshotV1, SnapshotV1Schema } from './snapshot.schema';
+import { type Snapshot, SnapshotSchema } from './snapshot.schema';
 
 const text = (value: string) => ({ en: value, uk: `${value} uk` });
 const createdAt = new Date('2026-10-20T12:00:00.000Z');
 
 const configuration: Configuration = {
+  scope: 'FULL',
   finishLevel: 'ROUGH',
   totalAreaSqm: 50,
   balconyAreaSqm: 0,
@@ -104,7 +105,10 @@ function rule(id: string, costFormula: string) {
     materialTypeId: null,
     name: text(id),
     quantityFormula: 'area',
+    surface: null,
+    baseComponent: false,
     costFormula,
+    laborFormula: null,
     sortOrder: 0,
   };
 }
@@ -114,26 +118,6 @@ function pricingData(overrides: Partial<PricingData> = {}): PricingData {
     version: '0123456789abcdef',
     exchangeRate: estimate.exchangeRate,
     limits: {} as PricingData['limits'],
-    baseRates: [
-      {
-        finishLevel: 'ROUGH',
-        areaFromSqm: 0,
-        areaToSqm: 50,
-        rateCentsPerSqm: 1000,
-      },
-      {
-        finishLevel: 'ROUGH',
-        areaFromSqm: 50,
-        areaToSqm: 100,
-        rateCentsPerSqm: 2000,
-      },
-      {
-        finishLevel: 'PRE_FINISH',
-        areaFromSqm: 0,
-        areaToSqm: 100,
-        rateCentsPerSqm: 3000,
-      },
-    ],
     coefficients: { k: 1.5 },
     rules: [rule('rule-1', 'qty * 2'), rule('rule-unused', 'qty * 3')],
     roomTypes: [
@@ -238,9 +222,9 @@ describe('SnapshotBuilder', () => {
       packageItemIds: ['item-1'],
       styleId: 'style-1',
     });
-    expect(() => SnapshotV1Schema.parse(snapshot)).not.toThrow();
+    expect(() => SnapshotSchema.parse(snapshot)).not.toThrow();
     expect(snapshot).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       createdAt: '2026-10-20T12:00:00.000Z',
       pricingVersion: '0123456789abcdef',
       configuration,
@@ -302,7 +286,7 @@ describe('SnapshotBuilder', () => {
     expect(snapshot.lines[3]).toMatchObject({ product: null, ruleName: null });
   });
 
-  it('keeps only the rules used by lines and exposes coefficients and rate', async () => {
+  it('keeps only the rules used by lines and exposes coefficients', async () => {
     const { builder } = createBuilder();
 
     const snapshot = await builder.build(input);
@@ -314,48 +298,36 @@ describe('SnapshotBuilder', () => {
         categoryId: 'category-1',
         materialTypeId: null,
         quantityFormula: 'area',
+        surface: null,
+        baseComponent: false,
         costFormula: 'qty * 2',
+        laborFormula: null,
       },
     ]);
     expect(snapshot.pricing.coefficients).toEqual({ k: 1.5 });
     expect(snapshot.pricing.exchangeRate).toEqual(estimate.exchangeRate);
   });
 
-  it('picks the base rate for the area and finish level', async () => {
+  it('writes a v2 snapshot without a base rate', async () => {
     const { builder } = createBuilder();
-
-    const inside = await builder.build({
-      ...input,
-      configuration: { ...configuration, totalAreaSqm: 49.99 },
-    });
-    const boundary = await builder.build(input);
-    const preFinish = await builder.build({
-      ...input,
-      configuration: { ...configuration, finishLevel: 'PRE_FINISH' },
-    });
-
-    expect(inside.pricing.baseRate?.rateCentsPerSqm).toBe(1000);
-    expect(boundary.pricing.baseRate?.rateCentsPerSqm).toBe(2000);
-    expect(preFinish.pricing.baseRate?.rateCentsPerSqm).toBe(3000);
-  });
-
-  it('sets the base rate to null when no range matches', async () => {
-    const { builder } = createBuilder({
-      pricing: pricingData({
-        baseRates: [
-          {
-            finishLevel: 'ROUGH',
-            areaFromSqm: 0,
-            areaToSqm: 50,
-            rateCentsPerSqm: 1000,
-          },
-        ],
-      }),
-    });
 
     const snapshot = await builder.build(input);
 
+    expect(snapshot.schemaVersion).toBe(2);
     expect(snapshot.pricing.baseRate).toBeNull();
+  });
+
+  it('builds without a style and skips the style lookup result', async () => {
+    const { builder, catalog } = createBuilder({
+      catalog: catalogData({ style: null }),
+    });
+
+    const snapshot = await builder.build({ ...input, styleId: null });
+
+    expect(snapshot.style).toBeNull();
+    expect(catalog.read).toHaveBeenCalledWith(
+      expect.objectContaining({ styleId: null }),
+    );
   });
 
   it.each([
@@ -374,7 +346,7 @@ describe('SnapshotBuilder', () => {
     const previous = {
       lines: [],
       style: { id: 'style-1', name: text('Stored') },
-    } as unknown as SnapshotV1;
+    } as unknown as Snapshot;
 
     it('keeps an unpublished style', async () => {
       const { builder } = createBuilder({

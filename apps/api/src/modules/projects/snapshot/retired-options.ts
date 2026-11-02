@@ -1,7 +1,7 @@
 import type { RetiredOption } from '../../pricing/estimate/pricing-estimate.service';
-import type { SnapshotV1 } from './snapshot.schema';
+import type { Snapshot } from './snapshot.schema';
 
-export function retiredOptionsOf(snapshot: SnapshotV1): RetiredOption[] {
+export function retiredOptionsOf(snapshot: Snapshot): RetiredOption[] {
   const retired = new Map<string, RetiredOption>();
 
   for (const line of snapshot.lines) {

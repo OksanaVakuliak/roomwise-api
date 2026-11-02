@@ -31,6 +31,7 @@ const NARROWED_LIMITS_IP = '10.40.0.6';
 const NARROWED_CREATE_IP = '10.40.0.7';
 const REPLAY_LANG_IP = '10.40.0.8';
 const REUSED_KEY_IP = '10.40.0.9';
+const NO_STYLE_IP = '10.40.0.10';
 const PRICING_SETTINGS_ID = 1;
 const SAVED_QUANTITY = 3;
 const NARROWED_MAX_QUANTITY = 2;
@@ -78,7 +79,7 @@ describe('recalculation e2e', () => {
 
   async function saveVersion(
     configuration = buildProjectsConfiguration(),
-    styleId: string = projectsStyleId,
+    styleId: string | null = projectsStyleId,
     ip?: string,
   ) {
     const response = await request(testApp.http)
@@ -585,6 +586,26 @@ describe('recalculation e2e', () => {
       } finally {
         await deleteStyle(styleId);
       }
+    });
+
+    it('recalculates a calculation saved without a style', async () => {
+      const first = await saveVersion(
+        buildProjectsConfiguration(),
+        null,
+        NO_STYLE_IP,
+      );
+
+      const recalculated = await recalculate(
+        first.publicId,
+        1,
+        newIdempotencyKey(),
+        NO_STYLE_IP,
+      );
+
+      expect(first.style).toBeNull();
+      expect(recalculated.status).toBe(201);
+      expect(recalculated.body.style).toBeNull();
+      expect(recalculated.body.totals).toEqual(first.totals);
     });
 
     it('keeps the room names in the new version', async () => {

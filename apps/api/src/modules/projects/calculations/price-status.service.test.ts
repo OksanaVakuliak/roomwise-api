@@ -5,7 +5,7 @@ import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.service';
 import type { PricingDataService } from '../../pricing/pricing-data/pricing-data.service';
-import type { SnapshotV1 } from '../snapshot/snapshot.schema';
+import type { Snapshot } from '../snapshot/snapshot.schema';
 import { PriceStatusService } from './price-status.service';
 
 function line(overrides: Partial<EstimateLine>): EstimateLine {
@@ -30,11 +30,11 @@ function line(overrides: Partial<EstimateLine>): EstimateLine {
   };
 }
 
-function makeSnapshot(lines: EstimateLine[]): SnapshotV1 {
+function makeSnapshot(lines: EstimateLine[]): Snapshot {
   return {
     configuration: { marker: 'configuration' },
     lines,
-  } as unknown as SnapshotV1;
+  } as unknown as Snapshot;
 }
 
 function makeEstimate(totalUsdCents: number, lines: EstimateLine[]): Estimate {

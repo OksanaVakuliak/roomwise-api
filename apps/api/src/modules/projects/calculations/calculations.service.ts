@@ -17,7 +17,7 @@ import {
 import type { VersionView } from '../presenters/version-view.schema';
 import { ProjectsSettingsService } from '../settings/projects-settings.service';
 import { SnapshotBuilder } from '../snapshot/snapshot.builder';
-import type { SnapshotV1 } from '../snapshot/snapshot.schema';
+import type { Snapshot } from '../snapshot/snapshot.schema';
 import type { RecalculateCalculationRequestDto } from './dto/recalculate-calculation.schema';
 import {
   type PriceDifference,
@@ -57,7 +57,7 @@ const VERSION_SUMMARY_SELECT = {
 
 interface LoadedVersion {
   number: number;
-  snapshot: SnapshotV1;
+  snapshot: Snapshot;
   pricingVersion: string;
   totalUsdCents: number;
   incomplete: boolean;
@@ -70,7 +70,7 @@ interface LoadedVersion {
 }
 
 export interface PreparedCalculation {
-  snapshot: SnapshotV1;
+  snapshot: Snapshot;
   now: Date;
   expiresAt: Date;
 }
@@ -89,7 +89,7 @@ function expiryOf(now: Date, validityDays: number): Date {
 function versionData(
   calculationId: string,
   number: number,
-  snapshot: SnapshotV1,
+  snapshot: Snapshot,
   expiresAt: Date,
   createdAt: Date,
 ) {
@@ -253,15 +253,11 @@ export class CalculationsService implements OnModuleInit {
 
     const stored = parseStoredSnapshot(base.snapshot);
 
-    if (!stored.style) {
-      throw new AppError(ERROR_CODES.STYLE_NOT_FOUND);
-    }
-
     const now = this.clock.now();
     const [snapshot, { calculationValidityDays }] = await Promise.all([
       this.builder.build({
         configuration: stored.configuration,
-        styleId: stored.style.id,
+        styleId: stored.style?.id ?? null,
         createdAt: now,
         previous: stored,
       }),

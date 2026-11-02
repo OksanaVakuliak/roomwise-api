@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { CatalogSnapshotReadService } from '../../catalog/snapshot-read/catalog-snapshot-read.service';
 import {
   SNAPSHOT_SCHEMA_VERSION,
-  type SnapshotV1,
-  SnapshotV1Schema,
+  type Snapshot,
+  SnapshotSchema,
 } from '../snapshot/snapshot.schema';
 import {
   type PresentVersionInput,
@@ -17,11 +17,12 @@ const name = (en: string) => ({ en, uk: `${en}-uk` });
 
 const emptySection = { usdCents: 0, uahKopecks: null };
 
-const buildSnapshot = (): SnapshotV1 => ({
+const buildSnapshot = (): Snapshot => ({
   schemaVersion: SNAPSHOT_SCHEMA_VERSION,
   createdAt: '2026-10-22T10:00:00.000Z',
   pricingVersion: 'v1',
   configuration: {
+    scope: 'FULL',
     finishLevel: 'ROUGH',
     totalAreaSqm: 50,
     balconyAreaSqm: 0,
@@ -176,7 +177,7 @@ describe('VersionViewPresenter', () => {
   });
 
   it('falls back to the room type name for a snapshot without a room name', () => {
-    const snapshot = SnapshotV1Schema.parse(buildSnapshot());
+    const snapshot = SnapshotSchema.parse(buildSnapshot());
     expect(snapshot.rooms[0]).not.toHaveProperty('name');
 
     const view = presenter.present(

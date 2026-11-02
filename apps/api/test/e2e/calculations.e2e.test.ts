@@ -235,6 +235,13 @@ describe('calculations e2e', () => {
       expect(response.status).toBe(400);
     });
 
+    it('saves without a style when styleId is null', async () => {
+      const response = await save(savedBody({ styleId: null }));
+
+      expect(response.status).toBe(201);
+      expect(response.body.version.style).toBeNull();
+    });
+
     it('rejects an unknown style with STYLE_NOT_FOUND', async () => {
       const response = await save(savedBody({ styleId: randomUUID() }));
 

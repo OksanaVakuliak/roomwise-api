@@ -1,9 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type {
-  BaseRate,
-  Configuration,
-  PricingData,
-} from '@roomwise/calc-engine';
+import type { Configuration } from '@roomwise/calc-engine';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import {
@@ -15,21 +11,21 @@ import { PricingEstimateService } from '../../pricing/estimate/pricing-estimate.
 import { retiredOptionsOf } from './retired-options';
 import {
   SNAPSHOT_SCHEMA_VERSION,
-  type SnapshotV1,
-  SnapshotV1Schema,
+  type Snapshot,
+  SnapshotSchema,
 } from './snapshot.schema';
 
 export interface SnapshotBuildInput {
   configuration: Configuration;
-  styleId: string;
+  styleId: string | null;
   createdAt: Date;
-  previous?: SnapshotV1;
+  previous?: Snapshot;
 }
 
-type SnapshotLine = SnapshotV1['lines'][number];
+type SnapshotLine = Snapshot['lines'][number];
 
 function previousValues<T>(
-  previous: SnapshotV1 | undefined,
+  previous: Snapshot | undefined,
   key: (line: SnapshotLine) => string | null,
   value: (line: SnapshotLine) => T | null,
 ): Map<string, T> {
@@ -51,22 +47,6 @@ function distinct(values: Array<string | null>): string[] {
   return [...new Set(values.filter((value) => value !== null))];
 }
 
-function selectBaseRate(
-  configuration: Configuration,
-  pricingData: PricingData,
-): BaseRate | null {
-  const area = configuration.totalAreaSqm;
-
-  return (
-    pricingData.baseRates.find(
-      (rate) =>
-        rate.finishLevel === configuration.finishLevel &&
-        rate.areaFromSqm <= area &&
-        area < rate.areaToSqm,
-    ) ?? null
-  );
-}
-
 @Injectable()
 export class SnapshotBuilder {
   constructor(
@@ -76,7 +56,7 @@ export class SnapshotBuilder {
     private readonly catalog: CatalogSnapshotReadService,
   ) {}
 
-  async build(input: SnapshotBuildInput): Promise<SnapshotV1> {
+  async build(input: SnapshotBuildInput): Promise<Snapshot> {
     const { configuration, styleId, createdAt, previous } = input;
     const { estimate, pricingData } = await this.pricingEstimate.estimate(
       configuration,
@@ -106,9 +86,10 @@ export class SnapshotBuilder {
     };
     const catalog = await this.catalog.read(ids);
 
-    const style = this.resolveStyle(catalog.style, previous);
+    const style =
+      styleId === null ? null : this.resolveStyle(catalog.style, previous);
 
-    if (!style) {
+    if (styleId !== null && !style) {
       throw new AppError(ERROR_CODES.STYLE_NOT_FOUND);
     }
 
@@ -211,14 +192,17 @@ export class SnapshotBuilder {
         materialTypeId: rule.materialTypeId,
         quantityFormula: rule.quantityFormula,
         costFormula: rule.costFormula,
+        surface: rule.surface,
+        baseComponent: rule.baseComponent,
+        laborFormula: rule.laborFormula,
       }));
 
-    const snapshot = SnapshotV1Schema.parse({
+    const snapshot = SnapshotSchema.parse({
       schemaVersion: SNAPSHOT_SCHEMA_VERSION,
       createdAt: createdAt.toISOString(),
       pricingVersion: pricingData.version,
       configuration,
-      style: { id: style.id, name: style.name },
+      style: style ? { id: style.id, name: style.name } : null,
       rooms,
       lines,
       estimate: {
@@ -229,7 +213,7 @@ export class SnapshotBuilder {
       },
       pricing: {
         exchangeRate: estimate.exchangeRate,
-        baseRate: selectBaseRate(configuration, pricingData),
+        baseRate: null,
         coefficients: pricingData.coefficients,
         rules,
       },
@@ -240,8 +224,8 @@ export class SnapshotBuilder {
 
   private resolveStyle(
     current: SnapshotStyle | null,
-    previous: SnapshotV1 | undefined,
-  ): SnapshotV1['style'] {
+    previous: Snapshot | undefined,
+  ): Snapshot['style'] {
     if (previous) {
       return current ?? previous.style;
     }
