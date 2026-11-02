@@ -24,6 +24,14 @@ export const ruleIds = {
   floorPreparation: '7d169fa7-0185-4d9c-95d5-365f208e3d05',
   wallsPreparation: '50d251ec-283f-405c-aca7-66830717a59e',
   ceilingPreparation: '7dad9890-5133-476d-a947-f25032d5aa73',
+  baseDemolition: '5eff5f82-1835-485b-a33f-e111767695e6',
+  baseScreed: 'a6b36d7e-1480-41e3-be5a-a0589e646ad9',
+  baseWallPlaster: 'e692319d-1f6a-4761-9a11-b82c62b17b68',
+  baseCeilingPlaster: 'a4a6ce11-85f2-41a0-ad63-835864ea8066',
+  baseWallPutty: 'fbe0d7f6-3a7c-460f-81c6-77ecbf943439',
+  baseCeilingPutty: 'b65a4860-0e1f-4240-a193-cdfe0bcdeeb8',
+  baseElectrics: 'be2b60bb-ee77-4ecb-b601-bda03ba113f9',
+  basePlumbing: '57b0648d-05d1-47f0-a180-6b088bdb2720',
 } as const;
 
 type Measure = { quantity: string; laborBase: string };
@@ -129,6 +137,77 @@ function surfaceRule(
     sortOrder: 0,
   };
 }
+
+function baseRule(
+  id: string,
+  name: RuleName,
+  costFormula: string,
+  coefficientKeys: string[],
+): SeedPricingRule {
+  return {
+    id,
+    level: RuleLevel.OBJECT,
+    categoryId: null,
+    materialTypeId: null,
+    baseComponent: true,
+    name,
+    quantityFormula: null,
+    costFormula,
+    coefficientKeys,
+    sortOrder: 0,
+  };
+}
+
+const baseRules: SeedPricingRule[] = [
+  baseRule(
+    ruleIds.baseDemolition,
+    { en: 'Covering demolition', uk: 'Демонтаж покриттів' },
+    "finishLevel == 'LIVED_IN' ? roomsFloorArea * (coef.prep_floor_demolition + coef.mat_demolition_disposal) + roomsWallArea * coef.prep_wall_stripping : 0",
+    ['prep_floor_demolition', 'mat_demolition_disposal', 'prep_wall_stripping'],
+  ),
+  baseRule(
+    ruleIds.baseScreed,
+    { en: 'Screed', uk: 'Стяжка' },
+    "finishLevel == 'ROUGH' ? roomsFloorArea * (coef.prep_screed + coef.mat_screed) : 0",
+    ['prep_screed', 'mat_screed'],
+  ),
+  baseRule(
+    ruleIds.baseWallPlaster,
+    { en: 'Wall plastering', uk: 'Штукатурка стін' },
+    "roomsWallArea * (coef.prep_wall_plaster + coef.mat_wall_plaster) * (finishLevel == 'ROUGH' ? 1 : finishLevel == 'LIVED_IN' ? coef.lived_in_levelling_share : 0)",
+    ['prep_wall_plaster', 'mat_wall_plaster', 'lived_in_levelling_share'],
+  ),
+  baseRule(
+    ruleIds.baseCeilingPlaster,
+    { en: 'Ceiling plastering', uk: 'Штукатурка стелі' },
+    "finishLevel == 'ROUGH' ? roomsFloorArea * (coef.prep_ceiling_plaster + coef.mat_ceiling_plaster) : 0",
+    ['prep_ceiling_plaster', 'mat_ceiling_plaster'],
+  ),
+  baseRule(
+    ruleIds.baseWallPutty,
+    { en: 'Wall puttying', uk: 'Шпаклівка стін' },
+    'roomsWallArea * (coef.prep_wall_putty + coef.mat_putty)',
+    ['prep_wall_putty', 'mat_putty'],
+  ),
+  baseRule(
+    ruleIds.baseCeilingPutty,
+    { en: 'Ceiling puttying', uk: 'Шпаклівка стелі' },
+    'roomsFloorArea * (coef.prep_ceiling_putty + coef.mat_putty)',
+    ['prep_ceiling_putty', 'mat_putty'],
+  ),
+  baseRule(
+    ruleIds.baseElectrics,
+    { en: 'Wiring', uk: 'Електрика' },
+    "finishLevel == 'PRE_FINISH' ? 0 : roomsFloorArea * (coef.eng_electrics_sqm + coef.mat_electrics_sqm)",
+    ['eng_electrics_sqm', 'mat_electrics_sqm'],
+  ),
+  baseRule(
+    ruleIds.basePlumbing,
+    { en: 'Water supply and sewerage', uk: 'Вода й каналізація' },
+    "finishLevel == 'PRE_FINISH' ? 0 : wetRoomsCount * (coef.eng_plumbing_room + coef.mat_plumbing_room)",
+    ['eng_plumbing_room', 'mat_plumbing_room'],
+  ),
+].map((rule, index) => ({ ...rule, sortOrder: index + 1 }));
 
 export const rules: SeedPricingRule[] = [
   categoryRule(
@@ -312,4 +391,5 @@ export const rules: SeedPricingRule[] = [
       'prep_ceiling_stripping',
     ],
   ),
+  ...baseRules,
 ];
