@@ -34,6 +34,7 @@ const snapshot = {
   schemaVersion: 1,
   pricingVersion: PRICING_VERSION,
   createdAt: NOW.toISOString(),
+  lines: [{ amountCents: SAVED_TOTAL }],
   estimate: {
     totals: { usdCents: SAVED_TOTAL, uahKopecks: 41_000 },
     incomplete: false,
@@ -129,7 +130,37 @@ const input = {
   clientTotalUsdCents: SAVED_TOTAL,
 } as never;
 
+function snapshotWithLines(amounts: number[]) {
+  return {
+    ...snapshot,
+    lines: amounts.map((amountCents) => ({ amountCents })),
+  };
+}
+
 describe('CalculationsService.create', () => {
+  it.each([[[]], [[0, 0]]])(
+    'rejects an estimate without a positive line (%j) before persisting',
+    async (amounts) => {
+      const { service, builder, prisma, idempotency } = createService();
+      builder.build.mockResolvedValue(snapshotWithLines(amounts));
+
+      await expect(service.create(input, CONTEXT, 'uk')).rejects.toMatchObject({
+        code: ERROR_CODES.EMPTY_ESTIMATE,
+      });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(idempotency.record).not.toHaveBeenCalled();
+    },
+  );
+
+  it('saves an estimate with a single positive line among zero ones', async () => {
+    const { service, builder, tx } = createService();
+    builder.build.mockResolvedValue(snapshotWithLines([0, 1]));
+
+    await service.create(input, CONTEXT, 'uk');
+
+    expect(tx.calculationVersion.create).toHaveBeenCalledOnce();
+  });
+
   it('saves without a style when styleId is null', async () => {
     const { service, builder } = createService();
 
@@ -329,6 +360,15 @@ describe('CalculationsService.recalculate', () => {
     expect(ctx.builder.build).toHaveBeenCalledWith(
       expect.objectContaining({ styleId: null }),
     );
+  });
+
+  it('recalculates a stored snapshot whose estimate has no positive line', async () => {
+    const ctx = setup();
+    ctx.builder.build.mockResolvedValue(snapshotWithLines([]));
+
+    await expect(
+      ctx.service.recalculate('public', 1, RECALCULATE_CONTEXT, 'uk'),
+    ).resolves.toBeDefined();
   });
 
   it('recalculates a stored v1 snapshot into a v2 one', async () => {

@@ -189,6 +189,10 @@ export class CalculationsService implements OnModuleInit {
       this.settings.get(),
     ]);
 
+    if (!snapshot.lines.some((line) => line.amountCents > 0)) {
+      throw new AppError(ERROR_CODES.EMPTY_ESTIMATE);
+    }
+
     return {
       snapshot,
       now,

@@ -257,6 +257,36 @@ describe('leads e2e', () => {
       expect(response.status).toBe(400);
     });
 
+    it('rejects a draft with nothing picked in a partial renovation with EMPTY_ESTIMATE', async () => {
+      const calculationsBefore = await testApp.prisma.calculation.count();
+      const leadsBefore = await testApp.prisma.lead.count();
+      const configuration = {
+        ...buildProjectsConfiguration(),
+        scope: 'PARTIAL',
+        totalAreaSqm: null,
+        options: [],
+        rooms: buildProjectsConfiguration().rooms.map((room) => ({
+          ...room,
+          heatedFloor: false,
+          selections: [],
+        })),
+      };
+
+      const response = await submit(
+        leadBody({
+          calculation: undefined,
+          draft: { ...draft(), configuration },
+        }),
+      );
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.EMPTY_ESTIMATE);
+      await expect(testApp.prisma.calculation.count()).resolves.toBe(
+        calculationsBefore,
+      );
+      await expect(testApp.prisma.lead.count()).resolves.toBe(leadsBefore);
+    });
+
     it('rejects a lead without consent and phone', async () => {
       const { phone: _phone, ...withoutPhone } = leadBody();
       const response = await submit({

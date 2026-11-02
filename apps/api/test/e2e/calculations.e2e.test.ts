@@ -242,6 +242,27 @@ describe('calculations e2e', () => {
       expect(response.body.version.style).toBeNull();
     });
 
+    it('rejects a partial renovation with nothing picked with EMPTY_ESTIMATE', async () => {
+      const before = await testApp.prisma.calculation.count();
+      const configuration = {
+        ...buildProjectsConfiguration(),
+        scope: 'PARTIAL',
+        totalAreaSqm: null,
+        options: [],
+        rooms: buildProjectsConfiguration().rooms.map((room) => ({
+          ...room,
+          heatedFloor: false,
+          selections: [],
+        })),
+      };
+
+      const response = await save(savedBody({ configuration }));
+
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe(ERROR_CODES.EMPTY_ESTIMATE);
+      await expect(testApp.prisma.calculation.count()).resolves.toBe(before);
+    });
+
     it('rejects an unknown style with STYLE_NOT_FOUND', async () => {
       const response = await save(savedBody({ styleId: randomUUID() }));
 
