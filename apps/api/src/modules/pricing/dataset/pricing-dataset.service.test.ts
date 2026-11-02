@@ -223,7 +223,7 @@ describe('PricingDatasetService.upsert', () => {
     expect(argsOf('pricingRule', 'update')).toHaveLength(0);
   });
 
-  it('looks up category and material type rules by their target', async () => {
+  it('looks up surface, category and material type rules by their target', async () => {
     const { tx, argsOf } = createTx();
 
     await new PricingDatasetService().upsert(pricingDataset, tx);
@@ -232,15 +232,17 @@ describe('PricingDatasetService.upsert', () => {
       where: Record<string, unknown>;
     }>;
     pricingDataset.rules.forEach((rule, index) => {
-      expect(lookups[index].where).toEqual(
+      const target =
         rule.level === RuleLevel.OBJECT
           ? { id: rule.id }
-          : {
-              level: rule.level,
-              categoryId: rule.categoryId,
-              materialTypeId: rule.materialTypeId,
-            },
-      );
+          : rule.level === RuleLevel.SURFACE
+            ? { level: rule.level, surface: rule.surface }
+            : {
+                level: rule.level,
+                categoryId: rule.categoryId,
+                materialTypeId: rule.materialTypeId,
+              };
+      expect(lookups[index].where).toEqual(target);
     });
   });
 

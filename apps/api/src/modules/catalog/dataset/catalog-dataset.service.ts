@@ -163,6 +163,8 @@ export function buildCatalogDatasetRows(
       maxQuantity: option.maxQuantity,
       sortOrder: option.sortOrder,
       status: option.status,
+      priceCoefficientKeys: option.priceCoefficientKeys,
+      scopes: option.scopes,
     })),
     optionRoomTypes: dataset.options.flatMap((option) =>
       option.roomTypeIds.map((roomTypeId) => ({

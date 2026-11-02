@@ -10,9 +10,14 @@ import {
   ProductUnit,
   PublicationStatus,
   RoomTypeCode,
+  Scope,
   SurfaceKind,
 } from '../../../generated/prisma/enums';
 import { FALLBACK_COLOR_PATTERN } from '../common/fallback-color.schema';
+import {
+  priceCoefficientKeysSchema,
+  scopesSchema,
+} from '../options/dto/create-option.schema';
 
 export const MATERIAL_TYPE_CODE_PATTERN = /^[a-z][a-z0-9_]{1,40}$/;
 export const PRODUCT_TEXT_FIELD_MAX_LENGTH = 80;
@@ -229,6 +234,8 @@ export const seedOptionSchema = z
     sortOrder: z.int().nonnegative(),
     status: z.enum(PublicationStatus),
     roomTypeIds: z.array(z.uuid()),
+    priceCoefficientKeys: priceCoefficientKeysSchema.default([]),
+    scopes: scopesSchema.default([Scope.FULL, Scope.PARTIAL]),
   })
   .superRefine((option, ctx) => {
     if (option.unit === 'PIECE') {
@@ -262,7 +269,7 @@ export const seedOptionSchema = z
       });
     }
   });
-export type SeedOption = z.infer<typeof seedOptionSchema>;
+export type SeedOption = z.input<typeof seedOptionSchema>;
 
 export const catalogDatasetSchema = z
   .object({

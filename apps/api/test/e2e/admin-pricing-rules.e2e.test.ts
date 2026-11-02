@@ -373,46 +373,56 @@ describe('admin pricing rules e2e', () => {
   });
 
   describe('surface rules', () => {
-    async function freeSurface(): Promise<string> {
-      const taken = new Set(
-        (await listRules()).items
-          .filter((item) => item.level === 'SURFACE')
-          .map((item) => item.surface),
-      );
-      const free = ['FLOOR', 'WALLS', 'CEILING'].find(
-        (surface) => !taken.has(surface),
-      );
-
-      if (!free) {
-        throw new Error('every surface already has a rule');
-      }
-
-      return free;
-    }
-
-    it('creates a surface rule and answers 409 for a second one with the same surface', async () => {
-      const surface = await freeSurface();
-      const created = await authed('post', RULES_PATH)
-        .send(buildSurfaceInput(surface))
-        .expect(201);
-
-      expect(created.body).toMatchObject({
-        level: 'SURFACE',
-        surface,
-        categoryId: null,
-        materialTypeId: null,
-        quantityFormula: null,
-        laborFormula: null,
-        baseComponent: false,
-      });
-
+    it('answers 409 for a surface rule on an already seeded surface', async () => {
       const duplicate = await authed('post', RULES_PATH)
-        .send(buildSurfaceInput(surface))
+        .send(buildSurfaceInput('FLOOR'))
         .expect(409);
 
       expect(duplicate.body.error.code).toBe(ERROR_CODES.RULE_EXISTS);
+    });
 
-      await authed('delete', `${RULES_PATH}/${created.body.id}`).expect(204);
+    it('creates a surface rule and answers 409 for a second one with the same surface', async () => {
+      await testApp.prisma.pricingRule.delete({
+        where: { id: ruleIds.floorPreparation },
+      });
+
+      try {
+        const created = await authed('post', RULES_PATH)
+          .send(buildSurfaceInput('FLOOR'))
+          .expect(201);
+
+        expect(created.body).toMatchObject({
+          level: 'SURFACE',
+          surface: 'FLOOR',
+          categoryId: null,
+          materialTypeId: null,
+          quantityFormula: null,
+          laborFormula: null,
+          baseComponent: false,
+        });
+
+        const duplicate = await authed('post', RULES_PATH)
+          .send(buildSurfaceInput('FLOOR'))
+          .expect(409);
+
+        expect(duplicate.body.error.code).toBe(ERROR_CODES.RULE_EXISTS);
+
+        await authed('delete', `${RULES_PATH}/${created.body.id}`).expect(204);
+      } finally {
+        await testApp.prisma.pricingRule.deleteMany({
+          where: {
+            level: 'SURFACE',
+            surface: 'FLOOR',
+            id: { not: ruleIds.floorPreparation },
+          },
+        });
+        await testApp.prisma.$transaction(
+          (tx) =>
+            testApp.app.get(PricingDatasetService).upsert(pricingDataset, tx),
+          { timeout: SEED_TIMEOUT_MS, maxWait: TRANSACTION_MAX_WAIT_MS },
+        );
+        testApp.app.get(PricingDataService).invalidate();
+      }
     });
 
     it('rejects a surface rule without a surface', async () => {
