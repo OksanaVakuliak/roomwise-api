@@ -49,6 +49,8 @@ function withRetiredOptions(
         priceCents: 0,
         unit: 'PROJECT',
         roomTypeCodes: [],
+        priceCoefficientKeys: [],
+        scopes: ['FULL', 'PARTIAL'],
         minQuantity: null,
         maxQuantity: null,
         available: false,

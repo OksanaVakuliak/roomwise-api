@@ -51,6 +51,7 @@ const room: Configuration['rooms'][number] = {
 
 function configuration(overrides: Partial<Configuration>): Configuration {
   return {
+    scope: 'FULL',
     finishLevel: 'ROUGH',
     totalAreaSqm: 50,
     balconyAreaSqm: 0,
