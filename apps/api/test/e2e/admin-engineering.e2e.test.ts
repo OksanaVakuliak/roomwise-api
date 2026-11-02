@@ -490,7 +490,7 @@ describe('admin engineering e2e', () => {
     });
 
     it('stores existing coefficient keys and scopes and exposes them publicly once published', async () => {
-      const key = `option_price_${randomUUID()}`;
+      const key = `option_price_${randomUUID().replaceAll('-', '').slice(0, 12)}`;
       await testApp.prisma.coefficient.create({
         data: {
           key,

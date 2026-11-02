@@ -8,11 +8,13 @@ import { CatalogCache } from '../../src/modules/catalog/public/catalog-cache';
 import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
 import { createTestApp, type TestApp } from './app-factory';
 import {
+  buildEmptyPartialConfiguration,
   buildNamedBedroomsConfiguration,
   buildProjectsConfiguration,
   newIdempotencyKey,
   projectsStyleId,
   seedProjectsData,
+  withPackageIncludedInBase,
 } from './projects-fixtures';
 
 const SEED_TIMEOUT_MS = 120_000;
@@ -244,19 +246,11 @@ describe('calculations e2e', () => {
 
     it('rejects a partial renovation with nothing picked with EMPTY_ESTIMATE', async () => {
       const before = await testApp.prisma.calculation.count();
-      const configuration = {
-        ...buildProjectsConfiguration(),
-        scope: 'PARTIAL',
-        totalAreaSqm: null,
-        options: [],
-        rooms: buildProjectsConfiguration().rooms.map((room) => ({
-          ...room,
-          heatedFloor: false,
-          selections: [],
-        })),
-      };
+      const configuration = buildEmptyPartialConfiguration();
 
-      const response = await save(savedBody({ configuration }));
+      const response = await withPackageIncludedInBase(testApp, () =>
+        save(savedBody({ configuration })),
+      );
 
       expect(response.status).toBe(422);
       expect(response.body.error.code).toBe(ERROR_CODES.EMPTY_ESTIMATE);
