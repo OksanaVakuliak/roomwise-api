@@ -77,13 +77,29 @@ describe('pricingDataset', () => {
 
   it('defines the balcony tile rule at object level', () => {
     const objectRules = pricingDataset.rules.filter(
-      (rule) => rule.level === RuleLevel.OBJECT,
+      (rule) => rule.level === RuleLevel.OBJECT && !rule.baseComponent,
     );
 
     expect(objectRules).toHaveLength(1);
     expect(objectRules[0].costFormula).toBe(
       "balconyTiles ? balconyArea * (coef.balcony_tile + (scope == 'PARTIAL' ? coef.labor_balcony_tile : 0)) : 0",
     );
+  });
+
+  it('defines eight base components at object level', () => {
+    const baseRules = pricingDataset.rules.filter((rule) => rule.baseComponent);
+
+    expect(baseRules).toHaveLength(8);
+    expect(baseRules.every((rule) => rule.level === RuleLevel.OBJECT)).toBe(
+      true,
+    );
+    expect(
+      baseRules.map((rule) => rule.sortOrder).sort((a, b) => a - b),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    for (const rule of baseRules) {
+      expect(rule.categoryId, rule.id).toBeNull();
+      expect(rule.materialTypeId, rule.id).toBeNull();
+    }
   });
 
   it('seeds the reference coefficients with unique keys and non-zero values', () => {
@@ -99,6 +115,7 @@ describe('pricingDataset', () => {
       tile_glue: 10,
       tile_glue_heated: 21,
       balcony_tile: 75,
+      lived_in_levelling_share: 0.3,
     });
     for (const { key, value } of pricingDataset.coefficients) {
       expect(value, key).not.toBe(0);

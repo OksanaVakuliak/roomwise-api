@@ -6,6 +6,7 @@ const PER_LINEAR_M = { en: '$ per linear m', uk: '$ за пог. м' };
 const PER_PIECE = { en: '$ per piece', uk: '$ за шт.' };
 const PER_ROOM_SQM = { en: '$ per m² of room', uk: '$ за м² приміщення' };
 const PER_WET_ROOM = { en: '$ per wet room', uk: '$ за мокре приміщення' };
+const SHARE = { en: 'share', uk: 'частка' };
 
 export const coefficients: SeedCoefficient[] = [
   {
@@ -197,6 +198,16 @@ export const coefficients: SeedCoefficient[] = [
     },
     value: 3.2,
     unit: PER_SQM,
+    group: CoefficientGroup.PREPARATION,
+  },
+  {
+    key: 'lived_in_levelling_share',
+    name: {
+      en: 'Wall levelling share in a lived-in flat',
+      uk: 'Частка вирівнювання стін у житловому стані',
+    },
+    value: 0.3,
+    unit: SHARE,
     group: CoefficientGroup.PREPARATION,
   },
   {
