@@ -30,6 +30,12 @@ const PRICE_COST = 'quantity * price';
 const FLOOR_TILE_COST =
   'quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))';
 const WALL_TILE_COST = 'quantity * (price + coef.tile_glue)';
+const BALCONY_TILE_COST =
+  "balconyTiles ? balconyArea * (coef.balcony_tile + (scope == 'PARTIAL' ? coef.labor_balcony_tile : 0)) : 0";
+
+function laborFormula(key: string): string {
+  return `quantity * coef.${key}`;
+}
 
 type RuleName = SeedPricingRule['name'];
 
@@ -38,6 +44,7 @@ function categoryRule(
   categoryId: string,
   name: RuleName,
   quantityFormula: string,
+  laborKey: string,
 ): SeedPricingRule {
   return {
     id,
@@ -47,7 +54,8 @@ function categoryRule(
     name,
     quantityFormula,
     costFormula: PRICE_COST,
-    coefficientKeys: [],
+    laborFormula: laborFormula(laborKey),
+    coefficientKeys: [laborKey],
     sortOrder: 0,
   };
 }
@@ -60,6 +68,7 @@ function materialTypeRule(
   quantityFormula: string,
   costFormula: string,
   coefficientKeys: string[],
+  laborKey: string,
 ): SeedPricingRule {
   return {
     id,
@@ -69,7 +78,8 @@ function materialTypeRule(
     name,
     quantityFormula,
     costFormula,
-    coefficientKeys,
+    laborFormula: laborFormula(laborKey),
+    coefficientKeys: [...coefficientKeys, laborKey],
     sortOrder: 0,
   };
 }
@@ -80,60 +90,70 @@ export const rules: SeedPricingRule[] = [
     categoryIds.floorCovering,
     { en: 'Floor covering', uk: 'Підлогове покриття' },
     FLOOR_QUANTITY,
+    'labor_floor_covering',
   ),
   categoryRule(
     ruleIds.wallPaint,
     categoryIds.wallPaint,
     { en: 'Wall paint', uk: 'Фарба для стін' },
     WALL_QUANTITY,
+    'labor_wall_paint',
   ),
   categoryRule(
     ruleIds.wallpaper,
     categoryIds.wallpaper,
     { en: 'Wallpaper', uk: 'Шпалери' },
     WALL_QUANTITY,
+    'labor_wallpaper',
   ),
   categoryRule(
     ruleIds.wallTile,
     categoryIds.wallTile,
     { en: 'Wall tile', uk: 'Настінна плитка' },
     WALL_QUANTITY,
+    'labor_wall_tile',
   ),
   categoryRule(
     ruleIds.floorTile,
     categoryIds.floorTile,
     { en: 'Floor tile', uk: 'Підлогова плитка' },
     FLOOR_QUANTITY,
+    'labor_floor_tile',
   ),
   categoryRule(
     ruleIds.ceilingFinish,
     categoryIds.ceilingFinish,
     { en: 'Ceiling finish', uk: 'Оздоблення стелі' },
     FLOOR_QUANTITY,
+    'labor_ceiling_paint',
   ),
   categoryRule(
     ruleIds.skirtingBoards,
     categoryIds.skirtingBoards,
     { en: 'Skirting boards', uk: 'Плінтуси' },
     LINEAR_QUANTITY,
+    'labor_skirting',
   ),
   categoryRule(
     ruleIds.doors,
     categoryIds.doors,
     { en: 'Doors', uk: 'Двері' },
     PIECE_QUANTITY,
+    'labor_door',
   ),
   categoryRule(
     ruleIds.lighting,
     categoryIds.lighting,
     { en: 'Lighting fixtures', uk: 'Освітлювальні прилади' },
     PIECE_QUANTITY,
+    'labor_light',
   ),
   categoryRule(
     ruleIds.plumbingFixtures,
     categoryIds.plumbingFixtures,
     { en: 'Plumbing fixtures', uk: 'Сантехніка' },
     PIECE_QUANTITY,
+    'labor_plumbing_fixture',
   ),
   materialTypeRule(
     ruleIds.laminateFloor,
@@ -143,6 +163,7 @@ export const rules: SeedPricingRule[] = [
     FLOOR_QUANTITY,
     'quantity * (price + coef.laminate_underlay)',
     ['laminate_underlay'],
+    'labor_laminate',
   ),
   materialTypeRule(
     ruleIds.ceramicFloorTile,
@@ -155,6 +176,7 @@ export const rules: SeedPricingRule[] = [
     FLOOR_QUANTITY,
     FLOOR_TILE_COST,
     ['tile_glue', 'tile_glue_heated'],
+    'labor_floor_tile',
   ),
   materialTypeRule(
     ruleIds.porcelainFloorTile,
@@ -167,6 +189,7 @@ export const rules: SeedPricingRule[] = [
     FLOOR_QUANTITY,
     FLOOR_TILE_COST,
     ['tile_glue', 'tile_glue_heated'],
+    'labor_floor_tile',
   ),
   materialTypeRule(
     ruleIds.ceramicWallTile,
@@ -179,6 +202,7 @@ export const rules: SeedPricingRule[] = [
     WALL_QUANTITY,
     WALL_TILE_COST,
     ['tile_glue'],
+    'labor_wall_tile',
   ),
   materialTypeRule(
     ruleIds.porcelainWallTile,
@@ -191,6 +215,7 @@ export const rules: SeedPricingRule[] = [
     WALL_QUANTITY,
     WALL_TILE_COST,
     ['tile_glue'],
+    'labor_wall_tile',
   ),
   {
     id: ruleIds.balconyTile,
@@ -199,8 +224,8 @@ export const rules: SeedPricingRule[] = [
     materialTypeId: null,
     name: { en: 'Balcony tile', uk: 'Плитка на балконі' },
     quantityFormula: null,
-    costFormula: 'balconyTiles ? balconyArea * coef.balcony_tile : 0',
-    coefficientKeys: ['balcony_tile'],
+    costFormula: BALCONY_TILE_COST,
+    coefficientKeys: ['balcony_tile', 'labor_balcony_tile'],
     sortOrder: 0,
   },
 ];
