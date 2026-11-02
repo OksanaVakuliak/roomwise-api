@@ -3,7 +3,6 @@ import {
   localizedDescriptionSchema,
   localizedNameSchema,
 } from '../../../common/i18n/localized-text.schema';
-import { coefficientKeySchema } from '../../../common/pricing/coefficient-key.schema';
 import {
   OptionCode,
   OptionKind,
@@ -15,6 +14,10 @@ import {
   SurfaceKind,
 } from '../../../generated/prisma/enums';
 import { FALLBACK_COLOR_PATTERN } from '../common/fallback-color.schema';
+import {
+  priceCoefficientKeysSchema,
+  scopesSchema,
+} from '../options/dto/create-option.schema';
 
 export const MATERIAL_TYPE_CODE_PATTERN = /^[a-z][a-z0-9_]{1,40}$/;
 export const PRODUCT_TEXT_FIELD_MAX_LENGTH = 80;
@@ -231,8 +234,8 @@ export const seedOptionSchema = z
     sortOrder: z.int().nonnegative(),
     status: z.enum(PublicationStatus),
     roomTypeIds: z.array(z.uuid()),
-    priceCoefficientKeys: z.array(coefficientKeySchema).default([]),
-    scopes: z.array(z.enum(Scope)).min(1).default([Scope.FULL, Scope.PARTIAL]),
+    priceCoefficientKeys: priceCoefficientKeysSchema.default([]),
+    scopes: scopesSchema.default([Scope.FULL, Scope.PARTIAL]),
   })
   .superRefine((option, ctx) => {
     if (option.unit === 'PIECE') {
