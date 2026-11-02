@@ -1,4 +1,5 @@
-import { RuleLevel } from '../../../../generated/prisma/enums';
+import type { RuleSurface } from '../../../../common/pricing/rule-surface.schema';
+import { RuleLevel, SurfaceKind } from '../../../../generated/prisma/enums';
 import { categoryIds } from '../../../catalog/dataset/data/categories';
 import { materialTypeIds } from '../../../catalog/dataset/data/material-types';
 import type { SeedPricingRule } from '../pricing-dataset.schema';
@@ -20,6 +21,9 @@ export const ruleIds = {
   ceramicWallTile: '3a23d981-4c27-4b05-b923-f70803d6de69',
   porcelainWallTile: 'df264c3d-3c7e-4a14-abe8-d1b80fc88179',
   balconyTile: '69d9411d-6fd7-4f6b-8ce9-6f68f90b24fc',
+  floorPreparation: '7d169fa7-0185-4d9c-95d5-365f208e3d05',
+  wallsPreparation: '50d251ec-283f-405c-aca7-66830717a59e',
+  ceilingPreparation: '7dad9890-5133-476d-a947-f25032d5aa73',
 } as const;
 
 const FLOOR_QUANTITY = 'floorArea * (1 + waste)';
@@ -32,6 +36,16 @@ const FLOOR_TILE_COST =
 const WALL_TILE_COST = 'quantity * (price + coef.tile_glue)';
 const BALCONY_TILE_COST =
   "balconyTiles ? balconyArea * (coef.balcony_tile + (scope == 'PARTIAL' ? coef.labor_balcony_tile : 0)) : 0";
+
+const FLOOR_PREPARATION_COST =
+  "surfaceArea * (finishLevel == 'ROUGH' ? coef.prep_screed + coef.mat_screed : finishLevel == 'LIVED_IN' ? coef.prep_floor_demolition + coef.mat_demolition_disposal : 0)";
+
+function plasterAndPutty(surface: 'wall' | 'ceiling'): string {
+  const plaster = `coef.prep_${surface}_plaster + coef.mat_${surface}_plaster`;
+  const putty = `coef.prep_${surface}_putty + coef.mat_putty`;
+  const stripping = `coef.prep_${surface}_stripping`;
+  return `surfaceArea * (finishLevel == 'ROUGH' ? ${plaster} + ${putty} : finishLevel == 'LIVED_IN' ? ${stripping} + ${putty} : ${putty})`;
+}
 
 function laborFormula(key: string): string {
   return `quantity * coef.${key}`;
@@ -80,6 +94,27 @@ function materialTypeRule(
     costFormula,
     laborFormula: laborFormula(laborKey),
     coefficientKeys: [...coefficientKeys, laborKey],
+    sortOrder: 0,
+  };
+}
+
+function surfaceRule(
+  id: string,
+  surface: RuleSurface,
+  name: RuleName,
+  costFormula: string,
+  coefficientKeys: string[],
+): SeedPricingRule {
+  return {
+    id,
+    level: RuleLevel.SURFACE,
+    categoryId: null,
+    materialTypeId: null,
+    surface,
+    name,
+    quantityFormula: null,
+    costFormula,
+    coefficientKeys,
     sortOrder: 0,
   };
 }
@@ -228,4 +263,42 @@ export const rules: SeedPricingRule[] = [
     coefficientKeys: ['balcony_tile', 'labor_balcony_tile'],
     sortOrder: 0,
   },
+  surfaceRule(
+    ruleIds.floorPreparation,
+    SurfaceKind.FLOOR,
+    { en: 'Floor preparation', uk: 'Підготовка підлоги' },
+    FLOOR_PREPARATION_COST,
+    [
+      'prep_screed',
+      'mat_screed',
+      'prep_floor_demolition',
+      'mat_demolition_disposal',
+    ],
+  ),
+  surfaceRule(
+    ruleIds.wallsPreparation,
+    SurfaceKind.WALLS,
+    { en: 'Wall preparation', uk: 'Підготовка стін' },
+    plasterAndPutty('wall'),
+    [
+      'prep_wall_plaster',
+      'mat_wall_plaster',
+      'prep_wall_putty',
+      'mat_putty',
+      'prep_wall_stripping',
+    ],
+  ),
+  surfaceRule(
+    ruleIds.ceilingPreparation,
+    SurfaceKind.CEILING,
+    { en: 'Ceiling preparation', uk: 'Підготовка стелі' },
+    plasterAndPutty('ceiling'),
+    [
+      'prep_ceiling_plaster',
+      'mat_ceiling_plaster',
+      'prep_ceiling_putty',
+      'mat_putty',
+      'prep_ceiling_stripping',
+    ],
+  ),
 ];
