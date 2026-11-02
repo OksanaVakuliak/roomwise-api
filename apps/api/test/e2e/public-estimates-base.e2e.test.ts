@@ -73,7 +73,7 @@ const flatSpecs: RoomSpec[] = [
   ['BEDROOM', 4, 3.5],
   ['KITCHEN', 4, 3],
   ['BATHROOM', 3, 2],
-  ['HALLWAY', 2, 2],
+  ['BEDROOM', 2, 2],
 ];
 
 const largeFlatSpecs: RoomSpec[] = [
@@ -81,7 +81,7 @@ const largeFlatSpecs: RoomSpec[] = [
   ...Array.from({ length: 4 }, (): RoomSpec => ['BEDROOM', 8, 5]),
   ['KITCHEN', 10, 5],
   ['BATHROOM', 5, 5],
-  ['HALLWAY', 5, 5],
+  ['BEDROOM', 5, 5],
 ];
 
 function coefficientValue(key: string): number {
