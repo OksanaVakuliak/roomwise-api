@@ -193,7 +193,7 @@ const baseRules: SeedPricingRule[] = [
   baseRule(
     ruleIds.baseWallPutty,
     { en: 'Wall puttying', uk: 'Шпаклівка стін' },
-    'roomsWallArea * (coef.prep_wall_putty + coef.mat_putty)',
+    'roomsPuttyWallArea * (coef.prep_wall_putty + coef.mat_putty)',
     ['prep_wall_putty', 'mat_putty'],
   ),
   baseRule(

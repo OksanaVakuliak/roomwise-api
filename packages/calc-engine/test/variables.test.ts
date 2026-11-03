@@ -7,6 +7,12 @@ import type {
   RoomTypeCode,
 } from '../src';
 import { objectVariables, productVariables, roomVariables } from '../src';
+import { CATEGORY, PRODUCT, scopeData, select } from './fixtures/scope';
+
+const objectOf = (
+  value: Configuration,
+  categories: readonly PricingCategory[] = [],
+) => objectVariables(value, categories);
 
 const room = (
   roomTypeCode: RoomTypeCode,
@@ -93,7 +99,7 @@ describe('productVariables', () => {
 
 describe('objectVariables', () => {
   it('exposes object fields and counts rooms by type', () => {
-    const vars = objectVariables(
+    const vars = objectOf(
       configuration([
         room('LIVING_ROOM'),
         room('BEDROOM', { clientId: 'b1' }),
@@ -112,6 +118,7 @@ describe('objectVariables', () => {
       bathroomsCount: 1,
       roomsFloorArea: 100,
       roomsWallArea: 225,
+      roomsPuttyWallArea: 225,
       roomsPerimeter: 90,
       wetRoomsCount: 2,
     });
@@ -123,14 +130,14 @@ describe('objectVariables', () => {
       scope: 'PARTIAL',
       totalAreaSqm: null,
     };
-    const vars = objectVariables(partial);
+    const vars = objectOf(partial);
     expect(vars.scope).toBe('PARTIAL');
     expect(vars.totalArea).toBe(40);
     expect(vars.roomsFloorArea).toBe(40);
   });
 
   it('falls back to the rooms floor area when the full scope has no total area', () => {
-    const vars = objectVariables({
+    const vars = objectOf({
       ...configuration([room('BEDROOM')]),
       totalAreaSqm: null,
     });
@@ -138,7 +145,7 @@ describe('objectVariables', () => {
   });
 
   it('sums room areas and counts wet rooms including kitchen-living', () => {
-    const vars = objectVariables(
+    const vars = objectOf(
       configuration([
         room('KITCHEN_LIVING', { lengthM: 6, widthM: 3, heightM: 3 }),
         room('BATHROOM', { lengthM: 2, widthM: 2, heightM: 2 }),
@@ -152,8 +159,26 @@ describe('objectVariables', () => {
     expect(vars.roomsWallArea).toBe(18 * 3 + 8 * 2 + 45 + 45);
   });
 
+  it('sums wall area only over rooms whose wall selections need putty', () => {
+    const tileOnly = [select(CATEGORY.wallTile, PRODUCT.wallTile)];
+    const painted = [
+      select(CATEGORY.wallTile, PRODUCT.wallTile),
+      select(CATEGORY.wallPaint, PRODUCT.wallPaint),
+    ];
+    const vars = objectOf(
+      configuration([
+        room('BATHROOM', { clientId: 'bath', selections: tileOnly }),
+        room('BEDROOM', { clientId: 'bed', selections: painted }),
+        room('LIVING_ROOM', { clientId: 'living' }),
+      ]),
+      scopeData.categories,
+    );
+    expect(vars.roomsWallArea).toBe(135);
+    expect(vars.roomsPuttyWallArea).toBe(90);
+  });
+
   it('counts a kitchen-living room as a room and a separate kitchen as none', () => {
-    const vars = objectVariables(
+    const vars = objectOf(
       configuration([room('KITCHEN_LIVING'), room('KITCHEN')]),
     );
     expect(vars.roomsCount).toBe(1);
@@ -161,7 +186,7 @@ describe('objectVariables', () => {
   });
 
   it('does not count a hallway or a storage room as a room', () => {
-    const vars = objectVariables(
+    const vars = objectOf(
       configuration([room('BEDROOM'), room('HALLWAY'), room('STORAGE')]),
     );
     expect(vars.roomsCount).toBe(1);

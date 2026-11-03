@@ -197,7 +197,7 @@ Every schema is a zod schema with an inferred type of the same name without the 
 | `totalArea` variable | `totalAreaSqm` | `roomsFloorArea` |
 | Area warnings | `ROOMS_AREA_EXCEEDS_TOTAL`, `ROOMS_AREA_BELOW_TOTAL` | none |
 
-The base cost has no per-area rate table. It is built from rules whose formulas use the volumes of the rooms (`roomsFloorArea`, `roomsWallArea`, `roomsPerimeter`, `wetRoomsCount`) together with `finishLevel`, `scope` and coefficients.
+The base cost has no per-area rate table. It is built from rules whose formulas use the volumes of the rooms (`roomsFloorArea`, `roomsWallArea`, `roomsPuttyWallArea`, `roomsPerimeter`, `wetRoomsCount`) together with `finishLevel`, `scope` and coefficients.
 
 ### Line components
 
@@ -241,12 +241,13 @@ roomType == 'KITCHEN' ? ceil(floorArea / 2) : 0
 | object | `totalArea`, `balconyArea` | number; `totalArea` is `roomsFloorArea` in `PARTIAL` |
 | object | `scope` | `FULL`, `PARTIAL` |
 | object | `roomsFloorArea`, `roomsWallArea`, `roomsPerimeter` | number: sums over all rooms of `floorArea`, `wallArea` and `perimeter` |
+| object | `roomsPuttyWallArea` | number: sum of `wallArea` over rooms whose wall selections need putty (rooms without wall selections count) |
 | object | `wetRoomsCount` | number (bathrooms, kitchens and kitchen-living rooms) |
 | object | `balconyTiles` | boolean |
 | object | `finishLevel` | `ROUGH`, `PRE_FINISH`, `LIVED_IN` |
 | object | `roomsCount`, `bathroomsCount` | number (living rooms, bedrooms and kitchen-living rooms count as rooms) |
 | `SURFACE` rules only | `surfaceArea` | number: the area of the surface being prepared |
-| `SURFACE` rules only | `puttyRequired` | boolean: `true` when at least one category selected on the surface has `requiresPutty` (default `true`); booleans do not coerce, write `puttyRequired ? a : 0` |
+| `SURFACE` rules only | `puttyRequired` | boolean: `true` when no category is selected on the surface or at least one selected category has `requiresPutty` (default `true`), taken from the selections, not from line status; booleans do not coerce, write `puttyRequired ? a : 0` |
 | cost and labor formulas of `CATEGORY` and `MATERIAL_TYPE` rules | `quantity` | the result of the quantity formula |
 
 Availability by rule level:

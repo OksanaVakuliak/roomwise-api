@@ -38,6 +38,7 @@ export const RuleSampleSchema = z
       bathroomsCount: z.int().min(0),
       roomsFloorArea: z.number().min(0),
       roomsWallArea: z.number().min(0),
+      roomsPuttyWallArea: z.number().min(0).optional(),
       roomsPerimeter: z.number().min(0),
       wetRoomsCount: z.int().min(0),
     }),

@@ -464,6 +464,19 @@ describe('public estimates accuracy on seed e2e', () => {
       expect(tilePrep.amountCents).toBe(0);
       expect(paintPrep.amountCents + tilePrep.amountCents).toBe(expectedCents);
     });
+
+    it('excludes tile-only walls from base wall putty in full renovation', async () => {
+      const bedroomWallArea = wallAreaOf(BEDROOM_LENGTH_M, BEDROOM_WIDTH_M);
+      const estimate = await estimateOf(
+        full({
+          rooms: [bathroom([tile]), bedroom([paint])],
+        }),
+      );
+
+      expect(
+        lineOf(estimate, `BASE:${ruleIds.baseWallPutty}`).amountCents,
+      ).toBe(Math.round(bedroomWallArea * puttyPerSqmCents));
+    });
   });
 
   describe('stripping disposal', () => {

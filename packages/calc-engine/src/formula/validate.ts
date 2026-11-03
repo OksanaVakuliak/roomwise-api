@@ -80,6 +80,7 @@ export const FORMULA_SCOPE_VARIABLES: Record<
     enumeration('scope', ScopeSchema.options),
     number('roomsFloorArea'),
     number('roomsWallArea'),
+    number('roomsPuttyWallArea'),
     number('roomsPerimeter'),
     number('wetRoomsCount'),
   ],

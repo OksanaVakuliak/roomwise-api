@@ -1,9 +1,11 @@
 import type {
   Configuration,
   FinishLevel,
+  PricingCategory,
   RoomTypeCode,
   Scope,
 } from '../schemas';
+import { puttyRequiredOn } from './putty';
 import { roomVariables } from './room';
 
 export interface ObjectVariables {
@@ -16,6 +18,7 @@ export interface ObjectVariables {
   readonly bathroomsCount: number;
   readonly roomsFloorArea: number;
   readonly roomsWallArea: number;
+  readonly roomsPuttyWallArea: number;
   readonly roomsPerimeter: number;
   readonly wetRoomsCount: number;
 }
@@ -42,7 +45,10 @@ export function totalAreaOf(
     : totalAreaSqm;
 }
 
-export function objectVariables(configuration: Configuration): ObjectVariables {
+export function objectVariables(
+  configuration: Configuration,
+  categories: readonly PricingCategory[],
+): ObjectVariables {
   const rooms = configuration.rooms.map(roomVariables);
   const sum = (pick: (room: (typeof rooms)[number]) => number): number =>
     rooms.reduce((total, room) => total + pick(room), 0);
@@ -65,6 +71,13 @@ export function objectVariables(configuration: Configuration): ObjectVariables {
     ).length,
     roomsFloorArea,
     roomsWallArea: sum((room) => room.wallArea),
+    roomsPuttyWallArea: configuration.rooms.reduce(
+      (total, room) =>
+        puttyRequiredOn(room, 'WALLS', categories)
+          ? total + roomVariables(room).wallArea
+          : total,
+      0,
+    ),
     roomsPerimeter: sum((room) => room.perimeter),
     wetRoomsCount: rooms.filter((room) => WET_ROOMS.includes(room.roomType))
       .length,

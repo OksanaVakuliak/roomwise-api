@@ -84,6 +84,36 @@ describe('puttyRequired', () => {
     expect(puttyPrep([CATEGORY.wallPaint])).toEqual([10000]);
   });
 
+  it('keeps putty when the category needing it became unavailable', () => {
+    const result = estimate(
+      partialConfiguration({
+        rooms: [
+          room('bedroom', {
+            selections: [
+              select(CATEGORY.wallPaint, PRODUCT.wallPaint),
+              select(CATEGORY.wallTile, PRODUCT.wallTile),
+            ],
+          }),
+        ],
+      }),
+      {
+        ...withSurfaceRules((rule) =>
+          rule.id === RULE.surfaceWalls
+            ? { ...rule, costFormula: 'puttyRequired ? 100 : 7' }
+            : rule,
+        ),
+        products: scopeData.products.map((product) =>
+          product.id === PRODUCT.wallPaint
+            ? { ...product, available: false }
+            : product,
+        ),
+      },
+    );
+    expect(prepOf(result, wallLine(CATEGORY.wallTile))?.amountCents).toBe(
+      10000,
+    );
+  });
+
   it('adds no surface line when nothing is selected on the surface', () => {
     expect(puttyPrep([])).toEqual([]);
   });

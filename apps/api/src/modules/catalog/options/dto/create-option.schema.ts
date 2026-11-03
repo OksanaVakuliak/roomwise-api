@@ -1,4 +1,7 @@
-import { ScopeSchema } from '@roomwise/calc-engine';
+import {
+  findOptionPriceSourceViolation,
+  ScopeSchema,
+} from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import {
@@ -7,7 +10,6 @@ import {
 } from '../../../../common/i18n/localized-text.schema';
 import { coefficientKeySchema } from '../../../../common/pricing/coefficient-key.schema';
 import { OptionKind, OptionUnit } from '../../../../generated/prisma/enums';
-import { findOptionPriceSourceViolation } from '../option-price-source';
 
 export const OPTION_QUANTITY_MIN = 1;
 export const OPTION_QUANTITY_MAX = 100;

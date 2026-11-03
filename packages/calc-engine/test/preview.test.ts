@@ -165,6 +165,22 @@ describe('previewRule', () => {
     });
   });
 
+  it('previews roomsPuttyWallArea as the wall area by default and from the sample', () => {
+    const preview = (roomsPuttyWallArea?: number) =>
+      previewRule({
+        level: 'OBJECT',
+        quantityFormula: null,
+        costFormula: 'roomsPuttyWallArea',
+        coefficients: {},
+        sample: {
+          ...sample,
+          object: { ...sample.object, roomsPuttyWallArea },
+        },
+      });
+    expect(preview().amountCents).toBe(13500);
+    expect(preview(40).amountCents).toBe(4000);
+  });
+
   it('previews a surface rule with the surface area and no quantity', () => {
     const preview = previewRule({
       level: 'SURFACE',

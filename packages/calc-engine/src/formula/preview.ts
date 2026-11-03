@@ -92,6 +92,7 @@ function objectScope({ object }: RuleSample): Variables {
     bathroomsCount: object.bathroomsCount,
     roomsFloorArea: object.roomsFloorArea,
     roomsWallArea: object.roomsWallArea,
+    roomsPuttyWallArea: object.roomsPuttyWallArea ?? object.roomsWallArea,
     roomsPerimeter: object.roomsPerimeter,
     wetRoomsCount: object.wetRoomsCount,
   };

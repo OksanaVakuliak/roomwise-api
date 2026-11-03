@@ -121,21 +121,37 @@ const PricingOptionObjectSchema = z.object({
   available: z.boolean(),
 });
 
+export function findOptionPriceSourceViolation(
+  priceCents: number | null,
+  priceCoefficientKeys: readonly string[],
+): { path: 'priceCents' | 'priceCoefficientKeys'; message: string } | null {
+  const hasKeys = priceCoefficientKeys.length > 0;
+  if (priceCents !== null && hasKeys) {
+    return {
+      path: 'priceCents',
+      message: 'priceCents must be null when priceCoefficientKeys is set',
+    };
+  }
+  if (priceCents === null && !hasKeys) {
+    return {
+      path: 'priceCoefficientKeys',
+      message: 'priceCoefficientKeys is required when priceCents is null',
+    };
+  }
+  return null;
+}
+
 export const PricingOptionSchema = PricingOptionObjectSchema.superRefine(
   (option, context) => {
-    const hasKeys = option.priceCoefficientKeys.length > 0;
-    if (option.priceCents !== null && hasKeys) {
+    const violation = findOptionPriceSourceViolation(
+      option.priceCents,
+      option.priceCoefficientKeys,
+    );
+    if (violation !== null) {
       context.addIssue({
         code: 'custom',
-        path: ['priceCents'],
-        message: 'priceCents must be null when priceCoefficientKeys is set',
-      });
-    }
-    if (option.priceCents === null && !hasKeys) {
-      context.addIssue({
-        code: 'custom',
-        path: ['priceCoefficientKeys'],
-        message: 'priceCoefficientKeys is required when priceCents is null',
+        path: [violation.path],
+        message: violation.message,
       });
     }
   },

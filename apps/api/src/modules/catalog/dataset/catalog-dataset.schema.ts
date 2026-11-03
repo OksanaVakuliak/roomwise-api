@@ -1,3 +1,4 @@
+import { findOptionPriceSourceViolation } from '@roomwise/calc-engine';
 import { z } from 'zod';
 import {
   localizedDescriptionSchema,
@@ -18,7 +19,6 @@ import {
   priceCoefficientKeysSchema,
   scopesSchema,
 } from '../options/dto/create-option.schema';
-import { findOptionPriceSourceViolation } from '../options/option-price-source';
 
 export const MATERIAL_TYPE_CODE_PATTERN = /^[a-z][a-z0-9_]{1,40}$/;
 export const PRODUCT_TEXT_FIELD_MAX_LENGTH = 80;

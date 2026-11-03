@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { findOptionPriceSourceViolation } from '@roomwise/calc-engine';
 import {
   type RevisionMutation,
   staleRevisionError,
@@ -32,7 +33,6 @@ import type {
 import type { OptionOrderInput } from './dto/option-order.schema';
 import type { UpdateOptionStatusInput } from './dto/option-status.schema';
 import type { PatchOptionInput } from './dto/patch-option.schema';
-import { findOptionPriceSourceViolation } from './option-price-source';
 
 const OPTION_ADMIN_INCLUDE = {
   updatedBy: { select: { id: true, login: true } },

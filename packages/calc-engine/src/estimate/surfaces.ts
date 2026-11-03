@@ -7,7 +7,7 @@ import type {
   RoomConfiguration,
 } from '../schemas';
 import type { ObjectVariables } from '../variables';
-import { roomVariables } from '../variables';
+import { puttyRequiredOn, roomVariables } from '../variables';
 import { componentCents, failedLine, MAX_LINE_CENTS, outOfRange } from './line';
 import { runNumericFormula } from './run-formula';
 
@@ -70,23 +70,17 @@ export function applySurfacePrep(
     WALLS: variables.wallArea,
   };
   const surfaces = new Map<Surface, number[]>();
-  const puttyRequired = new Map<Surface, boolean>();
   lines.forEach((line, index) => {
     const category = data.categories.find(
       (item) => item.id === line.categoryId,
     );
-    const surface = category?.surface;
     if (
       line.status === 'OK' &&
       category !== undefined &&
-      surface !== undefined &&
-      surface !== 'NONE'
+      category.surface !== 'NONE'
     ) {
+      const surface = category.surface;
       surfaces.set(surface, [...(surfaces.get(surface) ?? []), index]);
-      puttyRequired.set(
-        surface,
-        (puttyRequired.get(surface) ?? false) || category.requiresPutty,
-      );
     }
   });
   for (const [surface, indexes] of surfaces) {
@@ -98,7 +92,7 @@ export function applySurfacePrep(
       variables: {
         ...variables,
         surfaceArea: areas[surface],
-        puttyRequired: puttyRequired.get(surface) ?? true,
+        puttyRequired: puttyRequiredOn(room, surface, data.categories),
       },
       coefficients: data.coefficients,
     });
