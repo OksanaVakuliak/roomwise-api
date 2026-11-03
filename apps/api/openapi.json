@@ -12073,6 +12073,10 @@
               "puttyRequired": {
                 "type": "boolean"
               },
+              "puttyArea": {
+                "type": "number",
+                "minimum": 0
+              },
               "object": {
                 "type": "object",
                 "properties": {
