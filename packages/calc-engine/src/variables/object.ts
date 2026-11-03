@@ -73,7 +73,8 @@ export function objectVariables(
     roomsWallArea: sum((room) => room.wallArea),
     roomsPuttyWallArea: configuration.rooms.reduce(
       (total, room) =>
-        total + roomVariables(room).wallArea * puttyShareOn(room, categories),
+        total +
+        roomVariables(room).wallArea * puttyShareOn(room, 'WALLS', categories),
       0,
     ),
     roomsPerimeter: sum((room) => room.perimeter),

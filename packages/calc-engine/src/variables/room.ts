@@ -11,6 +11,15 @@ export interface RoomVariables {
   readonly roomType: RoomTypeCode;
 }
 
+export type MeasuredSurface = 'FLOOR' | 'WALLS' | 'CEILING';
+
+export function surfaceAreaOf(
+  variables: Pick<RoomVariables, 'floorArea' | 'wallArea'>,
+  surface: MeasuredSurface,
+): number {
+  return surface === 'WALLS' ? variables.wallArea : variables.floorArea;
+}
+
 export type RoomDimensions = Pick<
   RoomConfiguration,
   'roomTypeCode' | 'lengthM' | 'widthM' | 'heightM' | 'heatedFloor'

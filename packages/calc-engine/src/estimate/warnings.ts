@@ -4,7 +4,7 @@ import type {
   EstimateWarning,
   PricingData,
 } from '../schemas';
-import { roomVariables, surfaceShares } from '../variables';
+import { roomVariables, surfaceAreaOf, surfaceShares } from '../variables';
 import { collectWarnings } from './totals';
 
 const roundArea = (value: number) => Math.round(value * 10_000) / 10_000;
@@ -51,8 +51,7 @@ function areaShareWarnings(
         return [];
       }
       const percent = 100 - shares.totalPercent;
-      const area =
-        surface === 'WALLS' ? variables.wallArea : variables.floorArea;
+      const area = surfaceAreaOf(variables, surface);
       return [
         {
           code: 'AREA_SHARE_UNALLOCATED',

@@ -5,6 +5,7 @@ import type {
   RoomSelection,
 } from '../schemas';
 import { puttyRequiredOn } from './putty';
+import type { MeasuredSurface } from './room';
 
 export type ShareSurface = 'WALLS' | 'FLOOR';
 
@@ -87,13 +88,15 @@ export function areaShareError(
 
 export function puttyShareOn(
   room: RoomConfiguration,
+  surface: MeasuredSurface,
   categories: readonly PricingCategory[],
 ): number {
-  const { selections, shared } = surfaceShares(room, 'WALLS', categories);
-  if (!shared) {
-    return puttyRequiredOn(room, 'WALLS', categories) ? 1 : 0;
+  const shares =
+    surface === 'WALLS' ? surfaceShares(room, surface, categories) : null;
+  if (shares === null || !shares.shared) {
+    return puttyRequiredOn(room, surface, categories) ? 1 : 0;
   }
-  const needing = selections.filter(
+  const needing = shares.selections.filter(
     (selection) =>
       categories.find((category) => category.id === selection.categoryId)
         ?.requiresPutty,

@@ -174,9 +174,9 @@ describe('putty with shares', () => {
 
   it('limits puttyArea to the shares needing putty', () => {
     const [bedroom] = configuration.rooms;
-    expect(puttyShareOn(bedroom ?? room('none'), scopeData.categories)).toBe(
-      0.75,
-    );
+    expect(
+      puttyShareOn(bedroom ?? room('none'), 'WALLS', scopeData.categories),
+    ).toBe(0.75);
     const result = estimate(configuration, {
       ...scopeData,
       rules: scopeData.rules.map((rule) =>
@@ -201,15 +201,15 @@ describe('putty with shares', () => {
         share(CATEGORY.wallTile, PRODUCT.wallTile, 100),
       ],
     });
-    expect(puttyShareOn(full, scopeData.categories)).toBe(1);
-    expect(puttyShareOn(room('r'), scopeData.categories)).toBe(1);
+    expect(puttyShareOn(full, 'WALLS', scopeData.categories)).toBe(1);
+    expect(puttyShareOn(room('r'), 'WALLS', scopeData.categories)).toBe(1);
   });
 
   it('is zero in legacy mode without a category needing putty', () => {
     const only = room('r', {
       selections: [share(CATEGORY.wallTile, PRODUCT.wallTile)],
     });
-    expect(puttyShareOn(only, scopeData.categories)).toBe(0);
+    expect(puttyShareOn(only, 'WALLS', scopeData.categories)).toBe(0);
   });
 
   it('counts a selection without a product in legacy mode', () => {
@@ -219,7 +219,7 @@ describe('putty with shares', () => {
         { categoryId: CATEGORY.wallPaint, productId: null },
       ],
     });
-    expect(puttyShareOn(mixed, scopeData.categories)).toBe(1);
+    expect(puttyShareOn(mixed, 'WALLS', scopeData.categories)).toBe(1);
   });
 });
 
