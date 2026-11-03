@@ -214,6 +214,23 @@ describe('calculations e2e', () => {
       ).toEqual(['Master bedroom', 'Kids room']);
     });
 
+    it('keeps the area share of a selection in the saved configuration', async () => {
+      const configuration = buildProjectsConfiguration();
+      configuration.rooms[1].selections[1].areaShare = 60;
+
+      const response = await save(savedBody({ configuration }));
+      const reopened = await latest(response.body.version.publicId);
+
+      expect(response.status).toBe(201);
+      expect(response.body.version.configuration).toEqual(configuration);
+      expect(reopened.body.configuration).toEqual(configuration);
+      expect(
+        response.body.version.warnings.map(
+          (warning: { code: string }) => warning.code,
+        ),
+      ).toContain('AREA_SHARE_UNALLOCATED');
+    });
+
     it('trims the room name', async () => {
       const configuration = buildNamedBedroomsConfiguration();
       configuration.rooms[0].name = '  Master bedroom  ';

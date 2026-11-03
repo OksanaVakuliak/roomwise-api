@@ -10965,6 +10965,11 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "areaShare": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
                           }
                         },
                         "required": [
@@ -13228,6 +13233,11 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "areaShare": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
                           }
                         },
                         "required": [
@@ -13470,6 +13480,11 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "areaShare": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
                               }
                             },
                             "required": [
@@ -14426,6 +14441,11 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "areaShare": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
                           }
                         },
                         "required": [
@@ -15301,6 +15321,11 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "areaShare": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
                               }
                             },
                             "required": [
@@ -16151,6 +16176,11 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "areaShare": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
                               }
                             },
                             "required": [
