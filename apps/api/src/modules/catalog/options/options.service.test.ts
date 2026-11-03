@@ -694,6 +694,7 @@ describe('OptionsService.update', () => {
     await service.update(
       OPTION_ID,
       {
+        priceCents: null,
         priceCoefficientKeys: ['waste'],
         scopes: ['FULL'],
         revision: REVISION,
@@ -704,6 +705,7 @@ describe('OptionsService.update', () => {
     expect(updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          priceCents: null,
           priceCoefficientKeys: ['waste'],
           scopes: ['FULL'],
         }),
@@ -739,12 +741,60 @@ describe('OptionsService.update', () => {
     await expect(
       service.update(
         OPTION_ID,
-        { priceCoefficientKeys: ['missing'], revision: REVISION },
+        {
+          priceCents: null,
+          priceCoefficientKeys: ['missing'],
+          revision: REVISION,
+        },
         ADMIN_ID,
       ),
     ).rejects.toMatchObject({
       code: 'UNKNOWN_COEFFICIENT',
       params: { priceCoefficientKeys: ['missing'] },
+    });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects keys added while the existing price stays set', async () => {
+    const updateMany = vi.fn();
+    const prisma = createPrisma({ option: { updateMany } });
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(['waste']),
+    );
+
+    await expect(
+      service.update(
+        OPTION_ID,
+        { priceCoefficientKeys: ['waste'], revision: REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      fields: [{ path: 'priceCents', code: 'CUSTOM' }],
+    });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects clearing the price without any coefficient keys', async () => {
+    const updateMany = vi.fn();
+    const prisma = createPrisma({ option: { updateMany } });
+    const service = new OptionsService(
+      prisma,
+      createImageUrls(),
+      createCoefficients(),
+    );
+
+    await expect(
+      service.update(
+        OPTION_ID,
+        { priceCents: null, revision: REVISION },
+        ADMIN_ID,
+      ),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      fields: [{ path: 'priceCoefficientKeys', code: 'CUSTOM' }],
     });
     expect(updateMany).not.toHaveBeenCalled();
   });

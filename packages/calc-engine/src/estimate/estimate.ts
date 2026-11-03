@@ -26,7 +26,7 @@ export function estimate(
   data: PricingData,
 ): Estimate {
   const rate = data.exchangeRate?.rate ?? null;
-  const variables = objectVariables(configuration);
+  const variables = objectVariables(configuration, data.categories);
   const lines = [
     ...objectRuleLines(configuration, data, 'BASE', variables),
     ...objectRuleLines(configuration, data, 'OBJECT', variables),

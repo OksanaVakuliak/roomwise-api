@@ -78,7 +78,7 @@ describe('pricingDataset', () => {
 
     expect(objectRules).toHaveLength(1);
     expect(objectRules[0].costFormula).toBe(
-      "balconyTiles ? balconyArea * (coef.balcony_tile + (scope == 'PARTIAL' ? coef.labor_balcony_tile : 0)) : 0",
+      'balconyTiles ? balconyArea * (coef.balcony_tile + coef.labor_balcony_tile) : 0',
     );
   });
 

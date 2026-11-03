@@ -22,7 +22,7 @@ export const patchOptionSchema = z
     name: localizedNameDraftSchema.optional(),
     description: localizedDescriptionDraftSchema.optional(),
     imageId: z.uuid().nullable().optional(),
-    priceCents: z.number().int().min(0).optional(),
+    priceCents: z.number().int().min(0).nullable().optional(),
     confirmZeroPrice: z.boolean().optional(),
     unit: z.enum(OptionUnit).optional(),
     minQuantity: z

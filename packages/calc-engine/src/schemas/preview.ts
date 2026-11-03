@@ -27,6 +27,7 @@ export const RuleSampleSchema = z
       })
       .optional(),
     surfaceArea: z.number().min(0).optional(),
+    puttyRequired: z.boolean().optional(),
     object: z.object({
       scope: ScopeSchema,
       totalAreaSqm: z.number().positive().nullable(),
@@ -37,6 +38,7 @@ export const RuleSampleSchema = z
       bathroomsCount: z.int().min(0),
       roomsFloorArea: z.number().min(0),
       roomsWallArea: z.number().min(0),
+      roomsPuttyWallArea: z.number().min(0).optional(),
       roomsPerimeter: z.number().min(0),
       wetRoomsCount: z.int().min(0),
     }),

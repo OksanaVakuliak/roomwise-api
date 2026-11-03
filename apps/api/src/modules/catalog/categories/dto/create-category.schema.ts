@@ -8,6 +8,7 @@ export const createCategorySchema = z.object({
   name: localizedNameDraftSchema,
   wastePercent: z.number().min(0).max(CATEGORY_WASTE_PERCENT_MAX),
   surface: z.enum(SurfaceKind),
+  requiresPutty: z.boolean().default(true),
 });
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;

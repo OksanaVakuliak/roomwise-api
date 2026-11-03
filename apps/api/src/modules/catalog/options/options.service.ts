@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { findOptionPriceSourceViolation } from '@roomwise/calc-engine';
 import {
   type RevisionMutation,
   staleRevisionError,
@@ -175,6 +176,7 @@ export class OptionsService {
         name: true,
         description: true,
         priceCents: true,
+        priceCoefficientKeys: true,
         unit: true,
         minQuantity: true,
         maxQuantity: true,
@@ -226,6 +228,19 @@ export class OptionsService {
 
     const resolvedPriceCents =
       input.priceCents !== undefined ? input.priceCents : existing.priceCents;
+    const resolvedKeys =
+      input.priceCoefficientKeys !== undefined
+        ? input.priceCoefficientKeys
+        : existing.priceCoefficientKeys;
+    const violation = findOptionPriceSourceViolation(
+      resolvedPriceCents,
+      resolvedKeys,
+    );
+    if (violation) {
+      throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
+        fields: [{ path: violation.path, code: 'CUSTOM' }],
+      });
+    }
     if (input.priceCents !== undefined) {
       assertZeroPriceConfirmed(resolvedPriceCents, input.confirmZeroPrice);
     }

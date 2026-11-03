@@ -41,7 +41,7 @@ export interface OptionInputOverrides {
   name?: LocalizedText;
   description?: LocalizedText;
   imageId?: string;
-  priceCents?: number;
+  priceCents?: number | null;
   confirmZeroPrice?: boolean;
   unit?: OptionUnit;
   minQuantity?: number;
@@ -56,7 +56,7 @@ export interface OptionInput {
   name: LocalizedText;
   description: LocalizedText;
   imageId?: string;
-  priceCents: number;
+  priceCents: number | null;
   confirmZeroPrice: boolean;
   unit: OptionUnit;
   minQuantity?: number;
@@ -81,7 +81,10 @@ export function buildOptionInput(
       overrides.description ??
       localizedText('A test option.', 'Тестова опція.'),
     imageId: overrides.imageId,
-    priceCents: overrides.priceCents ?? DEFAULT_OPTION_PRICE_CENTS,
+    priceCents:
+      overrides.priceCents === undefined
+        ? DEFAULT_OPTION_PRICE_CENTS
+        : overrides.priceCents,
     confirmZeroPrice: overrides.confirmZeroPrice ?? false,
     unit: overrides.unit ?? OptionUnit.PROJECT,
     minQuantity: overrides.minQuantity,

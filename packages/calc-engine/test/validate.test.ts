@@ -301,7 +301,7 @@ describe('formula constants stay in sync with variable derivation', () => {
 
   it('matches object variables', () => {
     expect(names('object')).toEqual(
-      Object.keys(objectVariables(configuration)).sort(),
+      Object.keys(objectVariables(configuration, [])).sort(),
     );
   });
 
@@ -420,6 +420,7 @@ describe('validateFormula static typing', () => {
     for (const name of [
       'roomsFloorArea',
       'roomsWallArea',
+      'roomsPuttyWallArea',
       'roomsPerimeter',
       'wetRoomsCount',
     ]) {
@@ -427,6 +428,7 @@ describe('validateFormula static typing', () => {
     }
     expect(check("finishLevel == 'LIVED_IN' ? 1 : 0").valid).toBe(true);
     expect(check('wetRoomsCount * roomsFloorArea', 'OBJECT').valid).toBe(true);
+    expect(check('roomsPuttyWallArea * 2', 'OBJECT').valid).toBe(true);
   });
 
   it('allows the surface area only at the surface level', () => {
@@ -442,6 +444,23 @@ describe('validateFormula static typing', () => {
     expect(check('surfaceArea', 'OBJECT').valid).toBe(false);
     expect(FORMULA_VARIABLES.SURFACE.map((v) => v.name)).toContain(
       'surfaceArea',
+    );
+  });
+
+  it('allows puttyRequired only at the surface level', () => {
+    expect(check('puttyRequired ? 1 : 0', 'SURFACE').valid).toBe(true);
+    expect(check('puttyRequired ? 1 : 0', 'CATEGORY').errors).toEqual([
+      {
+        code: 'VARIABLE_NOT_ALLOWED_AT_LEVEL',
+        position: 0,
+        length: 13,
+        params: { variable: 'puttyRequired', level: 'CATEGORY' },
+      },
+    ]);
+    expect(check('puttyRequired ? 1 : 0', 'OBJECT').valid).toBe(false);
+    expect(check('puttyRequired * 2', 'SURFACE').valid).toBe(false);
+    expect(FORMULA_VARIABLES.SURFACE.map((v) => v.name)).toContain(
+      'puttyRequired',
     );
   });
 

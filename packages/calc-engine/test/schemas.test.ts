@@ -321,18 +321,56 @@ describe('schemas', () => {
   it('shapes pricing options with coefficient keys and scopes', () => {
     const option = {
       ...pricingData.options[0],
+      priceCents: null,
       priceCoefficientKeys: ['k_floor'],
       scopes: ['FULL', 'PARTIAL'],
     };
     const parse = (value: unknown) =>
       PricingDataSchema.safeParse({ ...pricingData, options: [value] });
     expect(parse(option).success).toBe(true);
-    expect(parse({ ...option, priceCoefficientKeys: [] }).success).toBe(true);
+    expect(
+      parse({ ...option, priceCents: 500, priceCoefficientKeys: [] }).success,
+    ).toBe(true);
     expect(parse({ ...option, priceCoefficientKeys: 'k_floor' }).success).toBe(
       false,
     );
     expect(parse({ ...option, scopes: [] }).success).toBe(false);
     expect(parse({ ...option, scopes: ['HALF'] }).success).toBe(false);
+  });
+
+  it('requires exactly one source of an option price', () => {
+    const option = pricingData.options[0];
+    const parse = (value: unknown) =>
+      PricingDataSchema.safeParse({ ...pricingData, options: [value] });
+    const issuePaths = (value: unknown) => {
+      const result = parse(value);
+      return result.success
+        ? []
+        : result.error.issues.map((issue) => issue.path);
+    };
+    expect(parse({ ...option, priceCents: 500 }).success).toBe(true);
+    expect(
+      parse({ ...option, priceCents: null, priceCoefficientKeys: ['k'] })
+        .success,
+    ).toBe(true);
+    expect(
+      issuePaths({ ...option, priceCents: 500, priceCoefficientKeys: ['k'] }),
+    ).toEqual([['options', 0, 'priceCents']]);
+    expect(issuePaths({ ...option, priceCents: null })).toEqual([
+      ['options', 0, 'priceCoefficientKeys'],
+    ]);
+  });
+
+  it('defaults requiresPutty to true for categories without it', () => {
+    expect(
+      PricingDataSchema.parse(pricingData).categories[0]?.requiresPutty,
+    ).toBe(true);
+    expect(
+      PricingDataSchema.parse({
+        ...pricingData,
+        categories: [{ ...pricingData.categories[0], requiresPutty: false }],
+      }).categories[0]?.requiresPutty,
+    ).toBe(false);
   });
 
   it('parses line components and rejects malformed ones', () => {

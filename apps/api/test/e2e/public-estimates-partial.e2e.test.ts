@@ -515,20 +515,18 @@ describe('public estimates of partial renovation on seed e2e', () => {
       return line;
     }
 
-    it('includes installation labour in a partial scope only', async () => {
+    it('includes installation labour in both scopes', async () => {
       const partialLine = balconyLineOf(await estimateOf(partial(balcony)));
       const fullLine = balconyLineOf(await estimateOf(full(balcony)));
       const tileCents = coefficientCents('balcony_tile');
       const laborCents = coefficientCents('labor_balcony_tile');
 
-      expect(fullLine.amountCents).toBe(BALCONY_AREA_SQM * tileCents);
-      expect(partialLine.amountCents).toBe(
-        BALCONY_AREA_SQM * (tileCents + laborCents),
-      );
-      expect(partialLine.amountCents - fullLine.amountCents).toBe(
-        BALCONY_AREA_SQM * laborCents,
-      );
-      expect(partialLine.amountCents - fullLine.amountCents).toBe(
+      const expectedCents = BALCONY_AREA_SQM * (tileCents + laborCents);
+
+      expect(fullLine.amountCents).toBe(expectedCents);
+      expect(partialLine.amountCents).toBe(expectedCents);
+      expect(partialLine.amountCents - fullLine.amountCents).toBe(0);
+      expect(fullLine.amountCents - BALCONY_AREA_SQM * tileCents).toBe(
         BALCONY_LABOR_CENTS,
       );
     });

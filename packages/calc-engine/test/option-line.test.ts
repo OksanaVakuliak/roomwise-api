@@ -65,6 +65,16 @@ describe('option line pricing', () => {
     ).toMatchObject({ status: 'OK', unitPriceCents: 2021, amountCents: 2021 });
   });
 
+  it('prices an option with null priceCents from its coefficients', () => {
+    expect(
+      line(
+        'PARTIAL',
+        { priceCents: null, priceCoefficientKeys: ['a', 'b'] },
+        { a: 9.2, b: 11 },
+      ),
+    ).toMatchObject({ status: 'OK', unitPriceCents: 2020, amountCents: 2020 });
+  });
+
   it('fails the line on a missing coefficient', () => {
     expect(
       line('PARTIAL', { priceCoefficientKeys: ['a', 'missing'] }, { a: 1 }),

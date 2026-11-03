@@ -26,7 +26,7 @@ export const engineeringOptionSchema = z.object({
   name: z.string(),
   description: z.string(),
   image: imageRefSchema.nullable(),
-  priceCents: z.number().int().nonnegative(),
+  priceCents: z.number().int().nonnegative().nullable(),
   unit: z.enum(OptionUnit),
   perRoom: z.boolean(),
   roomTypeCodes: z.array(RoomTypeCodeSchema),

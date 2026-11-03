@@ -8,6 +8,7 @@ export const patchCategorySchema = z.object({
   name: localizedNameDraftSchema.optional(),
   wastePercent: z.number().min(0).max(CATEGORY_WASTE_PERCENT_MAX).optional(),
   surface: z.enum(SurfaceKind).optional(),
+  requiresPutty: z.boolean().optional(),
   revision: z.uuid(),
 });
 

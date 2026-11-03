@@ -7,6 +7,20 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-03
+
+### Added
+
+- `PricingCategory.requiresPutty`: whether the category needs a puttied base, default `true`, so pricing data without it still parses.
+- The `puttyRequired` variable for `SURFACE` rules (`FORMULA_PUTTY_REQUIRED_VARIABLE`): `true` when at least one category selected on the surface has `requiresPutty`, `false` when none does. It is a boolean, so use `puttyRequired ? a : 0`; it does not coerce to a number. It is derived from the room's selections, not from line status, so an unavailable product does not remove putty.
+- The `roomsPuttyWallArea` object variable: wall area of the rooms whose wall selections need putty; rooms without wall selections count. Also `RuleSample.object.roomsPuttyWallArea` for previews, defaulting to `roomsWallArea`. `objectVariables` now takes the pricing categories as a second argument.
+- `findOptionPriceSourceViolation`: the single check of the option price source rule, used by `PricingOptionSchema`.
+- `RuleSample.puttyRequired` for `SURFACE` previews, `true` when omitted.
+
+### Changed
+
+- `PricingOption.priceCents` is nullable. An option has exactly one price source: a number with no `priceCoefficientKeys`, or `null` with at least one key. `PricingDataSchema` rejects both and neither. Consumers must show the option price from the computed line (`unitPriceCents`), not from `priceCents`.
+
 ## [0.5.0] - 2026-11-02
 
 ### Added
