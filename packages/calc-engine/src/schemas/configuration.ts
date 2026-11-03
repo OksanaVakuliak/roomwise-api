@@ -9,6 +9,7 @@ import {
 export const RoomSelectionSchema = z.object({
   categoryId: z.string(),
   productId: z.string().nullable(),
+  areaShare: z.int().min(1).max(100).optional(),
 });
 export type RoomSelection = z.infer<typeof RoomSelectionSchema>;
 

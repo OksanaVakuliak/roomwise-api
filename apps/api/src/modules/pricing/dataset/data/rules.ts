@@ -61,10 +61,11 @@ const FLOOR_PREPARATION_COST =
 
 function plasterAndPutty(surface: 'wall' | 'ceiling'): string {
   const plaster = `coef.prep_${surface}_plaster + coef.mat_${surface}_plaster`;
-  const puttyCost = `coef.prep_${surface}_putty + coef.mat_putty`;
-  const putty =
-    surface === 'wall' ? `(puttyRequired ? ${puttyCost} : 0)` : puttyCost;
+  const putty = `coef.prep_${surface}_putty + coef.mat_putty`;
   const stripping = `coef.prep_${surface}_stripping + coef.mat_stripping_disposal`;
+  if (surface === 'wall') {
+    return `surfaceArea * (finishLevel == 'ROUGH' ? ${plaster} : finishLevel == 'LIVED_IN' ? ${stripping} : 0) + puttyArea * (${putty})`;
+  }
   return `surfaceArea * (finishLevel == 'ROUGH' ? ${plaster} + ${putty} : finishLevel == 'LIVED_IN' ? ${stripping} + ${putty} : ${putty})`;
 }
 

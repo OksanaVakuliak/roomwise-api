@@ -7,6 +7,21 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-04
+
+### Added
+
+- `RoomSelection.areaShare`: percent (whole, 1 to 100) of the category's surface covered by the selection. Several coverings on the walls or the floor of one room split the area by their shares. A surface where no selection has a share keeps the old behaviour: every covering uses the full area. Once one selection of a surface has a share, all of them must.
+- Line errors `AREA_SHARE_NOT_ALLOWED` (share on a ceiling or a category without a surface), `AREA_SHARE_MISSING` and `AREA_SHARE_EXCEEDS_SURFACE` (shares above 100 percent).
+- Estimate warning `AREA_SHARE_UNALLOCATED` with `roomClientId`, `surface`, `percent` and `sqm` when the shares of a surface sum to less than 100.
+- The `puttyArea` variable for `SURFACE` rules (`FORMULA_PUTTY_AREA_VARIABLE`): the wall area times the share of the wall coverings that need putty; for floor and ceiling the surface area when putty is required there, otherwise 0. Also `RuleSample.puttyArea` for previews, defaulting to `surfaceArea`, or 0 when the sample has `puttyRequired: false`.
+- `surfaceShares`, `areaShareOf`, `areaShareError` and `puttyShareOn` in the variables module.
+
+### Changed
+
+- A category's own surface area variable (`wallArea` for walls, `floorArea` for floor) is multiplied by its share in `quantityFormula`, `costFormula` and `laborFormula`. Surface preparation stays on the full area.
+- `roomsPuttyWallArea` is the wall area weighted by the share needing putty per room, and `puttyRequired` is `true` when that share is above zero.
+
 ## [0.6.0] - 2026-11-03
 
 ### Added
