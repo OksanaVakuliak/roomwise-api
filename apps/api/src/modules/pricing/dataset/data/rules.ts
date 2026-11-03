@@ -54,7 +54,7 @@ const FLOOR_TILE_COST =
   'quantity * (price + (heatedFloor ? coef.tile_glue_heated : coef.tile_glue))';
 const WALL_TILE_COST = 'quantity * (price + coef.tile_glue)';
 const BALCONY_TILE_COST =
-  "balconyTiles ? balconyArea * (coef.balcony_tile + (scope == 'PARTIAL' ? coef.labor_balcony_tile : 0)) : 0";
+  'balconyTiles ? balconyArea * (coef.balcony_tile + coef.labor_balcony_tile) : 0';
 
 const FLOOR_PREPARATION_COST =
   "surfaceArea * (finishLevel == 'ROUGH' ? coef.prep_screed + coef.mat_screed : finishLevel == 'LIVED_IN' ? coef.prep_floor_demolition + coef.mat_demolition_disposal : 0)";
@@ -62,7 +62,7 @@ const FLOOR_PREPARATION_COST =
 function plasterAndPutty(surface: 'wall' | 'ceiling'): string {
   const plaster = `coef.prep_${surface}_plaster + coef.mat_${surface}_plaster`;
   const putty = `coef.prep_${surface}_putty + coef.mat_putty`;
-  const stripping = `coef.prep_${surface}_stripping`;
+  const stripping = `coef.prep_${surface}_stripping + coef.mat_stripping_disposal`;
   return `surfaceArea * (finishLevel == 'ROUGH' ? ${plaster} + ${putty} : finishLevel == 'LIVED_IN' ? ${stripping} + ${putty} : ${putty})`;
 }
 
@@ -162,8 +162,13 @@ const baseRules: SeedPricingRule[] = [
   baseRule(
     ruleIds.baseDemolition,
     { en: 'Covering demolition', uk: 'Демонтаж покриттів' },
-    "finishLevel == 'LIVED_IN' ? roomsFloorArea * (coef.prep_floor_demolition + coef.mat_demolition_disposal) + roomsWallArea * coef.prep_wall_stripping : 0",
-    ['prep_floor_demolition', 'mat_demolition_disposal', 'prep_wall_stripping'],
+    "finishLevel == 'LIVED_IN' ? roomsFloorArea * (coef.prep_floor_demolition + coef.mat_demolition_disposal) + roomsWallArea * (coef.prep_wall_stripping + coef.mat_stripping_disposal) : 0",
+    [
+      'prep_floor_demolition',
+      'mat_demolition_disposal',
+      'prep_wall_stripping',
+      'mat_stripping_disposal',
+    ],
   ),
   baseRule(
     ruleIds.baseScreed,
@@ -376,6 +381,7 @@ export const rules: SeedPricingRule[] = [
       'prep_wall_putty',
       'mat_putty',
       'prep_wall_stripping',
+      'mat_stripping_disposal',
     ],
   ),
   surfaceRule(
@@ -389,6 +395,7 @@ export const rules: SeedPricingRule[] = [
       'prep_ceiling_putty',
       'mat_putty',
       'prep_ceiling_stripping',
+      'mat_stripping_disposal',
     ],
   ),
   ...baseRules,
