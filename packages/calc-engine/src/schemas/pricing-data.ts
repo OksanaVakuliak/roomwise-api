@@ -107,7 +107,7 @@ export const PricingPackageItemSchema = z.object({
 });
 export type PricingPackageItem = z.infer<typeof PricingPackageItemSchema>;
 
-export const PricingOptionSnapshotSchema = z.object({
+const PricingOptionObjectSchema = z.object({
   id: z.string(),
   code: OptionCodeSchema.nullable(),
   kind: OptionKindSchema,
@@ -121,7 +121,7 @@ export const PricingOptionSnapshotSchema = z.object({
   available: z.boolean(),
 });
 
-export const PricingOptionSchema = PricingOptionSnapshotSchema.superRefine(
+export const PricingOptionSchema = PricingOptionObjectSchema.superRefine(
   (option, context) => {
     const hasKeys = option.priceCoefficientKeys.length > 0;
     if (option.priceCents !== null && hasKeys) {
@@ -142,7 +142,7 @@ export const PricingOptionSchema = PricingOptionSnapshotSchema.superRefine(
 );
 export type PricingOption = z.infer<typeof PricingOptionSchema>;
 
-const pricingDataShape = {
+export const PricingDataSchema = z.object({
   version: z.string().regex(/^[0-9a-f]{16}$/),
   exchangeRate: ExchangeRateSchema.nullable(),
   limits: PricingLimitsSchema,
@@ -154,12 +154,5 @@ const pricingDataShape = {
   products: z.array(PricingProductSchema),
   packageItems: z.array(PricingPackageItemSchema),
   options: z.array(PricingOptionSchema),
-};
-
-export const PricingDataSchema = z.object(pricingDataShape);
-export type PricingData = z.infer<typeof PricingDataSchema>;
-
-export const PricingDataSnapshotSchema = z.object({
-  ...pricingDataShape,
-  options: z.array(PricingOptionSnapshotSchema),
 });
+export type PricingData = z.infer<typeof PricingDataSchema>;

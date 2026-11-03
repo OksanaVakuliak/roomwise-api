@@ -18,6 +18,7 @@ import {
   priceCoefficientKeysSchema,
   scopesSchema,
 } from '../options/dto/create-option.schema';
+import { findOptionPriceSourceViolation } from '../options/option-price-source';
 
 export const MATERIAL_TYPE_CODE_PATTERN = /^[a-z][a-z0-9_]{1,40}$/;
 export const PRODUCT_TEXT_FIELD_MAX_LENGTH = 80;
@@ -239,18 +240,15 @@ export const seedOptionSchema = z
     scopes: scopesSchema.default([Scope.FULL, Scope.PARTIAL]),
   })
   .superRefine((option, ctx) => {
-    const hasKeys = option.priceCoefficientKeys.length > 0;
-    if (option.priceCents !== null && hasKeys) {
+    const violation = findOptionPriceSourceViolation(
+      option.priceCents,
+      option.priceCoefficientKeys,
+    );
+    if (violation) {
       ctx.addIssue({
         code: 'custom',
-        message: 'priceCents must be null when priceCoefficientKeys is set',
-        path: ['priceCents'],
-      });
-    } else if (option.priceCents === null && !hasKeys) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'priceCoefficientKeys is required when priceCents is null',
-        path: ['priceCoefficientKeys'],
+        message: violation.message,
+        path: [violation.path],
       });
     }
 

@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { estimate as estimateCost } from '../src';
 import {
   ConfigurationSchema,
   EstimateSchema,
   LocalizedTextSchema,
   PricingDataSchema,
-  PricingDataSnapshotSchema,
 } from '../src/schemas';
 
 const name = { en: 'Name', uk: 'Назва' };
@@ -361,42 +359,6 @@ describe('schemas', () => {
     expect(issuePaths({ ...option, priceCents: null })).toEqual([
       ['options', 0, 'priceCoefficientKeys'],
     ]);
-  });
-
-  it('keeps parsing old snapshots of coefficient-priced options', () => {
-    const optionId = pricingData.options[0]?.id;
-    const old = {
-      ...pricingData,
-      coefficients: { k_floor: 1.2 },
-      options: [
-        {
-          ...pricingData.options[0],
-          priceCents: 999,
-          priceCoefficientKeys: ['k_floor'],
-        },
-      ],
-    };
-    expect(PricingDataSchema.safeParse(old).success).toBe(false);
-    const snapshot = PricingDataSnapshotSchema.parse(old);
-    const configuration = ConfigurationSchema.parse({
-      scope: 'FULL',
-      finishLevel: 'ROUGH',
-      totalAreaSqm: 40,
-      balconyAreaSqm: 0,
-      balconyTiles: false,
-      rooms: [],
-      options: [{ optionId }],
-      currency: 'USD',
-    });
-    const current = {
-      ...snapshot,
-      options: snapshot.options.map((item) => ({ ...item, priceCents: null })),
-    };
-    const result = estimateCost(configuration, snapshot);
-    expect(
-      result.lines.find((line) => line.optionId === optionId),
-    ).toMatchObject({ status: 'OK', unitPriceCents: 120 });
-    expect(estimateCost(configuration, current).totals).toEqual(result.totals);
   });
 
   it('defaults requiresPutty to true for categories without it', () => {
