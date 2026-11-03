@@ -10965,6 +10965,11 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "areaShare": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
                           }
                         },
                         "required": [
@@ -12067,6 +12072,10 @@
               },
               "puttyRequired": {
                 "type": "boolean"
+              },
+              "puttyArea": {
+                "type": "number",
+                "minimum": 0
               },
               "object": {
                 "type": "object",
@@ -13228,6 +13237,11 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "areaShare": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
                           }
                         },
                         "required": [
@@ -13470,6 +13484,11 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "areaShare": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
                               }
                             },
                             "required": [
@@ -14426,6 +14445,11 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "areaShare": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
                           }
                         },
                         "required": [
@@ -15301,6 +15325,11 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "areaShare": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
                               }
                             },
                             "required": [
@@ -16151,6 +16180,11 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "areaShare": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
                               }
                             },
                             "required": [

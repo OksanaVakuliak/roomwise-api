@@ -115,12 +115,14 @@ function scopeOf(
         },
       };
     }
+    const puttyRequired = sample.puttyRequired ?? true;
     return {
       scope: {
         ...roomVariables(room),
         ...objectScope(sample),
         surfaceArea,
-        puttyRequired: sample.puttyRequired ?? true,
+        puttyRequired,
+        puttyArea: sample.puttyArea ?? (puttyRequired ? surfaceArea : 0),
       },
     };
   }

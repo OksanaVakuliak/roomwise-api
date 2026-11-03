@@ -40,7 +40,7 @@ export function estimate(
     exchangeRate: data.exchangeRate,
     lines,
     totals: computeTotals(lines, rate !== null),
-    warnings: estimateWarnings(lines, configuration, rate, data.limits),
+    warnings: estimateWarnings(lines, configuration, rate, data),
     incomplete: isIncomplete(lines),
   };
 }

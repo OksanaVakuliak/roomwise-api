@@ -7,7 +7,7 @@ import type {
   RoomConfiguration,
 } from '../schemas';
 import type { ObjectVariables } from '../variables';
-import { puttyRequiredOn, roomVariables } from '../variables';
+import { puttyShareOn, roomVariables, surfaceAreaOf } from '../variables';
 import { componentCents, failedLine, MAX_LINE_CENTS, outOfRange } from './line';
 import { runNumericFormula } from './run-formula';
 
@@ -64,11 +64,6 @@ export function applySurfacePrep(
     ...roomVariables(room),
     ...objectScope,
   };
-  const areas: Record<Surface, number> = {
-    FLOOR: variables.floorArea,
-    CEILING: variables.floorArea,
-    WALLS: variables.wallArea,
-  };
   const surfaces = new Map<Surface, number[]>();
   lines.forEach((line, index) => {
     const category = data.categories.find(
@@ -88,11 +83,14 @@ export function applySurfacePrep(
     if (rule === undefined) {
       continue;
     }
+    const surfaceArea = surfaceAreaOf(variables, surface);
+    const puttyShare = puttyShareOn(room, surface, data.categories);
     const outcome = runNumericFormula(rule.costFormula, {
       variables: {
         ...variables,
-        surfaceArea: areas[surface],
-        puttyRequired: puttyRequiredOn(room, surface, data.categories),
+        surfaceArea,
+        puttyRequired: puttyShare > 0,
+        puttyArea: surfaceArea * puttyShare,
       },
       coefficients: data.coefficients,
     });
