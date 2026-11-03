@@ -91,6 +91,32 @@ describe('createOptionSchema', () => {
     expect(result.scopes).toEqual(['FULL', 'PARTIAL']);
   });
 
+  it('accepts a null price with coefficient keys', () => {
+    const result = createOptionSchema.safeParse(
+      baseInput({ priceCents: null, priceCoefficientKeys: ['paint_extra'] }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a price together with coefficient keys', () => {
+    const result = createOptionSchema.safeParse(
+      baseInput({ priceCoefficientKeys: ['paint_extra'] }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(['priceCents']);
+  });
+
+  it('rejects a null price without coefficient keys', () => {
+    const result = createOptionSchema.safeParse(
+      baseInput({ priceCents: null }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(['priceCoefficientKeys']);
+  });
+
   it('rejects duplicate priceCoefficientKeys', () => {
     const result = createOptionSchema.safeParse(
       baseInput({ priceCoefficientKeys: ['paint_extra', 'paint_extra'] }),

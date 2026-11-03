@@ -501,6 +501,7 @@ describe('admin engineering e2e', () => {
       });
 
       const created = await createOption({
+        priceCents: null,
         priceCoefficientKeys: [key],
         scopes: ['PARTIAL'],
       });
@@ -528,6 +529,7 @@ describe('admin engineering e2e', () => {
 
     it('rejects an unknown coefficient key on create with UNKNOWN_COEFFICIENT', async () => {
       const response = await createOption({
+        priceCents: null,
         priceCoefficientKeys: ['missing_coefficient_key'],
       });
 
@@ -542,6 +544,7 @@ describe('admin engineering e2e', () => {
         .patch(`/api/v1/admin/options/${created.body.id}`)
         .set('Cookie', adminCookie)
         .send({
+          priceCents: null,
           priceCoefficientKeys: ['missing_coefficient_key'],
           revision: created.body.revision,
         });

@@ -27,6 +27,7 @@ function createAdminCategoryRow(overrides: Record<string, unknown> = {}) {
     name: localized('Tiles', 'Плитка'),
     wastePercent: decimal(10),
     surface: SurfaceKind.FLOOR,
+    requiresPutty: true,
     status: PublicationStatus.DRAFT,
     revision: REVISION,
     updatedAt: new Date('2026-09-24T00:00:00.000Z'),
@@ -83,6 +84,7 @@ describe('CategoriesService.list', () => {
         name: localized('Tiles', 'Плитка'),
         wastePercent: 10,
         surface: SurfaceKind.FLOOR,
+        requiresPutty: true,
         status: PublicationStatus.DRAFT,
         productCount: 3,
         roomTypeCodes: ['LIVING_ROOM', 'BEDROOM'],
@@ -148,7 +150,12 @@ describe('CategoriesService.create', () => {
     const service = new CategoriesService(prisma);
 
     const result = await service.create(
-      { name: localized('', ''), wastePercent: 10, surface: SurfaceKind.FLOOR },
+      {
+        name: localized('', ''),
+        wastePercent: 10,
+        surface: SurfaceKind.FLOOR,
+        requiresPutty: true,
+      },
       ADMIN_ID,
     );
 

@@ -73,11 +73,14 @@ function createService(fixture: Fixture = {}) {
 
   const catalog = {
     roomTypes: vi.fn().mockResolvedValue([{ id: 'room-1', code: 'BEDROOM' }]),
-    categories: vi
-      .fn()
-      .mockResolvedValue([
-        { id: CATEGORY_ID, wastePercent: 10, surface: SurfaceKind.FLOOR },
-      ]),
+    categories: vi.fn().mockResolvedValue([
+      {
+        id: CATEGORY_ID,
+        wastePercent: 10,
+        surface: SurfaceKind.FLOOR,
+        requiresPutty: true,
+      },
+    ]),
     materialTypes: vi
       .fn()
       .mockResolvedValue([{ id: MATERIAL_TYPE_ID, code: 'laminate' }]),
@@ -121,7 +124,12 @@ describe('PricingDataService', () => {
     expect(data).not.toHaveProperty('baseRates');
     expect(data.coefficients).toEqual({ tile_glue: 10, laminate_underlay: 2 });
     expect(data.categories).toEqual([
-      { id: CATEGORY_ID, wastePercent: 10, surface: SurfaceKind.FLOOR },
+      {
+        id: CATEGORY_ID,
+        wastePercent: 10,
+        surface: SurfaceKind.FLOOR,
+        requiresPutty: true,
+      },
     ]);
   });
 

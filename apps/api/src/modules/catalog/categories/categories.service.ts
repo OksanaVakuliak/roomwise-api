@@ -40,6 +40,7 @@ function toCategoryAdmin(category: CategoryWithRelations): CategoryAdmin {
     name: toLocalizedText(category.name),
     wastePercent: category.wastePercent.toNumber(),
     surface: category.surface,
+    requiresPutty: category.requiresPutty,
     status: category.status,
     productCount: category._count.products,
     roomTypeCodes: category.roomTypeCategories.map(
@@ -80,6 +81,7 @@ export class CategoriesService {
         name: input.name,
         wastePercent: input.wastePercent,
         surface: input.surface,
+        requiresPutty: input.requiresPutty,
         status: PublicationStatus.DRAFT,
         updatedById: adminId,
       },
@@ -122,6 +124,9 @@ export class CategoriesService {
               ? { wastePercent: input.wastePercent }
               : {}),
             ...(input.surface !== undefined ? { surface: input.surface } : {}),
+            ...(input.requiresPutty !== undefined
+              ? { requiresPutty: input.requiresPutty }
+              : {}),
             revision: mutation.revision,
             updatedAt: mutation.updatedAt,
             updatedById: mutation.updatedById,

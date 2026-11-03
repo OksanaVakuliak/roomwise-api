@@ -22,7 +22,7 @@ export const optionAdminSchema = z
     name: localizedNameDraftSchema,
     description: localizedDescriptionDraftSchema,
     image: imageRefSchema.nullable(),
-    priceCents: z.number().int().nonnegative(),
+    priceCents: z.number().int().nonnegative().nullable(),
     unit: z.enum(OptionUnit),
     perRoom: z.boolean(),
     minQuantity: z.number().int().nullable(),

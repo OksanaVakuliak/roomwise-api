@@ -32,6 +32,7 @@ import type {
 import type { OptionOrderInput } from './dto/option-order.schema';
 import type { UpdateOptionStatusInput } from './dto/option-status.schema';
 import type { PatchOptionInput } from './dto/patch-option.schema';
+import { findOptionPriceSourceViolation } from './option-price-source';
 
 const OPTION_ADMIN_INCLUDE = {
   updatedBy: { select: { id: true, login: true } },
@@ -175,6 +176,7 @@ export class OptionsService {
         name: true,
         description: true,
         priceCents: true,
+        priceCoefficientKeys: true,
         unit: true,
         minQuantity: true,
         maxQuantity: true,
@@ -226,6 +228,19 @@ export class OptionsService {
 
     const resolvedPriceCents =
       input.priceCents !== undefined ? input.priceCents : existing.priceCents;
+    const resolvedKeys =
+      input.priceCoefficientKeys !== undefined
+        ? input.priceCoefficientKeys
+        : existing.priceCoefficientKeys;
+    const violation = findOptionPriceSourceViolation(
+      resolvedPriceCents,
+      resolvedKeys,
+    );
+    if (violation) {
+      throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
+        fields: [{ path: violation.path, code: 'CUSTOM' }],
+      });
+    }
     if (input.priceCents !== undefined) {
       assertZeroPriceConfirmed(resolvedPriceCents, input.confirmZeroPrice);
     }

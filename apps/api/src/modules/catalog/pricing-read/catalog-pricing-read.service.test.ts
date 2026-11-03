@@ -44,12 +44,18 @@ describe('CatalogPricingReadService', () => {
           id: 'category-1',
           wastePercent: new Prisma.Decimal('10.50'),
           surface: SurfaceKind.FLOOR,
+          requiresPutty: false,
         },
       ],
     });
 
     await expect(service.categories()).resolves.toEqual([
-      { id: 'category-1', wastePercent: 10.5, surface: SurfaceKind.FLOOR },
+      {
+        id: 'category-1',
+        wastePercent: 10.5,
+        surface: SurfaceKind.FLOOR,
+        requiresPutty: false,
+      },
     ]);
   });
 

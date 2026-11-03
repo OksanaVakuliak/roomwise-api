@@ -263,7 +263,7 @@ describe('admin coefficients e2e', () => {
         kind: OptionKind.ADDITIONAL,
         name: { en: 'Priced option', uk: 'Опція з ціною' },
         description: { en: 'Option', uk: 'Опція' },
-        priceCents: 1000,
+        priceCents: null,
         unit: OptionUnit.PIECE,
         sortOrder: 99,
         status: PublicationStatus.DRAFT,

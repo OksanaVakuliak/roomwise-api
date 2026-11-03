@@ -7,6 +7,7 @@ import {
 } from '../../../../common/i18n/localized-text.schema';
 import { coefficientKeySchema } from '../../../../common/pricing/coefficient-key.schema';
 import { OptionKind, OptionUnit } from '../../../../generated/prisma/enums';
+import { findOptionPriceSourceViolation } from '../option-price-source';
 
 export const OPTION_QUANTITY_MIN = 1;
 export const OPTION_QUANTITY_MAX = 100;
@@ -51,7 +52,7 @@ export const createOptionSchema = z
     name: localizedNameDraftSchema,
     description: localizedDescriptionDraftSchema,
     imageId: z.uuid().optional(),
-    priceCents: z.number().int().min(0),
+    priceCents: z.number().int().min(0).nullable(),
     confirmZeroPrice: z.boolean().default(false),
     unit: z.enum(OptionUnit),
     minQuantity: z
@@ -72,6 +73,19 @@ export const createOptionSchema = z
   })
   .strict()
   .superRefine((data, ctx) => {
+    const violation = findOptionPriceSourceViolation(
+      data.priceCents,
+      data.priceCoefficientKeys,
+    );
+
+    if (violation) {
+      ctx.addIssue({
+        code: 'custom',
+        message: violation.message,
+        path: [violation.path],
+      });
+    }
+
     if (
       data.minQuantity !== undefined &&
       data.maxQuantity !== undefined &&

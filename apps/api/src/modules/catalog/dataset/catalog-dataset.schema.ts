@@ -87,9 +87,10 @@ export const seedCategorySchema = z.object({
   name: localizedNameSchema,
   wastePercent: z.number().min(0).max(PERCENT_MAX),
   surface: z.enum(SurfaceKind),
+  requiresPutty: z.boolean().default(true),
   status: z.enum(PublicationStatus),
 });
-export type SeedCategory = z.infer<typeof seedCategorySchema>;
+export type SeedCategory = z.input<typeof seedCategorySchema>;
 
 export const seedProductImageSchema = z.object({
   imageId: z.uuid(),
@@ -227,7 +228,7 @@ export const seedOptionSchema = z
     name: localizedNameSchema,
     description: localizedDescriptionSchema,
     imageId: z.uuid().nullable(),
-    priceCents: z.int().nonnegative(),
+    priceCents: z.int().nonnegative().nullable(),
     unit: z.enum(OptionUnit),
     minQuantity: z.int().min(1).max(OPTION_QUANTITY_MAX).nullable(),
     maxQuantity: z.int().min(1).max(OPTION_QUANTITY_MAX).nullable(),
@@ -238,6 +239,21 @@ export const seedOptionSchema = z
     scopes: scopesSchema.default([Scope.FULL, Scope.PARTIAL]),
   })
   .superRefine((option, ctx) => {
+    const hasKeys = option.priceCoefficientKeys.length > 0;
+    if (option.priceCents !== null && hasKeys) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'priceCents must be null when priceCoefficientKeys is set',
+        path: ['priceCents'],
+      });
+    } else if (option.priceCents === null && !hasKeys) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'priceCoefficientKeys is required when priceCents is null',
+        path: ['priceCoefficientKeys'],
+      });
+    }
+
     if (option.unit === 'PIECE') {
       if (option.minQuantity === null || option.maxQuantity === null) {
         ctx.addIssue({
