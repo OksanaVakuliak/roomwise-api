@@ -14,393 +14,123 @@ export const styleIds = {
   classic: '383be0f1-c52c-4eb8-a4b5-cad58c82056a',
 } as const;
 
-const scandinavianDefaultProductByCategory: Record<string, string> = {
-  [categoryIds.floorCovering]: productIds.whiteOakParquetPlank,
-  [categoryIds.wallPaint]: productIds.whiteMatteWallPaint,
-  [categoryIds.wallpaper]: productIds.lightLinenWallpaper,
-  [categoryIds.wallTile]: productIds.whiteGlossyWallTile,
-  [categoryIds.floorTile]: productIds.whiteMattePorcelainFloorTile,
-  [categoryIds.ceilingFinish]: productIds.whiteMatteCeilingPaint,
-  [categoryIds.skirtingBoards]: productIds.lightOakSkirting,
-  [categoryIds.doors]: productIds.whitePaintedInteriorDoor,
-  [categoryIds.lighting]: productIds.modernWhiteCeilingPendant,
-  [categoryIds.plumbingFixtures]: productIds.whiteCeramicWashbasin,
-};
+type DefaultProductByCategory = Record<string, string | null>;
+type RoomTypeOverrides = Record<string, Record<string, string | null>>;
 
-const scandinavianRoomTypeOverrides: Record<string, Record<string, string>> = {
-  [roomTypeIds.kitchen]: {
-    [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
-  },
-  [roomTypeIds.kitchenLiving]: {
-    [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
-  },
-  [roomTypeIds.bathroom]: {
-    [categoryIds.lighting]: productIds.minimalistLedCeilingLamp,
-  },
-};
-
-function buildScandinavianDefaultMaterials(): SeedStyleDefaultMaterial[] {
+function buildDefaultMaterials(
+  defaultByCategory: DefaultProductByCategory,
+  overrides: RoomTypeOverrides,
+): SeedStyleDefaultMaterial[] {
   return roomTypes.flatMap((roomType) =>
-    roomType.categoryIds.map((categoryId) => {
-      const override = scandinavianRoomTypeOverrides[roomType.id]?.[categoryId];
+    roomType.categoryIds.flatMap((categoryId) => {
+      const override = overrides[roomType.id]?.[categoryId];
       const productId =
-        override ?? scandinavianDefaultProductByCategory[categoryId];
+        override === undefined ? defaultByCategory[categoryId] : override;
 
-      return { roomTypeId: roomType.id, categoryId, productId };
+      if (productId === undefined) {
+        throw new Error(
+          `Style default missing for room type ${roomType.code} category ${categoryId}`,
+        );
+      }
+
+      return productId
+        ? [{ roomTypeId: roomType.id, categoryId, productId }]
+        : [];
     }),
   );
 }
 
-const loftDefaultMaterials: SeedStyleDefaultMaterial[] = [
+const scandinavianDefaultMaterials = buildDefaultMaterials(
   {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.floorCovering,
-    productId: productIds.greySpcVinylPlank,
+    [categoryIds.floorCovering]: productIds.whiteOakParquetPlank,
+    [categoryIds.wallPaint]: productIds.whiteMatteWallPaint,
+    [categoryIds.wallpaper]: productIds.lightLinenWallpaper,
+    [categoryIds.wallTile]: productIds.whiteGlossyWallTile,
+    [categoryIds.floorTile]: productIds.whiteMattePorcelainFloorTile,
+    [categoryIds.ceilingFinish]: productIds.whiteMatteCeilingPaint,
+    [categoryIds.skirtingBoards]: productIds.lightOakSkirting,
+    [categoryIds.doors]: productIds.whitePaintedInteriorDoor,
+    [categoryIds.lighting]: productIds.modernWhiteCeilingPendant,
+    [categoryIds.plumbingFixtures]: productIds.whiteCeramicWashbasin,
   },
   {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.wallPaint,
-    productId: productIds.deepGraphiteWallPaint,
+    [roomTypeIds.kitchen]: {
+      [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
+    },
+    [roomTypeIds.kitchenLiving]: {
+      [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
+    },
+    [roomTypeIds.bathroom]: {
+      [categoryIds.lighting]: productIds.minimalistLedCeilingLamp,
+    },
   },
-  {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.darkSlatMdfCeilingPanel,
-  },
-  {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.doors,
-    productId: productIds.greyMatteInteriorDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.lighting,
-    productId: productIds.industrialBlackWallSconce,
-  },
-  {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.skirtingBoards,
-    productId: productIds.graphiteSkirting,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.floorCovering,
-    productId: productIds.greySpcVinylPlank,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.wallPaint,
-    productId: productIds.deepGraphiteWallPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.greySuspendedCeilingPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.skirtingBoards,
-    productId: productIds.graphiteSkirting,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.doors,
-    productId: productIds.greyMatteInteriorDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.lighting,
-    productId: productIds.matteBlackPendantLamp,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.floorTile,
-    productId: productIds.rawConcreteEffectFloorTile,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.wallTile,
-    productId: productIds.terrazzoEffectWallTile,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.wallPaint,
-    productId: productIds.deepGraphiteWallPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.greySuspendedCeilingPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.doors,
-    productId: productIds.greyMatteInteriorDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.lighting,
-    productId: productIds.hangingIndustrialPendant,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.plumbingFixtures,
-    productId: productIds.stainlessKitchenSink,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.floorCovering,
-    productId: productIds.greySpcVinylPlank,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.floorTile,
-    productId: productIds.rawConcreteEffectFloorTile,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.wallPaint,
-    productId: productIds.deepGraphiteWallPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.lighting,
-    productId: productIds.hangingIndustrialPendant,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.darkSlatMdfCeilingPanel,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.skirtingBoards,
-    productId: productIds.graphiteSkirting,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.doors,
-    productId: productIds.greyMatteInteriorDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.plumbingFixtures,
-    productId: productIds.stainlessKitchenSink,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.floorTile,
-    productId: productIds.rawConcreteEffectFloorTile,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.wallTile,
-    productId: productIds.terrazzoEffectWallTile,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.wallPaint,
-    productId: productIds.deepGraphiteWallPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.greySuspendedCeilingPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.doors,
-    productId: productIds.greyMatteInteriorDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.lighting,
-    productId: productIds.minimalistLedCeilingLamp,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.plumbingFixtures,
-    productId: productIds.whiteCeramicWashbasin,
-  },
-];
+);
 
-const classicDefaultMaterials: SeedStyleDefaultMaterial[] = [
+const loftDefaultMaterials = buildDefaultMaterials(
   {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.floorCovering,
-    productId: productIds.herringboneOakParquet,
+    [categoryIds.floorCovering]: productIds.greySpcVinylPlank,
+    [categoryIds.wallPaint]: productIds.deepGraphiteWallPaint,
+    [categoryIds.wallpaper]: null,
+    [categoryIds.wallTile]: productIds.terrazzoEffectWallTile,
+    [categoryIds.floorTile]: productIds.rawConcreteEffectFloorTile,
+    [categoryIds.ceilingFinish]: productIds.darkSlatMdfCeilingPanel,
+    [categoryIds.skirtingBoards]: productIds.graphiteSkirting,
+    [categoryIds.doors]: productIds.greyMatteInteriorDoor,
+    [categoryIds.lighting]: productIds.industrialBlackWallSconce,
+    [categoryIds.plumbingFixtures]: productIds.whiteCeramicWashbasin,
   },
   {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.wallPaint,
-    productId: productIds.warmBeigeWallPaint,
+    [roomTypeIds.bedroom]: {
+      [categoryIds.ceilingFinish]: productIds.greySuspendedCeilingPaint,
+      [categoryIds.lighting]: productIds.matteBlackPendantLamp,
+    },
+    [roomTypeIds.kitchen]: {
+      [categoryIds.ceilingFinish]: productIds.greySuspendedCeilingPaint,
+      [categoryIds.lighting]: productIds.hangingIndustrialPendant,
+      [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
+    },
+    [roomTypeIds.kitchenLiving]: {
+      [categoryIds.wallTile]: null,
+      [categoryIds.lighting]: productIds.hangingIndustrialPendant,
+      [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
+    },
+    [roomTypeIds.bathroom]: {
+      [categoryIds.ceilingFinish]: productIds.greySuspendedCeilingPaint,
+      [categoryIds.lighting]: productIds.minimalistLedCeilingLamp,
+    },
+  },
+);
+
+const classicDefaultMaterials = buildDefaultMaterials(
+  {
+    [categoryIds.floorCovering]: productIds.herringboneOakParquet,
+    [categoryIds.wallPaint]: productIds.warmBeigeWallPaint,
+    [categoryIds.wallpaper]: productIds.vintageFloralWallpaper,
+    [categoryIds.wallTile]: productIds.beigeMarbleWallTile,
+    [categoryIds.floorTile]: productIds.beigeMarbleFloorTile,
+    [categoryIds.ceilingFinish]: productIds.texturedPlasterCeilingFinish,
+    [categoryIds.skirtingBoards]: productIds.classicWhiteSkirting,
+    [categoryIds.doors]: productIds.naturalOakVeneerDoor,
+    [categoryIds.lighting]: productIds.brassWallSconce,
+    [categoryIds.plumbingFixtures]: productIds.whiteCeramicWashbasin,
   },
   {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.wallpaper,
-    productId: productIds.vintageFloralWallpaper,
+    [roomTypeIds.bedroom]: { [categoryIds.wallPaint]: null },
+    [roomTypeIds.kitchen]: {
+      [categoryIds.ceilingFinish]: productIds.warmWhiteCeilingPaint,
+      [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
+    },
+    [roomTypeIds.kitchenLiving]: {
+      [categoryIds.floorTile]: null,
+      [categoryIds.wallpaper]: null,
+      [categoryIds.plumbingFixtures]: productIds.stainlessKitchenSink,
+    },
+    [roomTypeIds.bathroom]: {
+      [categoryIds.ceilingFinish]: productIds.warmWhiteCeilingPaint,
+      [categoryIds.lighting]: productIds.minimalistLedCeilingLamp,
+    },
   },
-  {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.texturedPlasterCeilingFinish,
-  },
-  {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.skirtingBoards,
-    productId: productIds.classicWhiteSkirting,
-  },
-  {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.doors,
-    productId: productIds.naturalOakVeneerDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.livingRoom,
-    categoryId: categoryIds.lighting,
-    productId: productIds.brassWallSconce,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.floorCovering,
-    productId: productIds.herringboneOakParquet,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.wallpaper,
-    productId: productIds.vintageFloralWallpaper,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.skirtingBoards,
-    productId: productIds.classicWhiteSkirting,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.texturedPlasterCeilingFinish,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.doors,
-    productId: productIds.naturalOakVeneerDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.bedroom,
-    categoryId: categoryIds.lighting,
-    productId: productIds.brassWallSconce,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.wallTile,
-    productId: productIds.beigeMarbleWallTile,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.floorTile,
-    productId: productIds.beigeMarbleFloorTile,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.wallPaint,
-    productId: productIds.warmBeigeWallPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.warmWhiteCeilingPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.doors,
-    productId: productIds.naturalOakVeneerDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.lighting,
-    productId: productIds.brassWallSconce,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchen,
-    categoryId: categoryIds.plumbingFixtures,
-    productId: productIds.stainlessKitchenSink,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.floorCovering,
-    productId: productIds.herringboneOakParquet,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.wallPaint,
-    productId: productIds.warmBeigeWallPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.wallTile,
-    productId: productIds.beigeMarbleWallTile,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.lighting,
-    productId: productIds.brassWallSconce,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.texturedPlasterCeilingFinish,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.skirtingBoards,
-    productId: productIds.classicWhiteSkirting,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.doors,
-    productId: productIds.naturalOakVeneerDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.kitchenLiving,
-    categoryId: categoryIds.plumbingFixtures,
-    productId: productIds.stainlessKitchenSink,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.floorTile,
-    productId: productIds.beigeMarbleFloorTile,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.wallTile,
-    productId: productIds.beigeMarbleWallTile,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.doors,
-    productId: productIds.naturalOakVeneerDoor,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.wallPaint,
-    productId: productIds.warmBeigeWallPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.ceilingFinish,
-    productId: productIds.warmWhiteCeilingPaint,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.lighting,
-    productId: productIds.minimalistLedCeilingLamp,
-  },
-  {
-    roomTypeId: roomTypeIds.bathroom,
-    categoryId: categoryIds.plumbingFixtures,
-    productId: productIds.whiteCeramicWashbasin,
-  },
-];
+);
 
 export const styles: SeedStyle[] = [
   {
@@ -413,7 +143,7 @@ export const styles: SeedStyle[] = [
     imageId: seedImages.scandinavianStyleCover.id,
     sortOrder: 0,
     status: PublicationStatus.PUBLISHED,
-    defaultMaterials: buildScandinavianDefaultMaterials(),
+    defaultMaterials: scandinavianDefaultMaterials,
   },
   {
     id: styleIds.loft,

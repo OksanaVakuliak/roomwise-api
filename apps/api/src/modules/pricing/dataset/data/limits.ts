@@ -5,4 +5,5 @@ export const limits: SeedPricingLimits = {
   rooms: { min: 1, max: 15 },
   roomSideM: { min: 1, max: 30 },
   roomHeightM: { min: 2.2, max: 5 },
+  missingAreaHintSqm: 5,
 };

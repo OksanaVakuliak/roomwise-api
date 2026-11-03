@@ -26,9 +26,9 @@ export type SeedPricingLimits = z.input<typeof seedPricingLimitsSchema>;
 export const seedCoefficientSchema = z.object({
   key: coefficientKeySchema,
   name: localizedNameSchema,
-  value: z.number().min(0),
+  value: z.number().positive(),
   unit: localizedNameSchema,
-  group: z.enum(CoefficientGroup).default(CoefficientGroup.MATERIAL_EXTRA),
+  group: z.enum(CoefficientGroup),
 });
 export type SeedCoefficient = z.input<typeof seedCoefficientSchema>;
 

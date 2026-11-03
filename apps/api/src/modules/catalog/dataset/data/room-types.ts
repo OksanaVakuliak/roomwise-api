@@ -8,6 +8,8 @@ export const roomTypeIds = {
   kitchen: '3f8426da-705b-47fe-bee7-8941225f5ce9',
   kitchenLiving: '8efa46a6-9498-4f33-930f-11c38c804f13',
   bathroom: '7d56da9e-919f-425f-b54b-b7a05920bc05',
+  hallway: 'e396ec77-52b0-477c-a3b7-d5f79758a9b1',
+  storage: 'ef6d16e9-2b48-4d78-990c-73b31c28105f',
 } as const;
 
 export const roomTypes: SeedRoomType[] = [
@@ -87,6 +89,35 @@ export const roomTypes: SeedRoomType[] = [
       categoryIds.doors,
       categoryIds.lighting,
       categoryIds.plumbingFixtures,
+    ],
+  },
+  {
+    id: roomTypeIds.hallway,
+    code: RoomTypeCode.HALLWAY,
+    name: { en: 'Hallway', uk: 'Коридор / передпокій' },
+    sortOrder: 5,
+    categoryIds: [
+      categoryIds.floorCovering,
+      categoryIds.skirtingBoards,
+      categoryIds.wallPaint,
+      categoryIds.wallpaper,
+      categoryIds.ceilingFinish,
+      categoryIds.lighting,
+      categoryIds.doors,
+    ],
+  },
+  {
+    id: roomTypeIds.storage,
+    code: RoomTypeCode.STORAGE,
+    name: { en: 'Walk-in closet / storage', uk: 'Гардеробна / комора' },
+    sortOrder: 6,
+    categoryIds: [
+      categoryIds.floorCovering,
+      categoryIds.skirtingBoards,
+      categoryIds.wallPaint,
+      categoryIds.ceilingFinish,
+      categoryIds.lighting,
+      categoryIds.doors,
     ],
   },
 ];

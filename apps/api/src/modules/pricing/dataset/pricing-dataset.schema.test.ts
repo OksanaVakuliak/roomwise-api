@@ -1,10 +1,6 @@
 import { validateFormula } from '@roomwise/calc-engine';
 import { describe, expect, it } from 'vitest';
-import {
-  CoefficientGroup,
-  RuleLevel,
-  SurfaceKind,
-} from '../../../generated/prisma/enums';
+import { RuleLevel, SurfaceKind } from '../../../generated/prisma/enums';
 import { catalogDataset } from '../../catalog/dataset/data';
 import { pricingDataset } from './data';
 import { pricingDatasetSchema } from './pricing-dataset.schema';
@@ -294,20 +290,29 @@ describe('pricingDatasetSchema', () => {
       ).toBe(true);
     });
 
-    it('defaults the coefficient group and the missing area hint', () => {
+    it('defaults the missing area hint', () => {
       const { missingAreaHintSqm: _hint, ...limits } = pricingDataset.limits;
-      const { group: _group, ...coefficient } = pricingDataset.coefficients[0];
       const result = pricingDatasetSchema.safeParse({
         ...pricingDataset,
         limits,
-        coefficients: [coefficient],
-        rules: [],
       });
 
       expect(result.data?.limits.missingAreaHintSqm).toBe(5);
-      expect(result.data?.coefficients[0].group).toBe(
-        CoefficientGroup.MATERIAL_EXTRA,
-      );
+    });
+
+    it('rejects a coefficient without a group or with a zero value', () => {
+      const [first] = pricingDataset.coefficients;
+      const { group: _group, ...ungrouped } = first;
+      const parse = (coefficient: object) =>
+        pricingDatasetSchema.safeParse({
+          ...pricingDataset,
+          coefficients: [coefficient],
+          rules: [],
+        }).success;
+
+      expect(parse(first)).toBe(true);
+      expect(parse(ungrouped)).toBe(false);
+      expect(parse({ ...first, value: 0 })).toBe(false);
     });
   });
 });
