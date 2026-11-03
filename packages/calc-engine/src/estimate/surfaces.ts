@@ -7,7 +7,7 @@ import type {
   RoomConfiguration,
 } from '../schemas';
 import type { ObjectVariables } from '../variables';
-import { puttyRequiredOn, roomVariables } from '../variables';
+import { puttyRequiredOn, puttyShareOn, roomVariables } from '../variables';
 import { componentCents, failedLine, MAX_LINE_CENTS, outOfRange } from './line';
 import { runNumericFormula } from './run-formula';
 
@@ -88,11 +88,17 @@ export function applySurfacePrep(
     if (rule === undefined) {
       continue;
     }
+    const puttyShare =
+      surface === 'WALLS' ? puttyShareOn(room, data.categories) : null;
     const outcome = runNumericFormula(rule.costFormula, {
       variables: {
         ...variables,
         surfaceArea: areas[surface],
-        puttyRequired: puttyRequiredOn(room, surface, data.categories),
+        puttyRequired:
+          puttyShare === null
+            ? puttyRequiredOn(room, surface, data.categories)
+            : puttyShare > 0,
+        puttyArea: areas[surface] * (puttyShare ?? 1),
       },
       coefficients: data.coefficients,
     });

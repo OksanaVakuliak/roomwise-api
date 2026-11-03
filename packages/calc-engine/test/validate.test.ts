@@ -279,6 +279,7 @@ describe('formula constants stay in sync with variable derivation', () => {
         widthM: 2,
         heightM: 2.5,
         heatedFloor: false,
+        selections: [],
       },
     ],
   } as unknown as Configuration;
@@ -462,6 +463,13 @@ describe('validateFormula static typing', () => {
     expect(FORMULA_VARIABLES.SURFACE.map((v) => v.name)).toContain(
       'puttyRequired',
     );
+  });
+
+  it('allows puttyArea only at the surface level', () => {
+    expect(check('puttyArea * 2', 'SURFACE').valid).toBe(true);
+    expect(check('puttyArea', 'CATEGORY').valid).toBe(false);
+    expect(check('puttyArea', 'OBJECT').valid).toBe(false);
+    expect(FORMULA_VARIABLES.SURFACE.map((v) => v.name)).toContain('puttyArea');
   });
 
   it('gives a labor formula the cost formula variables and quantity', () => {

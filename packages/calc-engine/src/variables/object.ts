@@ -5,8 +5,8 @@ import type {
   RoomTypeCode,
   Scope,
 } from '../schemas';
-import { puttyRequiredOn } from './putty';
 import { roomVariables } from './room';
+import { puttyShareOn } from './share';
 
 export interface ObjectVariables {
   readonly scope: Scope;
@@ -73,9 +73,7 @@ export function objectVariables(
     roomsWallArea: sum((room) => room.wallArea),
     roomsPuttyWallArea: configuration.rooms.reduce(
       (total, room) =>
-        puttyRequiredOn(room, 'WALLS', categories)
-          ? total + roomVariables(room).wallArea
-          : total,
+        total + roomVariables(room).wallArea * puttyShareOn(room, categories),
       0,
     ),
     roomsPerimeter: sum((room) => room.perimeter),

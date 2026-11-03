@@ -121,6 +121,7 @@ function scopeOf(
         ...objectScope(sample),
         surfaceArea,
         puttyRequired: sample.puttyRequired ?? true,
+        puttyArea: sample.puttyArea ?? surfaceArea,
       },
     };
   }

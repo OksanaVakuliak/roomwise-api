@@ -6,9 +6,15 @@ import type {
   PricingData,
   PricingRule,
   RoomConfiguration,
+  RoomSelection,
 } from '../schemas';
 import type { ObjectVariables } from '../variables';
-import { productVariables, roomVariables } from '../variables';
+import {
+  areaShareError,
+  areaShareOf,
+  productVariables,
+  roomVariables,
+} from '../variables';
 import {
   componentCents,
   createLine,
@@ -49,10 +55,11 @@ function materialLine(
   configuration: Configuration,
   data: PricingData,
   room: RoomConfiguration,
-  categoryId: string,
-  productId: string,
+  selection: RoomSelection,
   objectScope: ObjectVariables,
 ): EstimateLine {
+  const { categoryId } = selection;
+  const productId = selection.productId as string;
   const init = {
     id: lineId('MATERIALS', room.clientId, categoryId),
     section: 'MATERIALS',
@@ -60,6 +67,10 @@ function materialLine(
     categoryId,
     productId,
   } as const;
+  const shareError = areaShareError(room, selection, data.categories);
+  if (shareError !== null) {
+    return failedLine(init, 'ERROR', shareError);
+  }
   const category = data.categories.find((item) => item.id === categoryId);
   const product = data.products.find(
     (item) => item.id === productId && item.categoryId === categoryId,
@@ -83,8 +94,14 @@ function materialLine(
       params: { categoryId, materialTypeId: product.materialTypeId },
     });
   }
+  const base = roomVariables(room);
+  const share = areaShareOf(selection);
   const variables = {
-    ...roomVariables(room),
+    ...base,
+    wallArea:
+      category.surface === 'WALLS' ? base.wallArea * share : base.wallArea,
+    floorArea:
+      category.surface === 'FLOOR' ? base.floorArea * share : base.floorArea,
     ...productVariables(product, category),
     ...objectScope,
   };
@@ -163,19 +180,10 @@ export function materialLines(
   objectScope: ObjectVariables,
 ): EstimateLine[] {
   return configuration.rooms.flatMap((room) => {
-    const lines = room.selections.flatMap(({ categoryId, productId }) =>
-      productId === null
+    const lines = room.selections.flatMap((selection) =>
+      selection.productId === null
         ? []
-        : [
-            materialLine(
-              configuration,
-              data,
-              room,
-              categoryId,
-              productId,
-              objectScope,
-            ),
-          ],
+        : [materialLine(configuration, data, room, selection, objectScope)],
     );
     return configuration.scope === 'PARTIAL'
       ? applySurfacePrep(data, room, lines, objectScope)

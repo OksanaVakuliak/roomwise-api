@@ -28,6 +28,7 @@ export const RuleSampleSchema = z
       .optional(),
     surfaceArea: z.number().min(0).optional(),
     puttyRequired: z.boolean().optional(),
+    puttyArea: z.number().min(0).optional(),
     object: z.object({
       scope: ScopeSchema,
       totalAreaSqm: z.number().positive().nullable(),
