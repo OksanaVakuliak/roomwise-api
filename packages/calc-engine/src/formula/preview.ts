@@ -92,6 +92,7 @@ function objectScope({ object }: RuleSample): Variables {
     bathroomsCount: object.bathroomsCount,
     roomsFloorArea: object.roomsFloorArea,
     roomsWallArea: object.roomsWallArea,
+    roomsPuttyWallArea: object.roomsPuttyWallArea ?? object.roomsWallArea,
     roomsPerimeter: object.roomsPerimeter,
     wetRoomsCount: object.wetRoomsCount,
   };
@@ -115,7 +116,12 @@ function scopeOf(
       };
     }
     return {
-      scope: { ...roomVariables(room), ...objectScope(sample), surfaceArea },
+      scope: {
+        ...roomVariables(room),
+        ...objectScope(sample),
+        surfaceArea,
+        puttyRequired: sample.puttyRequired ?? true,
+      },
     };
   }
   if (room === undefined || product === undefined) {

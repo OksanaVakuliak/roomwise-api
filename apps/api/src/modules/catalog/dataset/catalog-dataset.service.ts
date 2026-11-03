@@ -78,6 +78,7 @@ export function buildCatalogDatasetRows(
       name: category.name,
       wastePercent: category.wastePercent,
       surface: category.surface,
+      requiresPutty: category.requiresPutty,
       status: category.status,
     })),
     roomTypeCategories: dataset.roomTypes.flatMap((roomType) =>

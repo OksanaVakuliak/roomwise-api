@@ -16,6 +16,7 @@ export const categoryAdminSchema = z
     name: localizedNameDraftSchema,
     wastePercent: z.number().min(0).max(CATEGORY_WASTE_PERCENT_MAX),
     surface: z.enum(SurfaceKind),
+    requiresPutty: z.boolean(),
     status: z.enum(PublicationStatus),
     productCount: z.number().int().nonnegative(),
     roomTypeCodes: z.array(RoomTypeCodeSchema),

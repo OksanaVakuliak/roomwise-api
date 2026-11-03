@@ -47,7 +47,7 @@ Lines are produced in this order: base cost, object rules (by `sortOrder`), mate
 - Base cost: `OBJECT` rules with `baseComponent: true`, one `BASE` line each. Only in `FULL`; a line that is `OK` with a zero amount is left out.
 - Object rules: the other `OBJECT` level rules, one line each.
 - Materials: for every room selection with a product, the `MATERIAL_TYPE` rule for the category and the product's material type is used if one exists, otherwise the `CATEGORY` rule. Without either, the line is `NOT_CALCULATED` (`RULE_NOT_FOUND`). Unknown or unavailable products give `UNAVAILABLE`. Each line carries [components](#line-components).
-- Engineering and additional: package items marked `includedInBase` become `INCLUDED` lines with a zero amount, and are skipped in `PARTIAL`. Options are priced by unit (`PIECE`, `ROOM_SQM`, `ROOM`, `PROJECT`). An option with `priceCoefficientKeys` is priced by the sum of those coefficients in dollars instead of `priceCents`; a missing coefficient gives an `ERROR` line (`UNKNOWN_COEFFICIENT`). An option whose `scopes` do not include the configuration scope is `UNAVAILABLE` with `OPTION_SCOPE_NOT_ALLOWED`.
+- Engineering and additional: package items marked `includedInBase` become `INCLUDED` lines with a zero amount, and are skipped in `PARTIAL`. Options are priced by unit (`PIECE`, `ROOM_SQM`, `ROOM`, `PROJECT`). An option has exactly one price source: `priceCents` with no `priceCoefficientKeys`, or `priceCents: null` with keys, in which case the unit price is the sum of those coefficients in dollars (`PricingDataSchema` rejects both and neither; read the price from the line's `unitPriceCents`). A missing coefficient gives an `ERROR` line (`UNKNOWN_COEFFICIENT`). An option whose `scopes` do not include the configuration scope is `UNAVAILABLE` with `OPTION_SCOPE_NOT_ALLOWED`.
 
 Result fields:
 
@@ -197,7 +197,7 @@ Every schema is a zod schema with an inferred type of the same name without the 
 | `totalArea` variable | `totalAreaSqm` | `roomsFloorArea` |
 | Area warnings | `ROOMS_AREA_EXCEEDS_TOTAL`, `ROOMS_AREA_BELOW_TOTAL` | none |
 
-The base cost has no per-area rate table. It is built from rules whose formulas use the volumes of the rooms (`roomsFloorArea`, `roomsWallArea`, `roomsPerimeter`, `wetRoomsCount`) together with `finishLevel`, `scope` and coefficients.
+The base cost has no per-area rate table. It is built from rules whose formulas use the volumes of the rooms (`roomsFloorArea`, `roomsWallArea`, `roomsPuttyWallArea`, `roomsPerimeter`, `wetRoomsCount`) together with `finishLevel`, `scope` and coefficients.
 
 ### Line components
 
@@ -241,18 +241,20 @@ roomType == 'KITCHEN' ? ceil(floorArea / 2) : 0
 | object | `totalArea`, `balconyArea` | number; `totalArea` is `roomsFloorArea` in `PARTIAL` |
 | object | `scope` | `FULL`, `PARTIAL` |
 | object | `roomsFloorArea`, `roomsWallArea`, `roomsPerimeter` | number: sums over all rooms of `floorArea`, `wallArea` and `perimeter` |
+| object | `roomsPuttyWallArea` | number: sum of `wallArea` over rooms whose wall selections need putty (rooms without wall selections count) |
 | object | `wetRoomsCount` | number (bathrooms, kitchens and kitchen-living rooms) |
 | object | `balconyTiles` | boolean |
 | object | `finishLevel` | `ROUGH`, `PRE_FINISH`, `LIVED_IN` |
 | object | `roomsCount`, `bathroomsCount` | number (living rooms, bedrooms and kitchen-living rooms count as rooms) |
 | `SURFACE` rules only | `surfaceArea` | number: the area of the surface being prepared |
+| `SURFACE` rules only | `puttyRequired` | boolean: `true` when no category is selected on the surface or at least one selected category has `requiresPutty` (default `true`), taken from the selections, not from line status; booleans do not coerce, write `puttyRequired ? a : 0` |
 | cost and labor formulas of `CATEGORY` and `MATERIAL_TYPE` rules | `quantity` | the result of the quantity formula |
 
 Availability by rule level:
 
 - `OBJECT`: object variables only. `quantity` is not available.
 - `CATEGORY` and `MATERIAL_TYPE`: room, product and object variables. `quantity` is available in cost and labor formulas, not in the quantity formula. `laborFormula` sees the same variables as `costFormula`.
-- `SURFACE`: room and object variables plus `surfaceArea`. `quantity` and the product variables are not available.
+- `SURFACE`: room and object variables plus `surfaceArea` and `puttyRequired`. `quantity` and the product variables are not available.
 
 Coefficients are read as `coef.<key>`; keys come from the pricing data. The cost and labor formulas receive `quantity` unrounded, while the line shows it rounded to 3 decimals.
 

@@ -256,6 +256,16 @@ export const coefficients: SeedCoefficient[] = [
     group: CoefficientGroup.ROUGH_MATERIAL,
   },
   {
+    key: 'mat_stripping_disposal',
+    name: {
+      en: 'Debris disposal after stripping finishes',
+      uk: 'Вивіз сміття після зняття оздоблення стін і стелі',
+    },
+    value: 0.4,
+    unit: PER_SQM,
+    group: CoefficientGroup.ROUGH_MATERIAL,
+  },
+  {
     key: 'eng_electrics_sqm',
     name: { en: 'Wiring replacement labor', uk: 'Заміна електрики, робота' },
     value: 9.2,

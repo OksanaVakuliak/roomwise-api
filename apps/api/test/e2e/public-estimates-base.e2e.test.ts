@@ -32,7 +32,7 @@ const KITCHEN_WALL_AREA_SQM = 37.8;
 const PATCHED_WALL_PLASTER = 10;
 const ROUGH_BASE_CENTS = 847_634;
 const PRE_FINISH_BASE_CENTS = 240_273;
-const LIVED_IN_BASE_CENTS = 560_969;
+const LIVED_IN_BASE_CENTS = 568_205;
 const ROUGH_LINES_COUNT = 7;
 const LIVED_IN_LINES_COUNT = 6;
 
@@ -176,7 +176,8 @@ const expectedLineCents: Record<string, Record<FinishLevel, number>> = (() => {
   const demolition =
     FLAT_FLOOR_AREA_SQM *
       unitCents('prep_floor_demolition', 'mat_demolition_disposal') +
-    FLAT_WALL_AREA_SQM * unitCents('prep_wall_stripping');
+    FLAT_WALL_AREA_SQM *
+      unitCents('prep_wall_stripping', 'mat_stripping_disposal');
   const screed = FLAT_FLOOR_AREA_SQM * unitCents('prep_screed', 'mat_screed');
   const wallPlaster =
     FLAT_WALL_AREA_SQM * unitCents('prep_wall_plaster', 'mat_wall_plaster');

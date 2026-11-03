@@ -44,6 +44,7 @@ export const categories: SeedCategory[] = [
     name: { en: 'Wall tile', uk: 'Настінна плитка' },
     wastePercent: 12,
     surface: SurfaceKind.WALLS,
+    requiresPutty: false,
     status: PublicationStatus.PUBLISHED,
   },
   {
@@ -51,6 +52,7 @@ export const categories: SeedCategory[] = [
     name: { en: 'Floor tile', uk: 'Підлогова плитка' },
     wastePercent: 12,
     surface: SurfaceKind.FLOOR,
+    requiresPutty: false,
     status: PublicationStatus.PUBLISHED,
   },
   {

@@ -5856,9 +5856,16 @@
                   ]
                 },
                 "priceCents": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 9007199254740991
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "unit": {
                   "type": "string",
@@ -6390,6 +6397,9 @@
                     "CEILING"
                   ]
                 },
+                "requiresPutty": {
+                  "type": "boolean"
+                },
                 "status": {
                   "type": "string",
                   "enum": [
@@ -6459,6 +6469,7 @@
                 "name",
                 "wastePercent",
                 "surface",
+                "requiresPutty",
                 "status",
                 "productCount",
                 "roomTypeCodes",
@@ -6508,6 +6519,10 @@
               "WALLS",
               "CEILING"
             ]
+          },
+          "requiresPutty": {
+            "default": true,
+            "type": "boolean"
           }
         },
         "required": [
@@ -6555,6 +6570,9 @@
               "WALLS",
               "CEILING"
             ]
+          },
+          "requiresPutty": {
+            "type": "boolean"
           },
           "status": {
             "type": "string",
@@ -6625,6 +6643,7 @@
           "name",
           "wastePercent",
           "surface",
+          "requiresPutty",
           "status",
           "productCount",
           "roomTypeCodes",
@@ -6667,6 +6686,9 @@
               "WALLS",
               "CEILING"
             ]
+          },
+          "requiresPutty": {
+            "type": "boolean"
           },
           "revision": {
             "type": "string",
@@ -9580,9 +9602,16 @@
                   ]
                 },
                 "priceCents": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 9007199254740991
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "unit": {
                   "type": "string",
@@ -9824,9 +9853,16 @@
             ]
           },
           "priceCents": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "unit": {
             "type": "string",
@@ -10010,9 +10046,16 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           },
           "priceCents": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "confirmZeroPrice": {
             "default": false,
@@ -10136,9 +10179,16 @@
             ]
           },
           "priceCents": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "confirmZeroPrice": {
             "type": "boolean"
@@ -10545,12 +10595,17 @@
                     "WALLS",
                     "CEILING"
                   ]
+                },
+                "requiresPutty": {
+                  "default": true,
+                  "type": "boolean"
                 }
               },
               "required": [
                 "id",
                 "wastePercent",
-                "surface"
+                "surface",
+                "requiresPutty"
               ],
               "additionalProperties": false
             }
@@ -10710,9 +10765,16 @@
                   ]
                 },
                 "priceCents": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 9007199254740991
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "unit": {
                   "type": "string",
@@ -12003,6 +12065,9 @@
                 "type": "number",
                 "minimum": 0
               },
+              "puttyRequired": {
+                "type": "boolean"
+              },
               "object": {
                 "type": "object",
                 "properties": {
@@ -12054,6 +12119,10 @@
                     "minimum": 0
                   },
                   "roomsWallArea": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "roomsPuttyWallArea": {
                     "type": "number",
                     "minimum": 0
                   },

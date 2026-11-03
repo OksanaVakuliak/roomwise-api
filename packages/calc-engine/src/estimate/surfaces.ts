@@ -7,7 +7,7 @@ import type {
   RoomConfiguration,
 } from '../schemas';
 import type { ObjectVariables } from '../variables';
-import { roomVariables } from '../variables';
+import { puttyRequiredOn, roomVariables } from '../variables';
 import { componentCents, failedLine, MAX_LINE_CENTS, outOfRange } from './line';
 import { runNumericFormula } from './run-formula';
 
@@ -71,10 +71,15 @@ export function applySurfacePrep(
   };
   const surfaces = new Map<Surface, number[]>();
   lines.forEach((line, index) => {
-    const surface = data.categories.find(
-      (category) => category.id === line.categoryId,
-    )?.surface;
-    if (line.status === 'OK' && surface !== undefined && surface !== 'NONE') {
+    const category = data.categories.find(
+      (item) => item.id === line.categoryId,
+    );
+    if (
+      line.status === 'OK' &&
+      category !== undefined &&
+      category.surface !== 'NONE'
+    ) {
+      const surface = category.surface;
       surfaces.set(surface, [...(surfaces.get(surface) ?? []), index]);
     }
   });
@@ -84,7 +89,11 @@ export function applySurfacePrep(
       continue;
     }
     const outcome = runNumericFormula(rule.costFormula, {
-      variables: { ...variables, surfaceArea: areas[surface] },
+      variables: {
+        ...variables,
+        surfaceArea: areas[surface],
+        puttyRequired: puttyRequiredOn(room, surface, data.categories),
+      },
       coefficients: data.coefficients,
     });
     const cents = outcome.ok ? componentCents(outcome.value) : null;

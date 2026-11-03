@@ -162,15 +162,16 @@ model RoomType {
 }
 
 model Category {
-  id           String            @id @default(uuid()) @db.Uuid
-  name         Json              @db.JsonB
-  wastePercent Decimal           @map("waste_percent") @db.Decimal(5, 2)
-  surface      SurfaceKind
-  status       PublicationStatus @default(DRAFT)
-  revision     String            @default(uuid()) @db.Uuid
-  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
-  updatedById  String?           @map("updated_by_id") @db.Uuid
-  updatedBy    Admin?            @relation("CategoryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  id            String            @id @default(uuid()) @db.Uuid
+  name          Json              @db.JsonB
+  wastePercent  Decimal           @map("waste_percent") @db.Decimal(5, 2)
+  surface       SurfaceKind
+  requiresPutty Boolean           @default(true) @map("requires_putty")
+  status        PublicationStatus @default(DRAFT)
+  revision      String            @default(uuid()) @db.Uuid
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById   String?           @map("updated_by_id") @db.Uuid
+  updatedBy     Admin?            @relation("CategoryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   roomTypeCategories    RoomTypeCategory[]
   products              Product[]
@@ -347,7 +348,7 @@ model Option {
   description          Json              @db.JsonB
   imageId              String?           @map("image_id") @db.Uuid
   image                Image?            @relation("OptionImage", fields: [imageId], references: [id], onDelete: SetNull)
-  priceCents           Int               @map("price_cents")
+  priceCents           Int?              @map("price_cents")
   unit                 OptionUnit
   minQuantity          Int?              @map("min_quantity")
   maxQuantity          Int?              @map("max_quantity")

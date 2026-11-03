@@ -80,6 +80,7 @@ export const FORMULA_SCOPE_VARIABLES: Record<
     enumeration('scope', ScopeSchema.options),
     number('roomsFloorArea'),
     number('roomsWallArea'),
+    number('roomsPuttyWallArea'),
     number('roomsPerimeter'),
     number('wetRoomsCount'),
   ],
@@ -89,6 +90,9 @@ export const FORMULA_QUANTITY_VARIABLE: FormulaVariable = number('quantity');
 
 export const FORMULA_SURFACE_AREA_VARIABLE: FormulaVariable =
   number('surfaceArea');
+
+export const FORMULA_PUTTY_REQUIRED_VARIABLE: FormulaVariable =
+  boolean('puttyRequired');
 
 export const FORMULA_VARIABLES: Record<RuleLevel, readonly FormulaVariable[]> =
   {
@@ -107,6 +111,7 @@ export const FORMULA_VARIABLES: Record<RuleLevel, readonly FormulaVariable[]> =
       ...FORMULA_SCOPE_VARIABLES.room,
       ...FORMULA_SCOPE_VARIABLES.object,
       FORMULA_SURFACE_AREA_VARIABLE,
+      FORMULA_PUTTY_REQUIRED_VARIABLE,
     ],
   };
 

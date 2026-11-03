@@ -28,7 +28,12 @@ export class CatalogPricingReadService {
 
   async categories(): Promise<PricingCategory[]> {
     const rows = await this.prisma.category.findMany({
-      select: { id: true, wastePercent: true, surface: true },
+      select: {
+        id: true,
+        wastePercent: true,
+        surface: true,
+        requiresPutty: true,
+      },
       orderBy: { id: 'asc' },
     });
 
@@ -36,6 +41,7 @@ export class CatalogPricingReadService {
       id: row.id,
       wastePercent: row.wastePercent.toNumber(),
       surface: row.surface,
+      requiresPutty: row.requiresPutty,
     }));
   }
 

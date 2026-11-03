@@ -1,4 +1,7 @@
-import { ScopeSchema } from '@roomwise/calc-engine';
+import {
+  findOptionPriceSourceViolation,
+  ScopeSchema,
+} from '@roomwise/calc-engine';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import {
@@ -51,7 +54,7 @@ export const createOptionSchema = z
     name: localizedNameDraftSchema,
     description: localizedDescriptionDraftSchema,
     imageId: z.uuid().optional(),
-    priceCents: z.number().int().min(0),
+    priceCents: z.number().int().min(0).nullable(),
     confirmZeroPrice: z.boolean().default(false),
     unit: z.enum(OptionUnit),
     minQuantity: z
@@ -72,6 +75,19 @@ export const createOptionSchema = z
   })
   .strict()
   .superRefine((data, ctx) => {
+    const violation = findOptionPriceSourceViolation(
+      data.priceCents,
+      data.priceCoefficientKeys,
+    );
+
+    if (violation) {
+      ctx.addIssue({
+        code: 'custom',
+        message: violation.message,
+        path: [violation.path],
+      });
+    }
+
     if (
       data.minQuantity !== undefined &&
       data.maxQuantity !== undefined &&
