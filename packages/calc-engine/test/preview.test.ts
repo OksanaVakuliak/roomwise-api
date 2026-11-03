@@ -178,6 +178,26 @@ describe('previewRule', () => {
     expect(preview.variables).toEqual({ surfaceArea: 10, floorArea: 20 });
   });
 
+  it('previews puttyRequired as true by default and from the sample', () => {
+    const rule = {
+      level: 'SURFACE',
+      quantityFormula: null,
+      costFormula: 'puttyRequired ? surfaceArea : 0',
+      coefficients: {},
+    } as const;
+    const preview = (puttyRequired?: boolean) =>
+      previewRule({
+        ...rule,
+        sample: { ...sample, surfaceArea: 10, puttyRequired },
+      });
+    expect(preview().amountCents).toBe(1000);
+    expect(preview().variables).toEqual({
+      puttyRequired: true,
+      surfaceArea: 10,
+    });
+    expect(preview(false).amountCents).toBe(0);
+  });
+
   it('reports an incomplete surface sample', () => {
     const rule = {
       level: 'SURFACE',

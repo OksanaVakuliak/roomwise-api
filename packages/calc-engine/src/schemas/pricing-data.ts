@@ -77,6 +77,7 @@ export const PricingCategorySchema = z.object({
   id: z.string(),
   wastePercent: z.number().min(0),
   surface: SurfaceKindSchema,
+  requiresPutty: z.boolean().default(true),
 });
 export type PricingCategory = z.infer<typeof PricingCategorySchema>;
 
@@ -106,11 +107,11 @@ export const PricingPackageItemSchema = z.object({
 });
 export type PricingPackageItem = z.infer<typeof PricingPackageItemSchema>;
 
-export const PricingOptionSchema = z.object({
+export const PricingOptionSnapshotSchema = z.object({
   id: z.string(),
   code: OptionCodeSchema.nullable(),
   kind: OptionKindSchema,
-  priceCents: CentsSchema,
+  priceCents: CentsSchema.nullable(),
   unit: OptionUnitSchema,
   roomTypeCodes: z.array(z.string()),
   priceCoefficientKeys: z.array(z.string()),
@@ -119,9 +120,29 @@ export const PricingOptionSchema = z.object({
   maxQuantity: z.int().nullable(),
   available: z.boolean(),
 });
+
+export const PricingOptionSchema = PricingOptionSnapshotSchema.superRefine(
+  (option, context) => {
+    const hasKeys = option.priceCoefficientKeys.length > 0;
+    if (option.priceCents !== null && hasKeys) {
+      context.addIssue({
+        code: 'custom',
+        path: ['priceCents'],
+        message: 'priceCents must be null when priceCoefficientKeys is set',
+      });
+    }
+    if (option.priceCents === null && !hasKeys) {
+      context.addIssue({
+        code: 'custom',
+        path: ['priceCoefficientKeys'],
+        message: 'priceCoefficientKeys is required when priceCents is null',
+      });
+    }
+  },
+);
 export type PricingOption = z.infer<typeof PricingOptionSchema>;
 
-export const PricingDataSchema = z.object({
+const pricingDataShape = {
   version: z.string().regex(/^[0-9a-f]{16}$/),
   exchangeRate: ExchangeRateSchema.nullable(),
   limits: PricingLimitsSchema,
@@ -133,5 +154,12 @@ export const PricingDataSchema = z.object({
   products: z.array(PricingProductSchema),
   packageItems: z.array(PricingPackageItemSchema),
   options: z.array(PricingOptionSchema),
-});
+};
+
+export const PricingDataSchema = z.object(pricingDataShape);
 export type PricingData = z.infer<typeof PricingDataSchema>;
+
+export const PricingDataSnapshotSchema = z.object({
+  ...pricingDataShape,
+  options: z.array(PricingOptionSnapshotSchema),
+});

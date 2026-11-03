@@ -37,6 +37,7 @@ const category: PricingCategory = {
   id: 'c1',
   wastePercent: 10,
   surface: 'FLOOR',
+  requiresPutty: true,
 };
 
 const product = (overrides: Partial<PricingProduct> = {}): PricingProduct => ({

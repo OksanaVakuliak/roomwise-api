@@ -42,6 +42,53 @@ const prepOf = (
     .find((line) => line.id === id)
     ?.components?.find((component) => component.kind === kind);
 
+const puttyPrep = (categories: string[]) => {
+  const products: Record<string, string> = {
+    [CATEGORY.wallPaint]: PRODUCT.wallPaint,
+    [CATEGORY.wallTile]: PRODUCT.wallTile,
+  };
+  const result = estimate(
+    partialConfiguration({
+      rooms: [
+        room('bedroom', {
+          selections: categories.map((id) =>
+            select(id, products[id] as string),
+          ),
+        }),
+      ],
+    }),
+    withSurfaceRules((rule) =>
+      rule.id === RULE.surfaceWalls
+        ? { ...rule, costFormula: 'puttyRequired ? 100 : 7' }
+        : rule,
+    ),
+  );
+  return categories.map((id) => prepOf(result, wallLine(id))?.amountCents);
+};
+
+describe('puttyRequired', () => {
+  it('is true when a category needing putty shares the surface', () => {
+    expect(puttyPrep([CATEGORY.wallPaint, CATEGORY.wallTile])).toEqual([
+      10000, 0,
+    ]);
+    expect(puttyPrep([CATEGORY.wallTile, CATEGORY.wallPaint])).toEqual([
+      10000, 0,
+    ]);
+  });
+
+  it('is false when no category on the surface needs putty', () => {
+    expect(puttyPrep([CATEGORY.wallTile])).toEqual([700]);
+  });
+
+  it('is true for a category that needs putty alone', () => {
+    expect(puttyPrep([CATEGORY.wallPaint])).toEqual([10000]);
+  });
+
+  it('adds no surface line when nothing is selected on the surface', () => {
+    expect(puttyPrep([])).toEqual([]);
+  });
+});
+
 describe('surface preparation', () => {
   it('adds no PREP component for a category without a surface', () => {
     const result = estimate(configuration, scopeData);

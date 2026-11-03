@@ -7,6 +7,20 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-03
+
+### Added
+
+- `PricingCategory.requiresPutty`: whether the category needs a puttied base, default `true`, so pricing data and snapshots without it still parse.
+- The `puttyRequired` variable for `SURFACE` rules (`FORMULA_PUTTY_REQUIRED_VARIABLE`): `true` when at least one category selected on the surface has `requiresPutty`, `false` when none does. It is a boolean, so use `puttyRequired ? a : 0`; it does not coerce to a number.
+- `RuleSample.puttyRequired` for `SURFACE` previews, `true` when omitted.
+- `PricingOptionSnapshotSchema` and `PricingDataSnapshotSchema`: the option and pricing data schemas without the price source check, for parsing saved snapshots.
+
+### Changed
+
+- `PricingOption.priceCents` is nullable. An option has exactly one price source: a number with no `priceCoefficientKeys`, or `null` with at least one key. `PricingDataSchema` rejects both and neither. Consumers must show the option price from the computed line (`unitPriceCents`), not from `priceCents`.
+- Snapshots saved before 0.6.0 still carry both `priceCents` and `priceCoefficientKeys` for coefficient-priced options. They parse with `PricingDataSnapshotSchema` and give the same totals, because the coefficients were always the price source.
+
 ## [0.5.0] - 2026-11-02
 
 ### Added

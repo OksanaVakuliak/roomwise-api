@@ -115,7 +115,12 @@ function scopeOf(
       };
     }
     return {
-      scope: { ...roomVariables(room), ...objectScope(sample), surfaceArea },
+      scope: {
+        ...roomVariables(room),
+        ...objectScope(sample),
+        surfaceArea,
+        puttyRequired: sample.puttyRequired ?? true,
+      },
     };
   }
   if (room === undefined || product === undefined) {

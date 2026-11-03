@@ -90,6 +90,9 @@ export const FORMULA_QUANTITY_VARIABLE: FormulaVariable = number('quantity');
 export const FORMULA_SURFACE_AREA_VARIABLE: FormulaVariable =
   number('surfaceArea');
 
+export const FORMULA_PUTTY_REQUIRED_VARIABLE: FormulaVariable =
+  boolean('puttyRequired');
+
 export const FORMULA_VARIABLES: Record<RuleLevel, readonly FormulaVariable[]> =
   {
     OBJECT: FORMULA_SCOPE_VARIABLES.object,
@@ -107,6 +110,7 @@ export const FORMULA_VARIABLES: Record<RuleLevel, readonly FormulaVariable[]> =
       ...FORMULA_SCOPE_VARIABLES.room,
       ...FORMULA_SCOPE_VARIABLES.object,
       FORMULA_SURFACE_AREA_VARIABLE,
+      FORMULA_PUTTY_REQUIRED_VARIABLE,
     ],
   };
 

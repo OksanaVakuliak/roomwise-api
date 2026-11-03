@@ -445,6 +445,23 @@ describe('validateFormula static typing', () => {
     );
   });
 
+  it('allows puttyRequired only at the surface level', () => {
+    expect(check('puttyRequired ? 1 : 0', 'SURFACE').valid).toBe(true);
+    expect(check('puttyRequired ? 1 : 0', 'CATEGORY').errors).toEqual([
+      {
+        code: 'VARIABLE_NOT_ALLOWED_AT_LEVEL',
+        position: 0,
+        length: 13,
+        params: { variable: 'puttyRequired', level: 'CATEGORY' },
+      },
+    ]);
+    expect(check('puttyRequired ? 1 : 0', 'OBJECT').valid).toBe(false);
+    expect(check('puttyRequired * 2', 'SURFACE').valid).toBe(false);
+    expect(FORMULA_VARIABLES.SURFACE.map((v) => v.name)).toContain(
+      'puttyRequired',
+    );
+  });
+
   it('gives a labor formula the cost formula variables and quantity', () => {
     expect(check('quantity * coef.labor', 'CATEGORY', 'labor').valid).toBe(
       true,

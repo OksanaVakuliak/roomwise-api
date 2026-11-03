@@ -70,12 +70,23 @@ export function applySurfacePrep(
     WALLS: variables.wallArea,
   };
   const surfaces = new Map<Surface, number[]>();
+  const puttyRequired = new Map<Surface, boolean>();
   lines.forEach((line, index) => {
-    const surface = data.categories.find(
-      (category) => category.id === line.categoryId,
-    )?.surface;
-    if (line.status === 'OK' && surface !== undefined && surface !== 'NONE') {
+    const category = data.categories.find(
+      (item) => item.id === line.categoryId,
+    );
+    const surface = category?.surface;
+    if (
+      line.status === 'OK' &&
+      category !== undefined &&
+      surface !== undefined &&
+      surface !== 'NONE'
+    ) {
       surfaces.set(surface, [...(surfaces.get(surface) ?? []), index]);
+      puttyRequired.set(
+        surface,
+        (puttyRequired.get(surface) ?? false) || category.requiresPutty,
+      );
     }
   });
   for (const [surface, indexes] of surfaces) {
@@ -84,7 +95,11 @@ export function applySurfacePrep(
       continue;
     }
     const outcome = runNumericFormula(rule.costFormula, {
-      variables: { ...variables, surfaceArea: areas[surface] },
+      variables: {
+        ...variables,
+        surfaceArea: areas[surface],
+        puttyRequired: puttyRequired.get(surface) ?? true,
+      },
       coefficients: data.coefficients,
     });
     const cents = outcome.ok ? componentCents(outcome.value) : null;
