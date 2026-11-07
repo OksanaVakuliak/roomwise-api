@@ -496,6 +496,31 @@ describe('public estimates of partial renovation on seed e2e', () => {
     });
   });
 
+  describe('engineering package', () => {
+    it('charges no package item in a partial renovation', async () => {
+      const estimate = await estimateOf(
+        partial({
+          rooms: [
+            bedroom([
+              {
+                categoryId: categoryIds.floorCovering,
+                productId: productIds.lightLaminateFlooring,
+              },
+            ]),
+          ],
+        }),
+      );
+
+      expect(
+        estimate.lines.filter((line) => line.packageItemId !== null),
+      ).toEqual([]);
+      expect(
+        estimate.lines.filter((line) => line.section === 'ENGINEERING'),
+      ).toEqual([]);
+      expect(estimate.totals.sections.ENGINEERING.usdCents).toBe(0);
+    });
+  });
+
   describe('balcony tiles', () => {
     const balcony = {
       balconyAreaSqm: BALCONY_AREA_SQM,
