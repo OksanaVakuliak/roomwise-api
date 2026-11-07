@@ -16,7 +16,6 @@ import {
   newIdempotencyKey,
   projectsStyleId,
   seedProjectsData,
-  withPackageIncludedInBase,
 } from './projects-fixtures';
 
 const SEED_TIMEOUT_MS = 120_000;
@@ -264,13 +263,11 @@ describe('leads e2e', () => {
       const leadsBefore = await testApp.prisma.lead.count();
       const configuration = buildEmptyPartialConfiguration();
 
-      const response = await withPackageIncludedInBase(testApp, () =>
-        submit(
-          leadBody({
-            calculation: undefined,
-            draft: { ...draft(), configuration },
-          }),
-        ),
+      const response = await submit(
+        leadBody({
+          calculation: undefined,
+          draft: { ...draft(), configuration },
+        }),
       );
 
       expect(response.status).toBe(422);
