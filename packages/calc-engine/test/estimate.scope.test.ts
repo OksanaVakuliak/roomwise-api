@@ -171,6 +171,7 @@ describe('estimate renovation scope', () => {
       partialConfiguration({ rooms: [room('bedroom')] }),
       scopeData,
     );
+    expect(sectionOf(empty, 'ENGINEERING')).toEqual([]);
     expect(empty.lines.filter((line) => line.amountCents > 0)).toEqual([]);
     expect(empty.totals.usdCents).toBe(0);
   });
