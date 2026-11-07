@@ -193,7 +193,7 @@ Every schema is a zod schema with an inferred type of the same name without the 
 | `totalAreaSqm` | required | `null` |
 | `BASE` section | `OBJECT` rules with `baseComponent: true`, one line each | none |
 | Material lines | `MATERIAL` component only | `MATERIAL`, `LABOR` and `PREP` components |
-| Package items with `includedInBase` | `INCLUDED` lines | skipped |
+| Engineering package items | priced, `INCLUDED` with `includedInBase` | none |
 | `totalArea` variable | `totalAreaSqm` | `roomsFloorArea` |
 | Area warnings | `ROOMS_AREA_EXCEEDS_TOTAL`, `ROOMS_AREA_BELOW_TOTAL` | none |
 
