@@ -134,7 +134,7 @@ describe('estimate renovation scope', () => {
     );
   });
 
-  it('E5 PARTIAL has no BASE lines and skips included package items', () => {
+  it('E5 PARTIAL has no BASE lines and no package items', () => {
     const configuration = partialConfiguration({
       rooms: [
         room('bedroom', {
@@ -144,14 +144,10 @@ describe('estimate renovation scope', () => {
     });
     const partial = run(configuration, scopeData);
     expect(sectionOf(partial, 'BASE')).toEqual([]);
-    const packageIds = sectionOf(partial, 'ENGINEERING').map(
-      (line) => line.packageItemId,
+    const packageLines = partial.lines.filter(
+      (line) => line.packageItemId !== null,
     );
-    expect(packageIds).not.toContain(PACKAGE_ITEM.included);
-    const charged = partial.lines.find(
-      (line) => line.packageItemId === PACKAGE_ITEM.charged,
-    );
-    expect(charged?.amountCents).toBe(PRICE_CENTS.chargedPackageItem);
+    expect(packageLines).toEqual([]);
 
     const full = run(
       fullConfiguration({
@@ -164,6 +160,19 @@ describe('estimate renovation scope', () => {
       (line) => line.packageItemId === PACKAGE_ITEM.included,
     );
     expect(included?.status).toBe('INCLUDED');
+    const charged = full.lines.find(
+      (line) => line.packageItemId === PACKAGE_ITEM.charged,
+    );
+    expect(charged?.amountCents).toBe(PRICE_CENTS.chargedPackageItem);
+  });
+
+  it('E5b PARTIAL without categories has no priced lines', () => {
+    const empty = run(
+      partialConfiguration({ rooms: [room('bedroom')] }),
+      scopeData,
+    );
+    expect(empty.lines.filter((line) => line.amountCents > 0)).toEqual([]);
+    expect(empty.totals.usdCents).toBe(0);
   });
 
   it('E6 PARTIAL ROUGH bedroom laminate is MATERIAL + LABOR + PREP', () => {

@@ -7,6 +7,12 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-07
+
+### Fixed
+
+- `PARTIAL` estimates no longer include engineering package items, neither `includedInBase` nor paid ones. The `ENGINEERING` section in `PARTIAL` consists only of options whose `scopes` include `PARTIAL`, so a partial estimate without selected categories has no priced lines. `FULL` is unchanged.
+
 ## [0.7.0] - 2026-11-04
 
 ### Added
