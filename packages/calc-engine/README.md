@@ -47,7 +47,7 @@ Lines are produced in this order: base cost, object rules (by `sortOrder`), mate
 - Base cost: `OBJECT` rules with `baseComponent: true`, one `BASE` line each. Only in `FULL`; a line that is `OK` with a zero amount is left out.
 - Object rules: the other `OBJECT` level rules, one line each.
 - Materials: for every room selection with a product, the `MATERIAL_TYPE` rule for the category and the product's material type is used if one exists, otherwise the `CATEGORY` rule. Without either, the line is `NOT_CALCULATED` (`RULE_NOT_FOUND`). Unknown or unavailable products give `UNAVAILABLE`. Each line carries [components](#line-components).
-- Engineering and additional: package items marked `includedInBase` become `INCLUDED` lines with a zero amount, and are skipped in `PARTIAL`. Options are priced by unit (`PIECE`, `ROOM_SQM`, `ROOM`, `PROJECT`). An option has exactly one price source: `priceCents` with no `priceCoefficientKeys`, or `priceCents: null` with keys, in which case the unit price is the sum of those coefficients in dollars (`PricingDataSchema` rejects both and neither; read the price from the line's `unitPriceCents`). A missing coefficient gives an `ERROR` line (`UNKNOWN_COEFFICIENT`). An option whose `scopes` do not include the configuration scope is `UNAVAILABLE` with `OPTION_SCOPE_NOT_ALLOWED`.
+- Engineering and additional: package items marked `includedInBase` become `INCLUDED` lines with a zero amount. In `PARTIAL` no package items are priced at all; the section holds only options. Options are priced by unit (`PIECE`, `ROOM_SQM`, `ROOM`, `PROJECT`). An option has exactly one price source: `priceCents` with no `priceCoefficientKeys`, or `priceCents: null` with keys, in which case the unit price is the sum of those coefficients in dollars (`PricingDataSchema` rejects both and neither; read the price from the line's `unitPriceCents`). A missing coefficient gives an `ERROR` line (`UNKNOWN_COEFFICIENT`). An option whose `scopes` do not include the configuration scope is `UNAVAILABLE` with `OPTION_SCOPE_NOT_ALLOWED`.
 
 Result fields:
 
@@ -193,7 +193,7 @@ Every schema is a zod schema with an inferred type of the same name without the 
 | `totalAreaSqm` | required | `null` |
 | `BASE` section | `OBJECT` rules with `baseComponent: true`, one line each | none |
 | Material lines | `MATERIAL` component only | `MATERIAL`, `LABOR` and `PREP` components |
-| Package items with `includedInBase` | `INCLUDED` lines | skipped |
+| Engineering package items | priced, `INCLUDED` with `includedInBase` | none |
 | `totalArea` variable | `totalAreaSqm` | `roomsFloorArea` |
 | Area warnings | `ROOMS_AREA_EXCEEDS_TOTAL`, `ROOMS_AREA_BELOW_TOTAL` | none |
 

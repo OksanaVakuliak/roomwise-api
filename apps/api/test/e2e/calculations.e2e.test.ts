@@ -14,7 +14,6 @@ import {
   newIdempotencyKey,
   projectsStyleId,
   seedProjectsData,
-  withPackageIncludedInBase,
 } from './projects-fixtures';
 
 const SEED_TIMEOUT_MS = 120_000;
@@ -265,9 +264,7 @@ describe('calculations e2e', () => {
       const before = await testApp.prisma.calculation.count();
       const configuration = buildEmptyPartialConfiguration();
 
-      const response = await withPackageIncludedInBase(testApp, () =>
-        save(savedBody({ configuration })),
-      );
+      const response = await save(savedBody({ configuration }));
 
       expect(response.status).toBe(422);
       expect(response.body.error.code).toBe(ERROR_CODES.EMPTY_ESTIMATE);
