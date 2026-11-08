@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import type { AppEnv } from '../../../config/env';
 import { RATE_FRACTION_DIGITS } from './dto/exchange-rate.schema';
+import { isoDate, kyivDateString } from './kyiv-date';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const USD_CODE = 'USD';
@@ -97,8 +98,9 @@ export class NbuClient {
     this.url = config.get('NBU_API_URL', { infer: true });
   }
 
-  async fetchUsdRate(): Promise<NbuRate> {
-    const response = await this.request();
+  async fetchUsdRate(now: Date): Promise<NbuRate> {
+    const today = kyivDateString(now);
+    const response = await this.request(today);
 
     if (!response.ok) {
       throw new NbuError(
@@ -118,12 +120,22 @@ export class NbuClient {
       );
     }
 
-    return parseNbuResponse(payload);
+    const quote = parseNbuResponse(payload);
+
+    if (isoDate(quote.effectiveDate) !== today) {
+      throw new NbuError(
+        NBU_ERROR_KINDS.BAD_DATE,
+        `NBU returned the rate for ${isoDate(quote.effectiveDate)} instead of ${today}`,
+      );
+    }
+
+    return quote;
   }
 
-  private async request(): Promise<Response> {
+  private async request(date: string): Promise<Response> {
     const url = new URL(this.url);
     url.searchParams.set('valcode', USD_CODE);
+    url.searchParams.set('date', date.replaceAll('-', ''));
     url.searchParams.set('json', '');
 
     try {

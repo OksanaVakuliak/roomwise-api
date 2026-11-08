@@ -18,6 +18,7 @@ import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
 import { pricingDataset } from '../../src/modules/pricing/dataset/data';
 import { PricingDatasetService } from '../../src/modules/pricing/dataset/pricing-dataset.service';
+import { kyivDateString } from '../../src/modules/pricing/exchange-rate/kyiv-date';
 import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
 import { createTestApp, type TestApp } from './app-factory';
 import { createAdmin, login } from './auth-helpers';
@@ -35,14 +36,13 @@ const BASE_TIME = new Date('2026-09-14T09:00:00.000Z').getTime();
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 const NBU_RATE = 41.5;
-const NBU_DATE = '14.09.2026';
 const NBU_ISO_DATE = '2026-09-14';
 const STALE_DATE = '2026-09-10';
 const GENERATOR_SEED = 20_260_918;
 
 vi.setConfig({ hookTimeout: SEED_TIMEOUT_MS, testTimeout: SEED_TIMEOUT_MS });
 
-function nbuBody(rate = NBU_RATE, date = NBU_DATE) {
+function nbuBody(date: string, rate = NBU_RATE) {
   return [{ r030: 840, txt: 'Долар США', rate, cc: 'USD', exchangedate: date }];
 }
 
@@ -144,7 +144,11 @@ describe('exchange rate e2e', () => {
   }
 
   function today() {
-    return new Date(now).toISOString().slice(0, 10);
+    return kyivDateString(new Date(now));
+  }
+
+  function nbuToday() {
+    return nbuBody(today().split('-').reverse().join('.'));
   }
 
   async function seedOfficialRate(rate: string, date: string) {
@@ -163,7 +167,7 @@ describe('exchange rate e2e', () => {
 
   describe('NBU refresh task', () => {
     it('stores the rate with its date and reports it as the NBU source', async () => {
-      fetchMock.mockResolvedValue(jsonResponse(nbuBody()));
+      fetchMock.mockResolvedValue(jsonResponse(nbuToday()));
 
       const task = await runTask();
       const response = await authed('get', RATE_PATH).expect(200);
@@ -171,9 +175,12 @@ describe('exchange rate e2e', () => {
       expect(task?.status).toBe('SUCCESS');
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(String(fetchMock.mock.calls[0][0])).toContain('valcode=USD');
+      expect(String(fetchMock.mock.calls[0][0])).toContain(
+        `date=${today().replaceAll('-', '')}`,
+      );
       expect(response.body).toEqual({
-        active: { rate: '41.5000', date: NBU_ISO_DATE, source: 'NBU' },
-        official: { rate: '41.5000', date: NBU_ISO_DATE },
+        active: { rate: '41.5000', date: today(), source: 'NBU' },
+        official: { rate: '41.5000', date: today() },
         manual: null,
         lastSuccessfulFetchDate: today(),
         lastAttemptAt: new Date(now).toISOString(),
@@ -183,7 +190,7 @@ describe('exchange rate e2e', () => {
     });
 
     it('is not due again once today has a successful fetch', async () => {
-      fetchMock.mockResolvedValue(jsonResponse(nbuBody()));
+      fetchMock.mockResolvedValue(jsonResponse(nbuToday()));
 
       await runTask();
       const second = await runTask();
@@ -292,7 +299,7 @@ describe('exchange rate e2e', () => {
       ['an HTTP 500', () => jsonResponse({}, 500), 'HTTP 500'],
       ['a bad response shape', () => jsonResponse({ rate: 1 }), 'shape'],
       ['a missing USD entry', () => jsonResponse([]), 'no USD'],
-      ['a bad date', () => jsonResponse(nbuBody(41, '2026-09-14')), 'date'],
+      ['a bad date', () => jsonResponse(nbuBody('2026-09-14', 41)), 'date'],
     ])(
       'keeps the last rate and records the error on %s',
       async (_, respond, text) => {
@@ -331,7 +338,7 @@ describe('exchange rate e2e', () => {
       await runTask();
 
       now += 2 * HOUR_MS;
-      fetchMock.mockResolvedValue(jsonResponse(nbuBody()));
+      fetchMock.mockResolvedValue(jsonResponse(nbuToday()));
       await runTask();
       const response = await authed('get', RATE_PATH).expect(200);
 

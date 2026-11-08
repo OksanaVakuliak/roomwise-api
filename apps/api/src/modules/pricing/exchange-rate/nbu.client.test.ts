@@ -10,6 +10,7 @@ import {
 } from './nbu.client';
 
 const NBU_URL = 'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange';
+const NOW = new Date('2026-09-14T09:00:00.000Z');
 
 const RECORDED = [
   {
@@ -114,7 +115,7 @@ describe('NbuClient', () => {
   it('requests USD as JSON and returns the parsed rate', async () => {
     const fetchMock = stubFetch(jsonResponse(RECORDED));
 
-    const result = await createClient().fetchUsdRate();
+    const result = await createClient().fetchUsdRate(NOW);
 
     expect(result.rate).toBe('44.5483');
     const [url, init] = fetchMock.mock.calls[0] as unknown as [
@@ -122,14 +123,37 @@ describe('NbuClient', () => {
       RequestInit,
     ];
     expect(url.searchParams.get('valcode')).toBe('USD');
+    expect(url.searchParams.get('date')).toBe('20260914');
     expect(url.searchParams.has('json')).toBe(true);
     expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('asks for the Kyiv date: 23:30 UTC is already the next day in Kyiv', async () => {
+    const fetchMock = stubFetch(
+      jsonResponse([{ ...RECORDED[0], exchangedate: '15.09.2026' }]),
+    );
+
+    const result = await createClient().fetchUsdRate(
+      new Date('2026-09-14T23:30:00.000Z'),
+    );
+
+    const [url] = fetchMock.mock.calls[0] as unknown as [URL];
+    expect(url.searchParams.get('date')).toBe('20260915');
+    expect(result.effectiveDate).toEqual(new Date('2026-09-15T00:00:00.000Z'));
+  });
+
+  it('rejects a rate for another day as BAD_DATE', async () => {
+    stubFetch(jsonResponse([{ ...RECORDED[0], exchangedate: '15.09.2026' }]));
+
+    expect(await kindOf(createClient().fetchUsdRate(NOW))).toBe(
+      NBU_ERROR_KINDS.BAD_DATE,
+    );
   });
 
   it('maps HTTP 500 to HTTP_STATUS', async () => {
     stubFetch(jsonResponse({}, 500));
 
-    expect(await kindOf(createClient().fetchUsdRate())).toBe(
+    expect(await kindOf(createClient().fetchUsdRate(NOW))).toBe(
       NBU_ERROR_KINDS.HTTP_STATUS,
     );
   });
@@ -137,7 +161,7 @@ describe('NbuClient', () => {
   it('maps an aborted request to TIMEOUT', async () => {
     stubFetch(new DOMException('timed out', 'TimeoutError'));
 
-    expect(await kindOf(createClient().fetchUsdRate())).toBe(
+    expect(await kindOf(createClient().fetchUsdRate(NOW))).toBe(
       NBU_ERROR_KINDS.TIMEOUT,
     );
   });
@@ -145,7 +169,7 @@ describe('NbuClient', () => {
   it('maps a failed connection to NETWORK', async () => {
     stubFetch(new TypeError('fetch failed'));
 
-    expect(await kindOf(createClient().fetchUsdRate())).toBe(
+    expect(await kindOf(createClient().fetchUsdRate(NOW))).toBe(
       NBU_ERROR_KINDS.NETWORK,
     );
   });
@@ -153,7 +177,7 @@ describe('NbuClient', () => {
   it('maps a non-JSON body to BAD_SHAPE', async () => {
     stubFetch(new Response('not json', { status: 200 }));
 
-    expect(await kindOf(createClient().fetchUsdRate())).toBe(
+    expect(await kindOf(createClient().fetchUsdRate(NOW))).toBe(
       NBU_ERROR_KINDS.BAD_SHAPE,
     );
   });
@@ -161,7 +185,7 @@ describe('NbuClient', () => {
   it('maps an empty array to BAD_SHAPE', async () => {
     stubFetch(jsonResponse([]));
 
-    expect(await kindOf(createClient().fetchUsdRate())).toBe(
+    expect(await kindOf(createClient().fetchUsdRate(NOW))).toBe(
       NBU_ERROR_KINDS.BAD_SHAPE,
     );
   });

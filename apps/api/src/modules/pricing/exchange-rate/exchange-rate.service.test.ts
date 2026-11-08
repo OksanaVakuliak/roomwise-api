@@ -109,8 +109,70 @@ describe('ExchangeRateService active rate', () => {
       source: RateSource.NBU,
     });
     expect(prisma.exchangeRate.findFirst).toHaveBeenCalledWith({
-      where: { source: RateSource.NBU },
+      where: {
+        source: RateSource.NBU,
+        effectiveDate: { lte: new Date('2026-09-14T00:00:00.000Z') },
+      },
       orderBy: { effectiveDate: 'desc' },
+    });
+  });
+
+  describe('with a rate already set for a later day', () => {
+    const rows = [
+      rateRow({
+        id: 'friday',
+        rate: decimal('44.1000'),
+        effectiveDate: new Date('2026-11-06T00:00:00.000Z'),
+      }),
+      rateRow({
+        id: 'saturday',
+        rate: decimal('44.2000'),
+        effectiveDate: new Date('2026-11-07T00:00:00.000Z'),
+      }),
+      rateRow({
+        id: 'monday',
+        rate: decimal('45.3200'),
+        effectiveDate: new Date('2026-11-09T00:00:00.000Z'),
+      }),
+    ];
+
+    function setupAt(now: Date) {
+      const fixture = setup({ now });
+      fixture.prisma.exchangeRate.findFirst.mockImplementation(
+        async ({ where }: { where: { effectiveDate: { lte: Date } } }) =>
+          rows
+            .filter((row) => row.effectiveDate <= where.effectiveDate.lte)
+            .sort(
+              (a, b) => b.effectiveDate.getTime() - a.effectiveDate.getTime(),
+            )[0] ?? null,
+      );
+      return fixture.service;
+    }
+
+    it("uses today's rate, not tomorrow's", async () => {
+      const service = setupAt(new Date('2026-11-06T16:00:00.000Z'));
+
+      expect(await service.activeRate()).toEqual({
+        rate: '44.1000',
+        date: '2026-11-06',
+        source: RateSource.NBU,
+      });
+    });
+
+    it('uses the rate in effect on a weekend day without its own row', async () => {
+      const service = setupAt(new Date('2026-11-08T10:00:00.000Z'));
+
+      expect(await service.activeRate()).toEqual({
+        rate: '44.2000',
+        date: '2026-11-07',
+        source: RateSource.NBU,
+      });
+    });
+
+    it('switches to the next rate once its Kyiv day starts', async () => {
+      const service = setupAt(new Date('2026-11-08T22:30:00.000Z'));
+
+      expect((await service.activeRate())?.date).toBe('2026-11-09');
     });
   });
 
@@ -269,13 +331,16 @@ describe('ExchangeRateService.isRefreshDue', () => {
 
 describe('ExchangeRateService.refresh', () => {
   it('creates the official rate and records the success on the Kyiv date', async () => {
-    const { service, prisma, changes } = setup({
+    const { service, prisma, nbu, changes } = setup({
       official: null,
       now: new Date('2026-09-14T22:30:00.000Z'),
     });
 
     await service.refresh(new Date('2026-09-14T22:30:00.000Z'));
 
+    expect(nbu.fetchUsdRate).toHaveBeenCalledWith(
+      new Date('2026-09-14T22:30:00.000Z'),
+    );
     expect(prisma.exchangeRate.create).toHaveBeenCalledWith({
       data: {
         source: RateSource.NBU,
@@ -377,6 +442,30 @@ describe('ExchangeRateService.refresh', () => {
 });
 
 describe('ExchangeRateService.requestRefreshIfStale', () => {
+  it('announces a change once the Kyiv day of the served rate is over', async () => {
+    const { service, clock, changes } = setup({
+      now: new Date('2026-11-08T21:00:00.000Z'),
+    });
+    await service.activeRate();
+
+    service.requestRefreshIfStale();
+    expect(changes).not.toHaveBeenCalled();
+
+    clock.now.mockReturnValue(new Date('2026-11-08T22:30:00.000Z'));
+    service.requestRefreshIfStale();
+    service.requestRefreshIfStale();
+
+    expect(changes).toHaveBeenCalledTimes(1);
+  });
+
+  it('announces nothing before any rate was served', () => {
+    const { service, changes } = setup();
+
+    service.requestRefreshIfStale();
+
+    expect(changes).not.toHaveBeenCalled();
+  });
+
   it('does not fetch while the official rate is under 26 hours old', async () => {
     const { service, nbu } = setup({
       official: rateRow({ fetchedAt: new Date(NOW.getTime() - 25 * HOUR_MS) }),
