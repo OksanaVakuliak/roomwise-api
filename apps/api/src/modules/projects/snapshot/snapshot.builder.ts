@@ -215,6 +215,7 @@ export class SnapshotBuilder {
         exchangeRate: estimate.exchangeRate,
         baseRate: null,
         coefficients: pricingData.coefficients,
+        accessories: pricingData.accessories,
         rules,
       },
     });

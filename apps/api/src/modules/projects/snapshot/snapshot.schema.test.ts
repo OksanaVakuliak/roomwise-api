@@ -141,6 +141,20 @@ describe('SnapshotSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts a snapshot without accessories', () => {
+    const snapshot = buildSnapshot();
+
+    expect(snapshot.pricing).not.toHaveProperty('accessories');
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
+  it('accepts a snapshot with accessories', () => {
+    const snapshot = buildSnapshot();
+    snapshot.pricing.accessories = { waste: { en: 'Glue', uk: 'Клей' } };
+
+    expect(SnapshotSchema.safeParse(snapshot).success).toBe(true);
+  });
+
   it('accepts a product without an image', () => {
     const snapshot = buildSnapshot();
     snapshot.lines[0].product = { ...snapshot.lines[0].product!, image: null };

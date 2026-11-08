@@ -119,6 +119,7 @@ function pricingData(overrides: Partial<PricingData> = {}): PricingData {
     exchangeRate: estimate.exchangeRate,
     limits: {} as PricingData['limits'],
     coefficients: { k: 1.5 },
+    accessories: { k: { en: 'K', uk: 'К' } },
     rules: [rule('rule-1', 'qty * 2'), rule('rule-unused', 'qty * 3')],
     roomTypes: [
       { id: 'room-type-kitchen', code: 'KITCHEN' },
@@ -305,6 +306,7 @@ describe('SnapshotBuilder', () => {
       },
     ]);
     expect(snapshot.pricing.coefficients).toEqual({ k: 1.5 });
+    expect(snapshot.pricing.accessories).toEqual({ k: { en: 'K', uk: 'К' } });
     expect(snapshot.pricing.exchangeRate).toEqual(estimate.exchangeRate);
   });
 

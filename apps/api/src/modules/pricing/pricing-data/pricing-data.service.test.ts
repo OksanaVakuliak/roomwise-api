@@ -3,7 +3,11 @@ import { Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '../../../generated/prisma/client';
-import { RuleLevel, SurfaceKind } from '../../../generated/prisma/enums';
+import {
+  CoefficientGroup,
+  RuleLevel,
+  SurfaceKind,
+} from '../../../generated/prisma/enums';
 import type { CatalogChangeNotifier } from '../../catalog/common/catalog-change.notifier';
 import type { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
 import type { ExchangeRateService } from '../exchange-rate/exchange-rate.service';
@@ -62,8 +66,24 @@ function createService(fixture: Fixture = {}) {
     pricingSettings: { findUnique: vi.fn().mockResolvedValue(settings) },
     coefficient: {
       findMany: vi.fn().mockResolvedValue([
-        { key: 'tile_glue', value: decimal('10.0000') },
-        { key: 'laminate_underlay', value: decimal('2.0000') },
+        {
+          key: 'tile_glue',
+          name: { en: 'Tile glue', uk: 'Клей для плитки' },
+          group: CoefficientGroup.MATERIAL_EXTRA,
+          value: decimal('10.0000'),
+        },
+        {
+          key: 'laminate_underlay',
+          name: { en: 'Underlay', uk: 'Підкладка' },
+          group: CoefficientGroup.MATERIAL_EXTRA,
+          value: decimal('2.0000'),
+        },
+        {
+          key: 'labor_rate',
+          name: { en: 'Labor rate', uk: 'Ставка роботи' },
+          group: CoefficientGroup.LABOR,
+          value: decimal('5.0000'),
+        },
       ]),
     },
     pricingRule: {
@@ -122,7 +142,15 @@ describe('PricingDataService', () => {
       missingAreaHintSqm: 5,
     });
     expect(data).not.toHaveProperty('baseRates');
-    expect(data.coefficients).toEqual({ tile_glue: 10, laminate_underlay: 2 });
+    expect(data.coefficients).toEqual({
+      tile_glue: 10,
+      laminate_underlay: 2,
+      labor_rate: 5,
+    });
+    expect(data.accessories).toEqual({
+      tile_glue: { en: 'Tile glue', uk: 'Клей для плитки' },
+      laminate_underlay: { en: 'Underlay', uk: 'Підкладка' },
+    });
     expect(data.categories).toEqual([
       {
         id: CATEGORY_ID,
