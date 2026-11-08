@@ -442,6 +442,30 @@ describe('ExchangeRateService.refresh', () => {
 });
 
 describe('ExchangeRateService.requestRefreshIfStale', () => {
+  it('announces a change once the Kyiv day of the served rate is over', async () => {
+    const { service, clock, changes } = setup({
+      now: new Date('2026-11-08T21:00:00.000Z'),
+    });
+    await service.activeRate();
+
+    service.requestRefreshIfStale();
+    expect(changes).not.toHaveBeenCalled();
+
+    clock.now.mockReturnValue(new Date('2026-11-08T22:30:00.000Z'));
+    service.requestRefreshIfStale();
+    service.requestRefreshIfStale();
+
+    expect(changes).toHaveBeenCalledTimes(1);
+  });
+
+  it('announces nothing before any rate was served', () => {
+    const { service, changes } = setup();
+
+    service.requestRefreshIfStale();
+
+    expect(changes).not.toHaveBeenCalled();
+  });
+
   it('does not fetch while the official rate is under 26 hours old', async () => {
     const { service, nbu } = setup({
       official: rateRow({ fetchedAt: new Date(NOW.getTime() - 25 * HOUR_MS) }),

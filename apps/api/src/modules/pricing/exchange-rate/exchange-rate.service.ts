@@ -66,6 +66,7 @@ export class ExchangeRateService {
   private refreshing: Promise<void> | null = null;
   private staleCheck: Promise<void> | null = null;
   private checkedUntil = 0;
+  private servedDay: string | null = null;
 
   readonly changes$: Observable<void> = this.subject.asObservable();
 
@@ -76,7 +77,9 @@ export class ExchangeRateService {
   ) {}
 
   async activeRate(): Promise<ExchangeRate | null> {
-    const { manual, official } = await this.readRates(this.clock.now());
+    const now = this.clock.now();
+    const { manual, official } = await this.readRates(now);
+    this.servedDay = kyivDateString(now);
 
     return toActive(manual, official);
   }
@@ -125,6 +128,11 @@ export class ExchangeRateService {
 
   requestRefreshIfStale(): void {
     const now = this.clock.now();
+
+    if (this.servedDay !== null && this.servedDay !== kyivDateString(now)) {
+      this.servedDay = null;
+      this.subject.next();
+    }
 
     if (this.staleCheck || now.getTime() < this.checkedUntil) {
       return;

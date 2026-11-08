@@ -18,6 +18,7 @@ import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
 import { pricingDataset } from '../../src/modules/pricing/dataset/data';
 import { PricingDatasetService } from '../../src/modules/pricing/dataset/pricing-dataset.service';
+import { kyivDateString } from '../../src/modules/pricing/exchange-rate/kyiv-date';
 import { PricingDataService } from '../../src/modules/pricing/pricing-data/pricing-data.service';
 import { createTestApp, type TestApp } from './app-factory';
 import { createAdmin, login } from './auth-helpers';
@@ -143,7 +144,7 @@ describe('exchange rate e2e', () => {
   }
 
   function today() {
-    return new Date(now).toISOString().slice(0, 10);
+    return kyivDateString(new Date(now));
   }
 
   function nbuToday() {
