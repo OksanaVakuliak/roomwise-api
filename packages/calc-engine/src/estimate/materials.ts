@@ -1,3 +1,7 @@
+import type { EvaluationScope } from '../formula/evaluate';
+import { COEFFICIENT_NAMESPACE } from '../formula/language';
+import { parse } from '../formula/parse';
+import type { FormulaNode } from '../formula/types';
 import type {
   Configuration,
   EstimateLine,
@@ -29,6 +33,8 @@ import { applySurfacePrep } from './surfaces';
 
 type MaterialRule = PricingRule & { quantityFormula: string };
 
+const ADDITIVITY_TOLERANCE = 1e-9;
+
 const isMaterialRule = (rule: PricingRule): rule is MaterialRule =>
   rule.quantityFormula !== null;
 
@@ -49,6 +55,131 @@ function selectRule(
       (rule) => rule.level === 'CATEGORY' && rule.categoryId === categoryId,
     )
   );
+}
+
+function referencedCoefficients(source: string): Set<string> {
+  const keys = new Set<string>();
+  const parsed = parse(source);
+  if (!parsed.ok) {
+    return keys;
+  }
+  const visit = (node: FormulaNode): void => {
+    switch (node.type) {
+      case 'Member':
+        if (
+          node.object.type === 'Identifier' &&
+          node.object.name === COEFFICIENT_NAMESPACE
+        ) {
+          keys.add(node.property.name);
+        }
+        visit(node.object);
+        return;
+      case 'Call':
+        visit(node.callee);
+        node.args.forEach(visit);
+        return;
+      case 'Unary':
+        visit(node.argument);
+        return;
+      case 'Binary':
+        visit(node.left);
+        visit(node.right);
+        return;
+      case 'Conditional':
+        visit(node.test);
+        visit(node.consequent);
+        visit(node.alternate);
+        return;
+      default:
+        return;
+    }
+  };
+  visit(parsed.ast);
+  return keys;
+}
+
+function splitAccessories(
+  rule: MaterialRule,
+  data: PricingData,
+  variables: EvaluationScope['variables'],
+  fullValue: number,
+  fullCents: number,
+): LineComponent[] {
+  const whole: LineComponent[] = [
+    { kind: 'MATERIAL', ruleId: rule.id, amountCents: fullCents },
+  ];
+  const accessories = data.accessories ?? {};
+  const referenced = referencedCoefficients(rule.costFormula);
+  const keys = [...referenced].filter(
+    (key) =>
+      Object.hasOwn(accessories, key) && Object.hasOwn(data.coefficients, key),
+  );
+  if (keys.length === 0) {
+    return whole;
+  }
+  const zeroed = Object.fromEntries(keys.map((key) => [key, 0]));
+  const costValue = (overrides: Readonly<Record<string, number>>) => {
+    const outcome = runNumericFormula(rule.costFormula, {
+      variables,
+      coefficients: { ...data.coefficients, ...overrides },
+    });
+    return outcome.ok ? outcome.value : null;
+  };
+  const productValue = costValue(zeroed);
+  if (productValue === null) {
+    return whole;
+  }
+  const productCents = componentCents(productValue);
+  if (productCents === null) {
+    return whole;
+  }
+  const parts: { key: string; value: number }[] = [];
+  for (const key of keys) {
+    const withKey = costValue({ ...zeroed, [key]: data.coefficients[key] });
+    if (withKey === null || withKey < productValue) {
+      return whole;
+    }
+    parts.push({ key, value: withKey - productValue });
+  }
+  const partsValue = parts.reduce((sum, part) => sum + part.value, 0);
+  if (
+    Math.abs(productValue + partsValue - fullValue) >
+    ADDITIVITY_TOLERANCE * Math.max(1, Math.abs(fullValue))
+  ) {
+    return whole;
+  }
+  const priced: { key: string; cents: number }[] = [];
+  for (const part of parts) {
+    const cents = componentCents(part.value);
+    if (cents === null) {
+      return whole;
+    }
+    priced.push({ key: part.key, cents });
+  }
+  const remainder =
+    fullCents -
+    productCents -
+    priced.reduce((sum, part) => sum + part.cents, 0);
+  const last = priced[priced.length - 1];
+  last.cents += remainder;
+  if (last.cents < 0) {
+    return whole;
+  }
+  const kept = priced.filter((part) => part.cents > 0);
+  if (kept.length === 0) {
+    return whole;
+  }
+  return [
+    { kind: 'MATERIAL', ruleId: rule.id, amountCents: productCents },
+    ...kept.map(
+      (part): LineComponent => ({
+        kind: 'ACCESSORY',
+        ruleId: rule.id,
+        coefficientKey: part.key,
+        amountCents: part.cents,
+      }),
+    ),
+  ];
 }
 
 function materialLine(
@@ -125,9 +256,13 @@ function materialLine(
   if (materialCents === null) {
     return failedLine(ruled, 'ERROR', outOfRange());
   }
-  const components: LineComponent[] = [
-    { kind: 'MATERIAL', ruleId: rule.id, amountCents: materialCents },
-  ];
+  const components: LineComponent[] = splitAccessories(
+    rule,
+    data,
+    { ...variables, quantity: quantity.value },
+    cost.value,
+    materialCents,
+  );
   const lineWarnings = [...warnings];
   if (configuration.scope === 'PARTIAL') {
     let laborCents = 0;

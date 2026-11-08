@@ -10438,6 +10438,28 @@
               "type": "number"
             }
           },
+          "accessories": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "en": {
+                  "type": "string"
+                },
+                "uk": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "en",
+                "uk"
+              ],
+              "additionalProperties": false
+            }
+          },
           "rules": {
             "type": "array",
             "items": {
@@ -11236,6 +11258,7 @@
                             "type": "string",
                             "enum": [
                               "MATERIAL",
+                              "ACCESSORY",
                               "LABOR",
                               "PREP"
                             ]
@@ -11249,6 +11272,9 @@
                             "maximum": 9007199254740991
                           },
                           "sharedWithCategoryId": {
+                            "type": "string"
+                          },
+                          "coefficientKey": {
                             "type": "string"
                           }
                         },
@@ -13758,6 +13784,7 @@
                             "type": "string",
                             "enum": [
                               "MATERIAL",
+                              "ACCESSORY",
                               "LABOR",
                               "PREP"
                             ]
@@ -13771,6 +13798,9 @@
                             "maximum": 9007199254740991
                           },
                           "sharedWithCategoryId": {
+                            "type": "string"
+                          },
+                          "coefficientKey": {
                             "type": "string"
                           }
                         },
@@ -13978,6 +14008,15 @@
                     "product"
                   ],
                   "additionalProperties": false
+                }
+              },
+              "accessories": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
                 }
               },
               "totals": {
@@ -14237,6 +14276,7 @@
               "configuration",
               "rooms",
               "lines",
+              "accessories",
               "totals",
               "warnings",
               "exchangeRate",
@@ -14719,6 +14759,7 @@
                         "type": "string",
                         "enum": [
                           "MATERIAL",
+                          "ACCESSORY",
                           "LABOR",
                           "PREP"
                         ]
@@ -14732,6 +14773,9 @@
                         "maximum": 9007199254740991
                       },
                       "sharedWithCategoryId": {
+                        "type": "string"
+                      },
+                      "coefficientKey": {
                         "type": "string"
                       }
                     },
@@ -14939,6 +14983,15 @@
                 "product"
               ],
               "additionalProperties": false
+            }
+          },
+          "accessories": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
             }
           },
           "totals": {
@@ -15198,6 +15251,7 @@
           "configuration",
           "rooms",
           "lines",
+          "accessories",
           "totals",
           "warnings",
           "exchangeRate",
@@ -16454,6 +16508,7 @@
                             "type": "string",
                             "enum": [
                               "MATERIAL",
+                              "ACCESSORY",
                               "LABOR",
                               "PREP"
                             ]
@@ -16467,6 +16522,9 @@
                             "maximum": 9007199254740991
                           },
                           "sharedWithCategoryId": {
+                            "type": "string"
+                          },
+                          "coefficientKey": {
                             "type": "string"
                           }
                         },
@@ -16674,6 +16732,15 @@
                     "product"
                   ],
                   "additionalProperties": false
+                }
+              },
+              "accessories": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
                 }
               },
               "totals": {
@@ -16933,6 +17000,7 @@
               "configuration",
               "rooms",
               "lines",
+              "accessories",
               "totals",
               "warnings",
               "exchangeRate",

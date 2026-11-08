@@ -81,6 +81,7 @@ export const SnapshotSchema = z.object({
     exchangeRate: ExchangeRateSchema.nullable(),
     baseRate: LegacyBaseRateSchema.nullable(),
     coefficients: z.record(z.string(), z.number()),
+    accessories: z.record(z.string(), LocalizedTextSchema).optional(),
     rules: z.array(SnapshotRuleSchema),
   }),
 });

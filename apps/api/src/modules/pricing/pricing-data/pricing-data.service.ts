@@ -5,6 +5,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import {
+  type LocalizedText,
   type PricingData,
   PricingDataSchema,
   type PricingLimits,
@@ -12,9 +13,10 @@ import {
 } from '@roomwise/calc-engine';
 import type { Subscription } from 'rxjs';
 import { canonicalHash } from '../../../common/hashing/canonical-hash';
+import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { Prisma } from '../../../generated/prisma/client';
-import { SurfaceKind } from '../../../generated/prisma/enums';
+import { CoefficientGroup, SurfaceKind } from '../../../generated/prisma/enums';
 import { CatalogChangeNotifier } from '../../catalog/common/catalog-change.notifier';
 import { CatalogPricingReadService } from '../../catalog/pricing-read/catalog-pricing-read.service';
 import { ExchangeRateService } from '../exchange-rate/exchange-rate.service';
@@ -28,7 +30,20 @@ const RULE_LEVEL_ORDER = {
 } as const;
 
 type PricingDataBody = Omit<PricingData, 'version'>;
+type CoefficientRow = Prisma.CoefficientGetPayload<object>;
 type SettingsRow = Prisma.PricingSettingsGetPayload<object>;
+
+function toCoefficients(rows: CoefficientRow[]): Record<string, number> {
+  return Object.fromEntries(rows.map((row) => [row.key, row.value.toNumber()]));
+}
+
+function toAccessories(rows: CoefficientRow[]): Record<string, LocalizedText> {
+  return Object.fromEntries(
+    rows
+      .filter((row) => row.group === CoefficientGroup.MATERIAL_EXTRA)
+      .map((row) => [row.key, toLocalizedText(row.name)]),
+  );
+}
 
 function toLimits(settings: SettingsRow): PricingLimits {
   return {
@@ -122,7 +137,7 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       packageItems,
       options,
       settings,
-      coefficients,
+      coefficientRows,
       ruleRows,
       exchangeRate,
     ] = await Promise.all([
@@ -133,7 +148,7 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
       this.catalog.packageItems(),
       this.catalog.options(),
       this.readSettings(),
-      this.coefficients(),
+      this.readCoefficients(),
       this.readRules(),
       this.exchangeRates.activeRate(),
     ]);
@@ -155,7 +170,8 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
     const body: PricingDataBody = {
       exchangeRate,
       limits,
-      coefficients,
+      coefficients: toCoefficients(coefficientRows),
+      accessories: toAccessories(coefficientRows),
       rules,
       roomTypes,
       categories,
@@ -181,13 +197,11 @@ export class PricingDataService implements OnModuleInit, OnModuleDestroy {
   }
 
   async coefficients(): Promise<Record<string, number>> {
-    const rows = await this.prisma.coefficient.findMany({
-      orderBy: { key: 'asc' },
-    });
+    return toCoefficients(await this.readCoefficients());
+  }
 
-    return Object.fromEntries(
-      rows.map((row) => [row.key, row.value.toNumber()]),
-    );
+  private readCoefficients(): Promise<CoefficientRow[]> {
+    return this.prisma.coefficient.findMany({ orderBy: { key: 'asc' } });
   }
 
   private async readRules(): Promise<PricingRule[]> {

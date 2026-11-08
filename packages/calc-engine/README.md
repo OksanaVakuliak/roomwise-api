@@ -203,11 +203,12 @@ The base cost has no per-area rate table. It is built from rules whose formulas 
 
 A material line is the sum of its components:
 
-- `MATERIAL`: the rule's `costFormula`.
+- `MATERIAL`: the rule's `costFormula`. When the pricing data lists accompanying materials in `accessories`, this is the product itself and the accessories are separate components.
+- `ACCESSORY`: an accompanying material such as underlay or tile glue, with the `coefficientKey` it comes from. Only accessory coefficients referenced by the formula count. The formula is evaluated with all of them set to zero for the `MATERIAL` part and once per accessory with only that coefficient restored; when the parts do not add up to the full cost, as in `(price + coef.a) * (1 + coef.b)`, the line is not split. Parts are rounded to cents and the rounding remainder goes to the last `ACCESSORY`; an accessory left at zero is dropped. A formula that uses `heatedFloor ? coef.a : coef.b` yields only the branch in effect. If any evaluation fails, the parts do not add up or a part would be negative, the line keeps a single `MATERIAL` component. Surface, object and option lines are not split.
 - `LABOR`: the rule's `laborFormula`, which only `CATEGORY` and `MATERIAL_TYPE` rules can have. It is evaluated in `PARTIAL` only. Without a formula the component is 0 and the line gets `LABOR_RATE_MISSING`.
 - `PREP`: surface preparation, from a `SURFACE` rule.
 
-Every component is rounded to whole cents on its own and `amountCents` is the sum of the rounded components. A `FULL` line has a single `MATERIAL` component. Each component carries the `ruleId` of the rule that produced it; ids are plain strings.
+Every component is rounded to whole cents on its own and `amountCents` is the sum of the rounded components. A `FULL` line has a `MATERIAL` component and its `ACCESSORY` components, if any. Each component carries the `ruleId` of the rule that produced it; ids are plain strings.
 
 ### Surface preparation
 
@@ -256,7 +257,7 @@ Availability by rule level:
 - `CATEGORY` and `MATERIAL_TYPE`: room, product and object variables. `quantity` is available in cost and labor formulas, not in the quantity formula. `laborFormula` sees the same variables as `costFormula`.
 - `SURFACE`: room and object variables plus `surfaceArea` and `puttyRequired`. `quantity` and the product variables are not available.
 
-Coefficients are read as `coef.<key>`; keys come from the pricing data. The cost and labor formulas receive `quantity` unrounded, while the line shows it rounded to 3 decimals.
+Coefficients are read as `coef.<key>`; keys come from the pricing data. `PricingData.accessories` is an optional map from coefficient key to a `{ en, uk }` name; the keys that exist in `coefficients` are the accompanying materials shown as `ACCESSORY` components, and the name is looked up by `coefficientKey`. The cost and labor formulas receive `quantity` unrounded, while the line shows it rounded to 3 decimals.
 
 ### Syntax
 

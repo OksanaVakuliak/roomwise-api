@@ -48,6 +48,7 @@ export const versionViewSchema = z.object({
   configuration: ConfigurationSchema,
   rooms: z.array(versionViewRoomSchema),
   lines: z.array(versionViewLineSchema),
+  accessories: z.record(z.string(), z.string()),
   totals: EstimateTotalsSchema,
   warnings: z.array(EstimateWarningSchema),
   exchangeRate: ExchangeRateSchema.nullable(),
