@@ -211,6 +211,9 @@ describe('public estimates of partial renovation on seed e2e', () => {
         (productOf(laminateId).priceCents +
           coefficientCents('laminate_underlay')),
     );
+    const laminateProductCents = Math.round(
+      laminateQuantity * productOf(laminateId).priceCents,
+    );
     const laminateLaborCents = Math.round(
       floorArea * coefficientCents('labor_laminate'),
     );
@@ -244,12 +247,17 @@ describe('public estimates of partial renovation on seed e2e', () => {
       );
       expect(line.components?.map((component) => component.kind)).toEqual([
         'MATERIAL',
+        'ACCESSORY',
         'LABOR',
         'PREP',
       ]);
       expect(componentOf(line, 'MATERIAL').amountCents).toBe(
-        laminateMaterialCents,
+        laminateProductCents,
       );
+      expect(componentOf(line, 'ACCESSORY')).toMatchObject({
+        coefficientKey: 'laminate_underlay',
+        amountCents: laminateMaterialCents - laminateProductCents,
+      });
       expect(componentOf(line, 'LABOR').amountCents).toBe(laminateLaborCents);
       expect(componentOf(line, 'PREP').amountCents).toBe(demolitionCents);
       expect(line.amountCents).toBe(
@@ -278,7 +286,7 @@ describe('public estimates of partial renovation on seed e2e', () => {
       const rough = await laminateLine('ROUGH');
       const preFinish = await laminateLine('PRE_FINISH');
 
-      expect(preFinish.line.components).toHaveLength(3);
+      expect(preFinish.line.components).toHaveLength(4);
       expect(componentOf(preFinish.line, 'PREP').amountCents).toBe(0);
       expect(componentOf(preFinish.line, 'MATERIAL').amountCents).toBe(
         componentOf(rough.line, 'MATERIAL').amountCents,

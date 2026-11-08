@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ConfigurationSchema,
   EstimateSchema,
+  LineComponentSchema,
   LocalizedTextSchema,
   PricingDataSchema,
 } from '../src/schemas';
@@ -142,6 +143,34 @@ describe('schemas', () => {
       PricingDataSchema.safeParse({ ...pricingData, exchangeRate: null })
         .success,
     ).toBe(true);
+  });
+
+  it('parses PricingData with accessories and rejects a bad name', () => {
+    expect(
+      PricingDataSchema.safeParse({
+        ...pricingData,
+        accessories: { k_floor: name },
+      }).success,
+    ).toBe(true);
+    expect(
+      PricingDataSchema.safeParse({
+        ...pricingData,
+        accessories: { k_floor: { en: 'Name' } },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires coefficientKey on ACCESSORY components only', () => {
+    const parse = (component: object) =>
+      LineComponentSchema.safeParse({
+        ruleId: 'r1',
+        amountCents: 100,
+        ...component,
+      }).success;
+    expect(parse({ kind: 'ACCESSORY', coefficientKey: 'underlay' })).toBe(true);
+    expect(parse({ kind: 'ACCESSORY' })).toBe(false);
+    expect(parse({ kind: 'MATERIAL', coefficientKey: 'underlay' })).toBe(false);
+    expect(parse({ kind: 'MATERIAL' })).toBe(true);
   });
 
   it('rejects PricingData with fractional cents, bad version or missing locale', () => {

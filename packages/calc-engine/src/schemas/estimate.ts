@@ -14,12 +14,23 @@ export const EstimateMessageSchema = z.object({
 });
 export type EstimateMessage = z.infer<typeof EstimateMessageSchema>;
 
-export const LineComponentSchema = z.object({
-  kind: LineComponentKindSchema,
-  ruleId: z.string(),
-  amountCents: z.number().int().min(0),
-  sharedWithCategoryId: z.string().optional(),
-});
+export const LineComponentSchema = z
+  .object({
+    kind: LineComponentKindSchema,
+    ruleId: z.string(),
+    amountCents: z.number().int().min(0),
+    sharedWithCategoryId: z.string().optional(),
+    coefficientKey: z.string().optional(),
+  })
+  .refine(
+    (component) =>
+      (component.kind === 'ACCESSORY') ===
+      (component.coefficientKey !== undefined),
+    {
+      path: ['coefficientKey'],
+      message: 'coefficientKey is required for ACCESSORY and only for it',
+    },
+  );
 export type LineComponent = z.infer<typeof LineComponentSchema>;
 
 export const EstimateLineSchema = z.object({
