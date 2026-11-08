@@ -163,6 +163,7 @@ export const PricingDataSchema = z.object({
   exchangeRate: ExchangeRateSchema.nullable(),
   limits: PricingLimitsSchema,
   coefficients: z.record(z.string(), z.number()),
+  accessories: z.record(z.string(), LocalizedTextSchema).optional(),
   rules: z.array(PricingRuleSchema),
   roomTypes: z.array(PricingRoomTypeSchema),
   categories: z.array(PricingCategorySchema),

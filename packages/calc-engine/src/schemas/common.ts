@@ -66,7 +66,12 @@ export const SectionSchema = z.enum([
 ]);
 export type Section = z.infer<typeof SectionSchema>;
 
-export const LineComponentKindSchema = z.enum(['MATERIAL', 'LABOR', 'PREP']);
+export const LineComponentKindSchema = z.enum([
+  'MATERIAL',
+  'ACCESSORY',
+  'LABOR',
+  'PREP',
+]);
 export type LineComponentKind = z.infer<typeof LineComponentKindSchema>;
 
 export const LineStatusSchema = z.enum([
