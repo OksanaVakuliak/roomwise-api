@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import {
   type LocalizedText,
-  LocalizedTextSchema,
   type PricingData,
   PricingDataSchema,
   type PricingLimits,
@@ -14,6 +13,7 @@ import {
 } from '@roomwise/calc-engine';
 import type { Subscription } from 'rxjs';
 import { canonicalHash } from '../../../common/hashing/canonical-hash';
+import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { Prisma } from '../../../generated/prisma/client';
 import { CoefficientGroup, SurfaceKind } from '../../../generated/prisma/enums';
@@ -41,7 +41,7 @@ function toAccessories(rows: CoefficientRow[]): Record<string, LocalizedText> {
   return Object.fromEntries(
     rows
       .filter((row) => row.group === CoefficientGroup.MATERIAL_EXTRA)
-      .map((row) => [row.key, LocalizedTextSchema.parse(row.name)]),
+      .map((row) => [row.key, toLocalizedText(row.name)]),
   );
 }
 

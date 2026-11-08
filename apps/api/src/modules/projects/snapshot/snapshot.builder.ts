@@ -197,6 +197,21 @@ export class SnapshotBuilder {
         laborFormula: rule.laborFormula,
       }));
 
+    const usedAccessoryKeys = new Set(
+      lines.flatMap((line) =>
+        (line.components ?? []).flatMap((component) =>
+          component.coefficientKey === undefined
+            ? []
+            : [component.coefficientKey],
+        ),
+      ),
+    );
+    const accessories = Object.fromEntries(
+      Object.entries(pricingData.accessories ?? {}).filter(([key]) =>
+        usedAccessoryKeys.has(key),
+      ),
+    );
+
     const snapshot = SnapshotSchema.parse({
       schemaVersion: SNAPSHOT_SCHEMA_VERSION,
       createdAt: createdAt.toISOString(),
@@ -215,7 +230,8 @@ export class SnapshotBuilder {
         exchangeRate: estimate.exchangeRate,
         baseRate: null,
         coefficients: pricingData.coefficients,
-        accessories: pricingData.accessories,
+        accessories:
+          Object.keys(accessories).length > 0 ? accessories : undefined,
         rules,
       },
     });

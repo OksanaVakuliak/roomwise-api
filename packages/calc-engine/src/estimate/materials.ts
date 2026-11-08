@@ -1,4 +1,7 @@
 import type { EvaluationScope } from '../formula/evaluate';
+import { COEFFICIENT_NAMESPACE } from '../formula/language';
+import { parse } from '../formula/parse';
+import type { FormulaNode } from '../formula/types';
 import type {
   Configuration,
   EstimateLine,
@@ -30,6 +33,8 @@ import { applySurfacePrep } from './surfaces';
 
 type MaterialRule = PricingRule & { quantityFormula: string };
 
+const ADDITIVITY_TOLERANCE = 1e-9;
+
 const isMaterialRule = (rule: PricingRule): rule is MaterialRule =>
   rule.quantityFormula !== null;
 
@@ -52,17 +57,62 @@ function selectRule(
   );
 }
 
+function referencedCoefficients(source: string): Set<string> {
+  const keys = new Set<string>();
+  const parsed = parse(source);
+  if (!parsed.ok) {
+    return keys;
+  }
+  const visit = (node: FormulaNode): void => {
+    switch (node.type) {
+      case 'Member':
+        if (
+          node.object.type === 'Identifier' &&
+          node.object.name === COEFFICIENT_NAMESPACE
+        ) {
+          keys.add(node.property.name);
+        }
+        visit(node.object);
+        return;
+      case 'Call':
+        visit(node.callee);
+        node.args.forEach(visit);
+        return;
+      case 'Unary':
+        visit(node.argument);
+        return;
+      case 'Binary':
+        visit(node.left);
+        visit(node.right);
+        return;
+      case 'Conditional':
+        visit(node.test);
+        visit(node.consequent);
+        visit(node.alternate);
+        return;
+      default:
+        return;
+    }
+  };
+  visit(parsed.ast);
+  return keys;
+}
+
 function splitAccessories(
   rule: MaterialRule,
   data: PricingData,
   variables: EvaluationScope['variables'],
+  fullValue: number,
   fullCents: number,
 ): LineComponent[] {
   const whole: LineComponent[] = [
     { kind: 'MATERIAL', ruleId: rule.id, amountCents: fullCents },
   ];
-  const keys = Object.keys(data.accessories ?? {}).filter((key) =>
-    Object.hasOwn(data.coefficients, key),
+  const accessories = data.accessories ?? {};
+  const referenced = referencedCoefficients(rule.costFormula);
+  const keys = [...referenced].filter(
+    (key) =>
+      Object.hasOwn(accessories, key) && Object.hasOwn(data.coefficients, key),
   );
   if (keys.length === 0) {
     return whole;
@@ -83,37 +133,45 @@ function splitAccessories(
   if (productCents === null) {
     return whole;
   }
-  const parts: { key: string; cents: number }[] = [];
+  const parts: { key: string; value: number }[] = [];
   for (const key of keys) {
     const withKey = costValue({ ...zeroed, [key]: data.coefficients[key] });
-    if (withKey === null) {
+    if (withKey === null || withKey < productValue) {
       return whole;
     }
-    const cents = componentCents(Math.max(withKey - productValue, 0));
+    parts.push({ key, value: withKey - productValue });
+  }
+  const partsValue = parts.reduce((sum, part) => sum + part.value, 0);
+  if (
+    Math.abs(productValue + partsValue - fullValue) >
+    ADDITIVITY_TOLERANCE * Math.max(1, Math.abs(fullValue))
+  ) {
+    return whole;
+  }
+  const priced: { key: string; cents: number }[] = [];
+  for (const part of parts) {
+    const cents = componentCents(part.value);
     if (cents === null) {
       return whole;
     }
-    if (cents > 0) {
-      parts.push({ key, cents });
-    }
-  }
-  if (parts.length === 0) {
-    return whole;
+    priced.push({ key: part.key, cents });
   }
   const remainder =
-    fullCents - productCents - parts.reduce((sum, part) => sum + part.cents, 0);
-  const last = parts[parts.length - 1];
+    fullCents -
+    productCents -
+    priced.reduce((sum, part) => sum + part.cents, 0);
+  const last = priced[priced.length - 1];
   last.cents += remainder;
   if (last.cents < 0) {
     return whole;
   }
-  const priced = parts.filter((part) => part.cents > 0);
-  if (priced.length === 0) {
+  const kept = priced.filter((part) => part.cents > 0);
+  if (kept.length === 0) {
     return whole;
   }
   return [
     { kind: 'MATERIAL', ruleId: rule.id, amountCents: productCents },
-    ...priced.map(
+    ...kept.map(
       (part): LineComponent => ({
         kind: 'ACCESSORY',
         ruleId: rule.id,
@@ -202,6 +260,7 @@ function materialLine(
     rule,
     data,
     { ...variables, quantity: quantity.value },
+    cost.value,
     materialCents,
   );
   const lineWarnings = [...warnings];

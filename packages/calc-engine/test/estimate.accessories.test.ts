@@ -290,6 +290,80 @@ describe('accessory components', () => {
     expect(line.components?.every((item) => item.amountCents >= 0)).toBe(true);
   });
 
+  it('splits two additive accessories of one line', () => {
+    const data = withCostFormula(
+      {
+        ...scopeData,
+        coefficients: { ...scopeData.coefficients, part_a: 1, part_b: 2 },
+        accessories: { part_a: underlay, part_b: glue },
+      },
+      RULE.wallPaint,
+      'quantity * (price + coef.part_a + coef.part_b)',
+    );
+    const line = lineOf(
+      data,
+      fullBedroom(CATEGORY.wallPaint, PRODUCT.wallPaint),
+      CATEGORY.wallPaint,
+    );
+    const accessories = line.components?.filter(
+      (item) => item.kind === 'ACCESSORY',
+    );
+    expect(accessories?.map((item) => item.coefficientKey)).toEqual([
+      'part_a',
+      'part_b',
+    ]);
+    expect(accessories?.[1]?.amountCents).toBe(
+      2 * (accessories?.[0]?.amountCents ?? 0),
+    );
+    expect(componentsSum(line)).toBe(line.amountCents);
+  });
+
+  it('keeps a single component when the accessories interact in the formula', () => {
+    const data = withCostFormula(
+      {
+        ...scopeData,
+        coefficients: { ...scopeData.coefficients, part_a: 1, part_b: 0.5 },
+        accessories: { part_a: underlay, part_b: glue },
+      },
+      RULE.wallPaint,
+      'quantity * (price + coef.part_a) * (1 + coef.part_b)',
+    );
+    const line = lineOf(
+      data,
+      fullBedroom(CATEGORY.wallPaint, PRODUCT.wallPaint),
+      CATEGORY.wallPaint,
+    );
+    expect(line.components).toEqual([
+      {
+        kind: 'MATERIAL',
+        ruleId: RULE.wallPaint,
+        amountCents: line.amountCents,
+      },
+    ]);
+  });
+
+  it('ignores accessories the cost formula does not use', () => {
+    const data = withCostFormula(
+      {
+        ...scopeData,
+        coefficients: { ...scopeData.coefficients, unused: 1 },
+        accessories: { laminate_underlay: underlay, unused: glue },
+      },
+      RULE.floor,
+      'quantity * (price + coef.laminate_underlay)',
+    );
+    const line = lineOf(
+      data,
+      fullBedroom(CATEGORY.floor, PRODUCT.floor),
+      CATEGORY.floor,
+    );
+    expect(
+      line.components
+        ?.filter((item) => item.kind === 'ACCESSORY')
+        .map((item) => item.coefficientKey),
+    ).toEqual(['laminate_underlay']);
+  });
+
   it('falls back to a single component when the formula fails without the accessory', () => {
     const data = withCostFormula(
       { ...scopeData, accessories: { laminate_underlay: underlay } },

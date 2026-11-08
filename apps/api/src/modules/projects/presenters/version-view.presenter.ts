@@ -104,6 +104,11 @@ export class VersionViewPresenter {
                     : this.catalog.imageRef(line.product.image),
               },
       })),
+      accessories: Object.fromEntries(
+        Object.entries(snapshot.pricing.accessories ?? {}).map(
+          ([key, name]) => [key, pick(name, lang)],
+        ),
+      ),
       totals: snapshot.estimate.totals,
       warnings: snapshot.estimate.warnings,
       exchangeRate: snapshot.pricing.exchangeRate,

@@ -16,7 +16,7 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- A material line whose `costFormula` uses a coefficient listed in `accessories` now reports it as a separate `ACCESSORY` component, so the `MATERIAL` component is the product itself (`quantity * price`). The engine re-evaluates the formula with those coefficients set to zero and with each one restored on its own; the rounding remainder goes to the last accessory, and an accessory left at zero is dropped. `amountCents`, `amountUahKopecks` and all totals are unchanged. If the split cannot be computed, the line keeps a single `MATERIAL` component.
+- A material line whose `costFormula` uses a coefficient listed in `accessories` now reports it as a separate `ACCESSORY` component, so the `MATERIAL` component is the product itself (`quantity * price`). Only the accessory coefficients the formula references are used. The engine re-evaluates the formula with those coefficients set to zero and with each one restored on its own; the parts must add up to the full cost, otherwise the line is not split. The rounding remainder goes to the last accessory, and an accessory left at zero is dropped. `amountCents`, `amountUahKopecks` and all totals are unchanged. If the split cannot be computed, the line keeps a single `MATERIAL` component.
 
 ## [0.8.0] - 2026-11-07
 

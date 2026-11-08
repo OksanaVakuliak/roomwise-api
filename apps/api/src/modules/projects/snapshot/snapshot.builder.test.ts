@@ -73,6 +73,15 @@ const estimate: Estimate = {
       categoryId: 'category-1',
       productId: 'product-1',
       ruleId: 'rule-1',
+      components: [
+        { kind: 'MATERIAL', ruleId: 'rule-1', amountCents: 60 },
+        {
+          kind: 'ACCESSORY',
+          ruleId: 'rule-1',
+          amountCents: 40,
+          coefficientKey: 'k',
+        },
+      ],
     }),
     line({
       id: 'engineering',
@@ -119,7 +128,10 @@ function pricingData(overrides: Partial<PricingData> = {}): PricingData {
     exchangeRate: estimate.exchangeRate,
     limits: {} as PricingData['limits'],
     coefficients: { k: 1.5 },
-    accessories: { k: { en: 'K', uk: 'К' } },
+    accessories: {
+      k: { en: 'K', uk: 'К' },
+      unused: { en: 'Unused', uk: 'Невикористаний' },
+    },
     rules: [rule('rule-1', 'qty * 2'), rule('rule-unused', 'qty * 3')],
     roomTypes: [
       { id: 'room-type-kitchen', code: 'KITCHEN' },
@@ -169,11 +181,15 @@ function catalogData(
 }
 
 function createBuilder(
-  options: { pricing?: PricingData; catalog?: CatalogSnapshotData } = {},
+  options: {
+    pricing?: PricingData;
+    catalog?: CatalogSnapshotData;
+    estimate?: Estimate;
+  } = {},
 ) {
   const pricingEstimate = {
     estimate: vi.fn().mockResolvedValue({
-      estimate,
+      estimate: options.estimate ?? estimate,
       pricingData: options.pricing ?? pricingData(),
     }),
   };
@@ -308,6 +324,19 @@ describe('SnapshotBuilder', () => {
     expect(snapshot.pricing.coefficients).toEqual({ k: 1.5 });
     expect(snapshot.pricing.accessories).toEqual({ k: { en: 'K', uk: 'К' } });
     expect(snapshot.pricing.exchangeRate).toEqual(estimate.exchangeRate);
+  });
+
+  it('omits accessories when no line has an accessory component', async () => {
+    const { builder } = createBuilder({
+      estimate: {
+        ...estimate,
+        lines: estimate.lines.map(({ components, ...rest }) => rest),
+      },
+    });
+
+    const snapshot = await builder.build(input);
+
+    expect(snapshot.pricing.accessories).toBeUndefined();
   });
 
   it('writes a v2 snapshot without a base rate', async () => {

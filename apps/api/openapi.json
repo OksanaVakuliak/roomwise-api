@@ -14010,6 +14010,15 @@
                   "additionalProperties": false
                 }
               },
+              "accessories": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
               "totals": {
                 "type": "object",
                 "properties": {
@@ -14267,6 +14276,7 @@
               "configuration",
               "rooms",
               "lines",
+              "accessories",
               "totals",
               "warnings",
               "exchangeRate",
@@ -14975,6 +14985,15 @@
               "additionalProperties": false
             }
           },
+          "accessories": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "totals": {
             "type": "object",
             "properties": {
@@ -15232,6 +15251,7 @@
           "configuration",
           "rooms",
           "lines",
+          "accessories",
           "totals",
           "warnings",
           "exchangeRate",
@@ -16714,6 +16734,15 @@
                   "additionalProperties": false
                 }
               },
+              "accessories": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
               "totals": {
                 "type": "object",
                 "properties": {
@@ -16971,6 +17000,7 @@
               "configuration",
               "rooms",
               "lines",
+              "accessories",
               "totals",
               "warnings",
               "exchangeRate",

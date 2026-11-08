@@ -159,6 +159,21 @@ describe('VersionViewPresenter', () => {
     expect(en.lines[0].optionName).toBeNull();
   });
 
+  it('localizes accessory names and defaults to none for old snapshots', () => {
+    const snapshot = buildSnapshot();
+    snapshot.pricing.accessories = { glue: name('Glue') };
+    const version = { ...buildInput().version, snapshot };
+
+    const uk = presenter.present(buildInput({ lang: 'uk', version }));
+    const en = presenter.present(buildInput({ lang: 'en', version }));
+    const old = presenter.present(buildInput());
+
+    expect(uk.accessories).toEqual({ glue: 'Glue-uk' });
+    expect(en.accessories).toEqual({ glue: 'Glue' });
+    expect(old.accessories).toEqual({});
+    expect(versionViewSchema.safeParse(uk).success).toBe(true);
+  });
+
   it('uses the custom room name and keeps the room type name apart', () => {
     const snapshot = buildSnapshot();
     snapshot.rooms[0].name = 'Master bedroom';
