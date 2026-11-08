@@ -76,13 +76,15 @@ export class ExchangeRateService {
   ) {}
 
   async activeRate(): Promise<ExchangeRate | null> {
-    const { manual, official } = await this.readRates();
+    const { manual, official } = await this.readRates(this.clock.now());
 
     return toActive(manual, official);
   }
 
   async status(): Promise<ExchangeRateStatus> {
-    const { settings, manual, official } = await this.readRates();
+    const { settings, manual, official } = await this.readRates(
+      this.clock.now(),
+    );
 
     return {
       active: toActive(manual, official),
@@ -204,7 +206,7 @@ export class ExchangeRateService {
   }
 
   private async refreshIfStale(now: Date): Promise<void> {
-    const { settings, official } = await this.readRates();
+    const { settings, official } = await this.readRates(now);
 
     if (
       official &&
@@ -228,7 +230,7 @@ export class ExchangeRateService {
     let changed: boolean;
 
     try {
-      changed = await this.store(await this.nbu.fetchUsdRate(), now);
+      changed = await this.store(await this.nbu.fetchUsdRate(now), now);
     } catch (error) {
       this.checkedUntil = now.getTime() + RETRY_AFTER_MS;
       await this.recordFailure(error, now);
@@ -315,11 +317,14 @@ export class ExchangeRateService {
     return settings;
   }
 
-  private async readRates(): Promise<Rates> {
+  private async readRates(now: Date): Promise<Rates> {
     const [settings, official] = await Promise.all([
       this.readSettings(),
       this.prisma.exchangeRate.findFirst({
-        where: { source: RateSource.NBU },
+        where: {
+          source: RateSource.NBU,
+          effectiveDate: { lte: kyivDate(now) },
+        },
         orderBy: { effectiveDate: 'desc' },
       }),
     ]);
