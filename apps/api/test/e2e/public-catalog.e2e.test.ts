@@ -24,6 +24,7 @@ interface TextureRefBody {
   id: string;
   url: string;
   previewUrl: string;
+  realSizeMm: number | null;
 }
 
 function assertCloudinaryVariant(
@@ -46,6 +47,7 @@ function assertImageRef(image: ImageRefBody, publicId: string): void {
 }
 
 function assertTextureRef(texture: TextureRefBody, publicId: string): void {
+  expect(texture.realSizeMm).toBe(1830);
   expect(typeof texture.id).toBe('string');
   assertCloudinaryVariant(texture.url, 'f_jpg', publicId);
   assertCloudinaryVariant(

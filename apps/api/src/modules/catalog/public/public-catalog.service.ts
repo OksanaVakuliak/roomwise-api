@@ -10,7 +10,7 @@ import {
 } from '../../../generated/prisma/enums';
 import { isDefaultProductAvailable } from '../common/default-product-availability';
 import { isPerRoomUnit } from '../common/is-per-room-unit';
-import { ImageUrlBuilder } from '../images/image-urls';
+import { ImageUrlBuilder, type TextureSource } from '../images/image-urls';
 import type { PublicDefaultMaterialsResponse } from './dto/default-materials.schema';
 import type { PublicEngineeringResponse } from './dto/engineering.schema';
 import type { PublicProductCardsResponse } from './dto/product-card.schema';
@@ -233,7 +233,7 @@ export class PublicCatalogService {
 
   private buildSurface(
     surfaceKind: Exclude<SurfaceKind, 'NONE'>,
-    textureImage: { id: string; publicId: string } | null,
+    textureImage: TextureSource | null,
     tileWidthMm: number | null,
     tileLengthMm: number | null,
     fallbackColor: string | null,

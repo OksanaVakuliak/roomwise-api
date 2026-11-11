@@ -5609,12 +5609,25 @@
                       "previewUrl": {
                         "type": "string",
                         "format": "uri"
+                      },
+                      "realSizeMm": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
                     },
                     "required": [
                       "id",
                       "url",
-                      "previewUrl"
+                      "previewUrl",
+                      "realSizeMm"
                     ],
                     "additionalProperties": false
                   },
@@ -7415,12 +7428,25 @@
                   "previewUrl": {
                     "type": "string",
                     "format": "uri"
+                  },
+                  "realSizeMm": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
                   "id",
                   "url",
-                  "previewUrl"
+                  "previewUrl",
+                  "realSizeMm"
                 ],
                 "additionalProperties": false
               },
@@ -8289,12 +8315,25 @@
                   "previewUrl": {
                     "type": "string",
                     "format": "uri"
+                  },
+                  "realSizeMm": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
                   "id",
                   "url",
-                  "previewUrl"
+                  "previewUrl",
+                  "realSizeMm"
                 ],
                 "additionalProperties": false
               },

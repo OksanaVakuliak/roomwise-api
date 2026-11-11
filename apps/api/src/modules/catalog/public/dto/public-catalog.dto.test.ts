@@ -19,6 +19,7 @@ const TEXTURE_REF = {
   id: 'b3f5c3a0-1b2c-4d3e-8f9a-0b1c2d3e4f5b',
   url: 'https://res.cloudinary.com/roomwise/image/upload/w_1024/oak-bark',
   previewUrl: 'https://res.cloudinary.com/roomwise/image/upload/w_512/oak-bark',
+  realSizeMm: 1830,
 };
 
 describe('imageRefSchema', () => {
@@ -41,6 +42,18 @@ describe('textureRefSchema', () => {
   it('rejects a non-url texture url', () => {
     expect(
       textureRefSchema.safeParse({ ...TEXTURE_REF, url: 'not-a-url' }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a null real size', () => {
+    expect(
+      textureRefSchema.safeParse({ ...TEXTURE_REF, realSizeMm: null }).success,
+    ).toBe(true);
+  });
+
+  it('rejects a non-positive real size', () => {
+    expect(
+      textureRefSchema.safeParse({ ...TEXTURE_REF, realSizeMm: 0 }).success,
     ).toBe(false);
   });
 });

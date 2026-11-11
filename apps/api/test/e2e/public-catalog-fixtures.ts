@@ -30,6 +30,7 @@ const PRODUCT_B_WASTE_PERCENT_OVERRIDE = 15;
 const IMAGE_WIDTH = 800;
 const IMAGE_HEIGHT = 600;
 const IMAGE_BYTES = 102_400;
+const PRODUCT_A_TEXTURE_REAL_SIZE_MM = 1830;
 
 const PRODUCT_A_PRICE_CENTS = 180_000;
 const PRODUCT_B_PRICE_CENTS = 220_000;
@@ -412,6 +413,7 @@ export async function createPublicCatalogFixtures(
     prisma.image.create({
       data: {
         publicId: `roomwise/seed/product-a-texture-${uniqueSuffix}`,
+        realSizeMm: PRODUCT_A_TEXTURE_REAL_SIZE_MM,
         width: IMAGE_WIDTH,
         height: IMAGE_HEIGHT,
         bytes: IMAGE_BYTES,
