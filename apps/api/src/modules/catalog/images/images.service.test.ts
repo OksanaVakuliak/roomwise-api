@@ -84,6 +84,7 @@ function createImageUrls(): ImageUrlBuilder {
     toTextureRef: vi.fn(({ id, publicId }) => ({
       id,
       url: `https://cdn.test/texture/${publicId}`,
+      previewUrl: `https://cdn.test/texture-preview/${publicId}`,
     })),
   } as unknown as ImageUrlBuilder;
 }

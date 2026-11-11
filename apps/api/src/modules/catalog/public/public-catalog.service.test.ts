@@ -29,6 +29,7 @@ function createImageUrlBuilder(): ImageUrlBuilder {
       ({ id, publicId }: { id: string; publicId: string }) => ({
         id,
         url: `texture/${publicId}`,
+        previewUrl: `texture-preview/${publicId}`,
       }),
     ),
   } as unknown as ImageUrlBuilder;
@@ -507,6 +508,7 @@ describe('PublicCatalogService.getProduct', () => {
     const result = await service.getProduct('product-a', 'en');
 
     expect(result.surface).toBeNull();
+    expect(result.surfaceColor).toBeNull();
   });
 
   it('returns surface: null when required surface data is missing despite a surface category', async () => {
@@ -519,6 +521,20 @@ describe('PublicCatalogService.getProduct', () => {
     const result = await service.getProduct('product-a', 'en');
 
     expect(result.surface).toBeNull();
+    expect(result.surfaceColor).toBeNull();
+  });
+
+  it('returns surfaceColor without a surface when the texture is missing', async () => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValue(baseProduct({ textureImage: null }));
+    const prisma = createPrisma({ product: { findUnique } });
+    const service = new PublicCatalogService(prisma, createImageUrlBuilder());
+
+    const result = await service.getProduct('product-a', 'en');
+
+    expect(result.surface).toBeNull();
+    expect(result.surfaceColor).toBe('#B08D62');
   });
 
   it('returns full surface data for a surface product', async () => {
@@ -533,11 +549,13 @@ describe('PublicCatalogService.getProduct', () => {
       texture: {
         id: 'texture-1',
         url: 'texture/roomwise/seed/texture',
+        previewUrl: 'texture-preview/roomwise/seed/texture',
       },
       tileWidthMm: 193,
       tileLengthMm: 1380,
       fallbackColor: '#B08D62',
     });
+    expect(result.surfaceColor).toBe('#B08D62');
   });
 
   it('orders images and localizes attributes', async () => {

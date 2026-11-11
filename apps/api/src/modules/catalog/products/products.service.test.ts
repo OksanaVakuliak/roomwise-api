@@ -38,6 +38,7 @@ function createImageUrls(): ImageUrlBuilder {
     toTextureRef: vi.fn((image: { id: string; publicId: string }) => ({
       id: image.id,
       url: `texture/${image.publicId}`,
+      previewUrl: `texture-preview/${image.publicId}`,
     })),
   } as unknown as ImageUrlBuilder;
 }
@@ -285,6 +286,7 @@ describe('ProductsService.get', () => {
     expect(result.texture).toEqual({
       id: 'texture-image',
       url: 'texture/public-texture-image',
+      previewUrl: 'texture-preview/public-texture-image',
     });
   });
 });

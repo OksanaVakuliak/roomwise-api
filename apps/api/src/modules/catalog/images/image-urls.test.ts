@@ -74,6 +74,8 @@ describe('CloudinaryUrlBuilder', () => {
     expect(ref).toEqual({
       id: 'image-2',
       url: 'https://res.cloudinary.com/my-cloud/image/upload/w_1024,h_1024,c_fill,f_jpg,q_auto/oak-bark',
+      previewUrl:
+        'https://res.cloudinary.com/my-cloud/image/upload/w_512,h_512,c_fill,f_jpg,q_auto/oak-bark',
     });
   });
 
@@ -119,6 +121,8 @@ describe('ImageUrlBuilder', () => {
     expect(ref).toEqual({
       id: 'image-2',
       url: 'https://res.cloudinary.com/my-cloud/image/upload/w_1024,h_1024,c_fill,f_jpg,q_auto/oak-bark',
+      previewUrl:
+        'https://res.cloudinary.com/my-cloud/image/upload/w_512,h_512,c_fill,f_jpg,q_auto/oak-bark',
     });
   });
 

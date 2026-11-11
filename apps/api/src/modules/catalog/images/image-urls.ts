@@ -14,6 +14,7 @@ const CLOUDINARY_TRANSFORMATIONS = {
   card: 'w_640,c_limit,f_auto,q_auto',
   zoom: 'w_1600,c_limit,f_auto,q_auto',
   texture: 'w_1024,h_1024,c_fill,f_jpg,q_auto',
+  texturePreview: 'w_512,h_512,c_fill,f_jpg,q_auto',
 } as const;
 
 export function parseCloudinaryCloudName(cloudinaryUrl: string): string {
@@ -51,6 +52,10 @@ export class CloudinaryUrlBuilder {
     return {
       id,
       url: this.build(publicId, CLOUDINARY_TRANSFORMATIONS.texture),
+      previewUrl: this.build(
+        publicId,
+        CLOUDINARY_TRANSFORMATIONS.texturePreview,
+      ),
     };
   }
 }
