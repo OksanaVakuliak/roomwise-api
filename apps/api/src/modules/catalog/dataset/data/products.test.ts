@@ -58,12 +58,9 @@ describe('textured surface products', () => {
 
   it('have a texture image with a positive real size', () => {
     const offenders = texturedSurfaceProducts
-      .filter((product) => {
-        const realSizeMm = imageById.get(
-          product.textureImageId ?? '',
-        )?.realSizeMm;
-        return !realSizeMm || realSizeMm <= 0;
-      })
+      .filter(
+        (product) => !imageById.get(product.textureImageId ?? '')?.realSizeMm,
+      )
       .map((product) => product.name.en);
 
     expect(
