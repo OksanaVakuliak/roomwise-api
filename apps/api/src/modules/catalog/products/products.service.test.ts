@@ -286,6 +286,7 @@ describe('ProductsService.get', () => {
     expect(result.texture).toEqual({
       id: 'texture-image',
       url: 'texture/public-texture-image',
+      previewUrl: 'texture-preview/public-texture-image',
     });
   });
 });
