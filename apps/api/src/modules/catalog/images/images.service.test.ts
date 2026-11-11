@@ -67,6 +67,7 @@ function createPrisma(
         publicId: PUBLIC_ID,
         width: UPLOADED_WIDTH,
         height: UPLOADED_HEIGHT,
+        realSizeMm: null,
       }),
       ...image,
     },
@@ -85,6 +86,7 @@ function createImageUrls(): ImageUrlBuilder {
       id,
       url: `https://cdn.test/texture/${publicId}`,
       previewUrl: `https://cdn.test/texture-preview/${publicId}`,
+      realSizeMm: null,
     })),
   } as unknown as ImageUrlBuilder;
 }

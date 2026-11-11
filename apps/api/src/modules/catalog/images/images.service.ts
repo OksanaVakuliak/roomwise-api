@@ -17,6 +17,7 @@ interface CreatedImage {
   publicId: string;
   width: number;
   height: number;
+  realSizeMm: number | null;
 }
 
 function isAllowedImageMimeType(mime: string): mime is AllowedImageMimeType {

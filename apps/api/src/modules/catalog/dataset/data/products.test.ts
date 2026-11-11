@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SurfaceKind } from '../../../../generated/prisma/enums';
+import type { SeedImage } from '../catalog-dataset.schema';
 import { categories } from './categories';
 import { seedImages } from './images';
 import { products } from './products';
@@ -7,7 +8,7 @@ import { products } from './products';
 const surfaceByCategoryId = new Map(
   categories.map((category) => [category.id, category.surface]),
 );
-const imageById = new Map(
+const imageById = new Map<string, SeedImage>(
   Object.values(seedImages).map((image) => [image.id, image]),
 );
 const surfaceKinds: SurfaceKind[] = [
@@ -55,23 +56,16 @@ describe('textured surface products', () => {
     ).toEqual([]);
   });
 
-  it('warn when the tile aspect ratio differs from the texture by more than 2x', () => {
-    const mismatched = texturedSurfaceProducts.flatMap((product) => {
-      const image = imageById.get(product.textureImageId ?? '');
-      if (!image || !product.tileWidthMm || !product.tileLengthMm) {
-        return [];
-      }
-      const tileRatio = product.tileWidthMm / product.tileLengthMm;
-      const imageRatio = image.width / image.height;
-      const factor =
-        Math.max(tileRatio, imageRatio) / Math.min(tileRatio, imageRatio);
-      return factor > 2 ? [`${product.name.en} (${factor.toFixed(1)}x)`] : [];
-    });
+  it('have a texture image with a positive real size', () => {
+    const offenders = texturedSurfaceProducts
+      .filter(
+        (product) => !imageById.get(product.textureImageId ?? '')?.realSizeMm,
+      )
+      .map((product) => product.name.en);
 
-    if (mismatched.length > 0) {
-      console.warn(
-        `Tile aspect ratio differs from texture by more than 2x: ${mismatched.join(', ')}`,
-      );
-    }
+    expect(
+      offenders,
+      `Missing texture real size: ${offenders.join(', ')}`,
+    ).toEqual([]);
   });
 });

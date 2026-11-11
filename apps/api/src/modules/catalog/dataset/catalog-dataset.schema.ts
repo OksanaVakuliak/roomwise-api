@@ -61,6 +61,7 @@ export const seedImageSchema = z.object({
   ]),
   width: z.int().positive(),
   height: z.int().positive(),
+  realSizeMm: z.int().positive().optional(),
   bytes: z.int().positive(),
   format: z.enum(['jpg', 'png', 'webp', 'svg']),
 });

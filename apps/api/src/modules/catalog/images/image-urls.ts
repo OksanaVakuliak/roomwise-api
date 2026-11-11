@@ -9,6 +9,10 @@ export interface ImageSource {
   publicId: string;
 }
 
+export interface TextureSource extends ImageSource {
+  realSizeMm: number | null;
+}
+
 const CLOUDINARY_TRANSFORMATIONS = {
   thumb: 'w_320,c_limit,f_auto,q_auto',
   card: 'w_640,c_limit,f_auto,q_auto',
@@ -48,7 +52,7 @@ export class CloudinaryUrlBuilder {
     };
   }
 
-  toTextureRef({ id, publicId }: ImageSource): TextureRef {
+  toTextureRef({ id, publicId, realSizeMm }: TextureSource): TextureRef {
     return {
       id,
       url: this.build(publicId, CLOUDINARY_TRANSFORMATIONS.texture),
@@ -56,6 +60,7 @@ export class CloudinaryUrlBuilder {
         publicId,
         CLOUDINARY_TRANSFORMATIONS.texturePreview,
       ),
+      realSizeMm,
     };
   }
 }
@@ -75,7 +80,7 @@ export class ImageUrlBuilder {
     return this.builder.toImageRef(source);
   }
 
-  toTextureRef(source: ImageSource): TextureRef {
+  toTextureRef(source: TextureSource): TextureRef {
     return this.builder.toTextureRef(source);
   }
 }

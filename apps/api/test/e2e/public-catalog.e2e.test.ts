@@ -24,6 +24,7 @@ interface TextureRefBody {
   id: string;
   url: string;
   previewUrl: string;
+  realSizeMm: number | null;
 }
 
 function assertCloudinaryVariant(
@@ -430,6 +431,7 @@ describe('public catalog e2e', () => {
       expect(response.body.surface.tileLengthMm).toBe(1380);
       expect(response.body.surface.fallbackColor).toBe('#B08D62');
       expect(response.body.surfaceColor).toBe('#B08D62');
+      expect(response.body.surface.texture.realSizeMm).toBe(1830);
       assertTextureRef(
         response.body.surface.texture,
         fixtures.images.productATexture.publicId,

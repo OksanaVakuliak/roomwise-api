@@ -274,6 +274,7 @@ model Image {
   publicId    String   @unique @map("public_id")
   width       Int
   height      Int
+  realSizeMm  Int?     @map("real_size_mm")
   bytes       Int
   format      String
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)

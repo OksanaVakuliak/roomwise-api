@@ -45,7 +45,9 @@ const PRODUCT_ADMIN_INCLUDE = {
   attributes: {
     orderBy: { sortOrder: 'asc' as const },
   },
-  textureImage: { select: { id: true, publicId: true } },
+  textureImage: {
+    select: { id: true, publicId: true, realSizeMm: true },
+  },
 } satisfies Prisma.ProductInclude;
 
 const PRODUCT_LIST_INCLUDE = {
