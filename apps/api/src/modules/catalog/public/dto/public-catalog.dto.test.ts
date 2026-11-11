@@ -18,6 +18,7 @@ const IMAGE_REF = {
 const TEXTURE_REF = {
   id: 'b3f5c3a0-1b2c-4d3e-8f9a-0b1c2d3e4f5b',
   url: 'https://res.cloudinary.com/roomwise/image/upload/w_1024/oak-bark',
+  previewUrl: 'https://res.cloudinary.com/roomwise/image/upload/w_512/oak-bark',
 };
 
 describe('imageRefSchema', () => {

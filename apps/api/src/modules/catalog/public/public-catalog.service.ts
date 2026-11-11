@@ -224,6 +224,10 @@ export class PublicCatalogService {
               product.tileLengthMm,
               product.fallbackColor,
             ),
+      surfaceColor:
+        product.category.surface === SurfaceKind.NONE
+          ? null
+          : product.fallbackColor,
     };
   }
 

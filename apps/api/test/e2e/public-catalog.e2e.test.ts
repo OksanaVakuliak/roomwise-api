@@ -23,6 +23,7 @@ interface ImageRefBody {
 interface TextureRefBody {
   id: string;
   url: string;
+  previewUrl: string;
 }
 
 function assertCloudinaryVariant(
@@ -47,6 +48,11 @@ function assertImageRef(image: ImageRefBody, publicId: string): void {
 function assertTextureRef(texture: TextureRefBody, publicId: string): void {
   expect(typeof texture.id).toBe('string');
   assertCloudinaryVariant(texture.url, 'f_jpg', publicId);
+  assertCloudinaryVariant(
+    texture.previewUrl,
+    'w_512,h_512,c_fill,f_jpg,q_auto',
+    publicId,
+  );
 }
 
 describe('public catalog e2e', () => {
@@ -423,6 +429,7 @@ describe('public catalog e2e', () => {
       expect(response.body.surface.tileWidthMm).toBe(193);
       expect(response.body.surface.tileLengthMm).toBe(1380);
       expect(response.body.surface.fallbackColor).toBe('#B08D62');
+      expect(response.body.surfaceColor).toBe('#B08D62');
       assertTextureRef(
         response.body.surface.texture,
         fixtures.images.productATexture.publicId,
@@ -445,6 +452,7 @@ describe('public catalog e2e', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.surface).toBeNull();
+      expect(response.body.surfaceColor).toBeNull();
     });
 
     it('returns PRODUCT_UNAVAILABLE for an unpublished product', async () => {

@@ -10,6 +10,7 @@ export const imageRefSchema = z.object({
 export const textureRefSchema = z.object({
   id: z.uuid(),
   url: z.url(),
+  previewUrl: z.url(),
 });
 
 export type ImageRef = z.infer<typeof imageRefSchema>;
