@@ -35,6 +35,7 @@ export const publicProductDetailsSchema = z.object({
   images: z.array(imageRefSchema),
   attributes: z.array(productAttributeSchema),
   surface: productSurfaceSchema.nullable(),
+  surfaceColor: z.string().regex(FALLBACK_COLOR_PATTERN).nullable(),
 });
 
 export type ProductAttribute = z.infer<typeof productAttributeSchema>;

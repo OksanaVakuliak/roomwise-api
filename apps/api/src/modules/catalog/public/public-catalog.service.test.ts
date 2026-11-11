@@ -26,9 +26,19 @@ function createImageUrlBuilder(): ImageUrlBuilder {
       zoom: `zoom/${publicId}`,
     })),
     toTextureRef: vi.fn(
-      ({ id, publicId }: { id: string; publicId: string }) => ({
+      ({
+        id,
+        publicId,
+        realSizeMm,
+      }: {
+        id: string;
+        publicId: string;
+        realSizeMm: number | null;
+      }) => ({
         id,
         url: `texture/${publicId}`,
+        previewUrl: `texture-preview/${publicId}`,
+        realSizeMm,
       }),
     ),
   } as unknown as ImageUrlBuilder;
@@ -394,7 +404,11 @@ describe('PublicCatalogService.getProduct', () => {
         surface: SurfaceKind.FLOOR,
         wastePercent: { toNumber: () => 10 },
       },
-      textureImage: { id: 'texture-1', publicId: 'roomwise/seed/texture' },
+      textureImage: {
+        id: 'texture-1',
+        publicId: 'roomwise/seed/texture',
+        realSizeMm: 1830,
+      },
       tileWidthMm: 193,
       tileLengthMm: 1380,
       fallbackColor: '#B08D62',
@@ -507,6 +521,7 @@ describe('PublicCatalogService.getProduct', () => {
     const result = await service.getProduct('product-a', 'en');
 
     expect(result.surface).toBeNull();
+    expect(result.surfaceColor).toBeNull();
   });
 
   it('returns surface: null when required surface data is missing despite a surface category', async () => {
@@ -519,6 +534,20 @@ describe('PublicCatalogService.getProduct', () => {
     const result = await service.getProduct('product-a', 'en');
 
     expect(result.surface).toBeNull();
+    expect(result.surfaceColor).toBeNull();
+  });
+
+  it('returns surfaceColor without a surface when the texture is missing', async () => {
+    const findUnique = vi
+      .fn()
+      .mockResolvedValue(baseProduct({ textureImage: null }));
+    const prisma = createPrisma({ product: { findUnique } });
+    const service = new PublicCatalogService(prisma, createImageUrlBuilder());
+
+    const result = await service.getProduct('product-a', 'en');
+
+    expect(result.surface).toBeNull();
+    expect(result.surfaceColor).toBe('#B08D62');
   });
 
   it('returns full surface data for a surface product', async () => {
@@ -533,11 +562,14 @@ describe('PublicCatalogService.getProduct', () => {
       texture: {
         id: 'texture-1',
         url: 'texture/roomwise/seed/texture',
+        previewUrl: 'texture-preview/roomwise/seed/texture',
+        realSizeMm: 1830,
       },
       tileWidthMm: 193,
       tileLengthMm: 1380,
       fallbackColor: '#B08D62',
     });
+    expect(result.surfaceColor).toBe('#B08D62');
   });
 
   it('orders images and localizes attributes', async () => {

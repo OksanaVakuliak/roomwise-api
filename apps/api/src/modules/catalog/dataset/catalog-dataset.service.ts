@@ -58,6 +58,7 @@ export function buildCatalogDatasetRows(
       publicId: image.publicId,
       width: image.width,
       height: image.height,
+      realSizeMm: image.realSizeMm ?? null,
       bytes: image.bytes,
       format: image.format,
     })),

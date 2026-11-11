@@ -35,10 +35,18 @@ function createImageUrls(): ImageUrlBuilder {
       card: `card/${image.publicId}`,
       zoom: `zoom/${image.publicId}`,
     })),
-    toTextureRef: vi.fn((image: { id: string; publicId: string }) => ({
-      id: image.id,
-      url: `texture/${image.publicId}`,
-    })),
+    toTextureRef: vi.fn(
+      (image: {
+        id: string;
+        publicId: string;
+        realSizeMm?: number | null;
+      }) => ({
+        id: image.id,
+        url: `texture/${image.publicId}`,
+        previewUrl: `texture-preview/${image.publicId}`,
+        realSizeMm: image.realSizeMm ?? null,
+      }),
+    ),
   } as unknown as ImageUrlBuilder;
 }
 
@@ -264,7 +272,7 @@ describe('ProductsService.get', () => {
                 value: localized('8mm', '8мм'),
               },
             ],
-            textureImage: imageSource('texture-image'),
+            textureImage: { ...imageSource('texture-image'), realSizeMm: 1830 },
           }),
         ),
       },
@@ -285,6 +293,8 @@ describe('ProductsService.get', () => {
     expect(result.texture).toEqual({
       id: 'texture-image',
       url: 'texture/public-texture-image',
+      previewUrl: 'texture-preview/public-texture-image',
+      realSizeMm: 1830,
     });
   });
 });

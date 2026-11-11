@@ -18,6 +18,8 @@ const IMAGE_REF = {
 const TEXTURE_REF = {
   id: 'b3f5c3a0-1b2c-4d3e-8f9a-0b1c2d3e4f5b',
   url: 'https://res.cloudinary.com/roomwise/image/upload/w_1024/oak-bark',
+  previewUrl: 'https://res.cloudinary.com/roomwise/image/upload/w_512/oak-bark',
+  realSizeMm: 1830,
 };
 
 describe('imageRefSchema', () => {
@@ -40,6 +42,18 @@ describe('textureRefSchema', () => {
   it('rejects a non-url texture url', () => {
     expect(
       textureRefSchema.safeParse({ ...TEXTURE_REF, url: 'not-a-url' }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a null real size', () => {
+    expect(
+      textureRefSchema.safeParse({ ...TEXTURE_REF, realSizeMm: null }).success,
+    ).toBe(true);
+  });
+
+  it('rejects a non-positive real size', () => {
+    expect(
+      textureRefSchema.safeParse({ ...TEXTURE_REF, realSizeMm: 0 }).success,
     ).toBe(false);
   });
 });
@@ -240,6 +254,7 @@ describe('publicProductDetailsSchema', () => {
     wastePercent: 5,
     images: [IMAGE_REF],
     attributes: [{ name: 'Товщина', value: '8 мм' }],
+    surfaceColor: '#B08D62',
   };
 
   it('parses a surface product with surface data', () => {
@@ -258,9 +273,15 @@ describe('publicProductDetailsSchema', () => {
   });
 
   it('parses a non-surface product with a null surface', () => {
-    const response = { ...base, surface: null };
+    const response = { ...base, surface: null, surfaceColor: null };
 
     expect(publicProductDetailsSchema.safeParse(response).success).toBe(true);
+  });
+
+  it('rejects a surfaceColor that is not a hex triplet', () => {
+    const response = { ...base, surface: null, surfaceColor: 'brown' };
+
+    expect(publicProductDetailsSchema.safeParse(response).success).toBe(false);
   });
 
   it('rejects a fallbackColor that is not a hex triplet', () => {

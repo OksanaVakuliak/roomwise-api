@@ -69,11 +69,18 @@ describe('CloudinaryUrlBuilder', () => {
   });
 
   it('builds a fixed-JPEG texture URL', () => {
-    const ref = builder.toTextureRef({ id: 'image-2', publicId: 'oak-bark' });
+    const ref = builder.toTextureRef({
+      id: 'image-2',
+      publicId: 'oak-bark',
+      realSizeMm: 1830,
+    });
 
     expect(ref).toEqual({
       id: 'image-2',
       url: 'https://res.cloudinary.com/my-cloud/image/upload/w_1024,h_1024,c_fill,f_jpg,q_auto/oak-bark',
+      previewUrl:
+        'https://res.cloudinary.com/my-cloud/image/upload/w_512,h_512,c_fill,f_jpg,q_auto/oak-bark',
+      realSizeMm: 1830,
     });
   });
 
@@ -114,11 +121,18 @@ describe('ImageUrlBuilder', () => {
   it('produces a TextureRef with the texture variant URL', () => {
     const builder = new ImageUrlBuilder(createConfig(CLOUDINARY_URL));
 
-    const ref = builder.toTextureRef({ id: 'image-2', publicId: 'oak-bark' });
+    const ref = builder.toTextureRef({
+      id: 'image-2',
+      publicId: 'oak-bark',
+      realSizeMm: 1830,
+    });
 
     expect(ref).toEqual({
       id: 'image-2',
       url: 'https://res.cloudinary.com/my-cloud/image/upload/w_1024,h_1024,c_fill,f_jpg,q_auto/oak-bark',
+      previewUrl:
+        'https://res.cloudinary.com/my-cloud/image/upload/w_512,h_512,c_fill,f_jpg,q_auto/oak-bark',
+      realSizeMm: 1830,
     });
   });
 

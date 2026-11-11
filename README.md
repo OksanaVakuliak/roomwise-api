@@ -70,6 +70,67 @@ directly, only through its exported service.
 - **`modules/health`** — `GET /api/v1/health`, always `200`, used as the
   Render health check and to detect whether the database has woken up.
 
+## Pricing model
+
+Estimates are computed by [`@roomwise/calc-engine`](packages/calc-engine/README.md)
+from one data set that the API publishes. That README describes the
+renovation scope, the line components and the surface preparation in detail;
+this section covers what the API stores and serves.
+
+**Renovation scope.** A calculation is either `FULL` or `PARTIAL` (the
+`Scope` enum). `FULL` estimates the whole apartment: it has a base cost,
+priced engineering package items and material lines. `PARTIAL` estimates
+only the selected rooms and surfaces, with no base and no package items, and
+adds labor and surface preparation to each material line.
+
+**Base cost from rules.** There is no table of base rates per square meter.
+The base of a `FULL` estimate is built from `OBJECT` pricing rules marked
+`baseComponent`, whose formulas use the room volumes, `finishLevel`
+(`ROUGH`, `PRE_FINISH` or `LIVED_IN`), `scope` and coefficients.
+
+**Pricing rules.** A rule has a `level`: `OBJECT`, `CATEGORY`,
+`MATERIAL_TYPE` or `SURFACE`. A `SURFACE` rule prices the preparation of one
+surface (`FLOOR`, `WALLS` or `CEILING`) and is unique per surface. Every
+rule has a `costFormula`; category and material type rules may also have a
+`laborFormula`. Formulas read rates as `coef.<key>`.
+
+**Line components.** A material line is the sum of its components:
+`MATERIAL`, `LABOR`, `PREP` and `ACCESSORY`. Accessories are accompanying
+materials of a product line, such as laminate underlay or tile glue. Each
+one is a coefficient in the `MATERIAL_EXTRA` group, and the component
+records the `coefficientKey` it came from. When several categories share one
+surface, the preparation is counted once and the other lines point at the
+first one through `sharedWithCategoryId`.
+
+**Coefficients.** A coefficient has a `key`, a localized `name` and `unit`,
+a `value` and a `group` (`LABOR`, `PREPARATION`, `ROUGH_MATERIAL`,
+`ENGINEERING` or `MATERIAL_EXTRA`). The admin panel
+(`/api/v1/admin/pricing/coefficients`) can edit the name, value and group.
+A rate is stored once, so changing it applies everywhere it is used: in rule
+formulas, in accessories and in option prices.
+
+**Options.** An option is priced either by a fixed `priceCents` or by
+`priceCoefficientKeys`, a list of coefficients whose values are summed into
+the unit price; exactly one of the two is set. `scopes` lists the renovation
+scopes in which the option is available (both by default); in any other
+scope the option's line fails with `OPTION_SCOPE_NOT_ALLOWED`.
+
+**Limits.** The pricing limits cover the total area, the room count and the
+room sides and height. `missingAreaHintSqm` is the threshold of the
+`ROOMS_AREA_BELOW_TOTAL` warning in a `FULL` estimate: when the rooms add up
+to less than the total area by more than this many square meters, the
+configurator can tell the visitor how much is missing.
+
+**Public payload.** `GET /api/v1/public/pricing-data` returns everything the
+engine needs in one response: the exchange rate, limits, coefficients,
+accessories, rules, room types, categories, material types, products,
+package items and options. A content hash is its `version` and `ETag`; it
+answers `304` to `If-None-Match` and is cached for 30 seconds. The API
+rebuilds it when the catalog, the coefficients or the exchange rate change.
+The web app passes this payload to `estimate`, so the payload shape and the
+engine version that validates it have to match (see
+[Releasing a pricing-data change](#releasing-a-pricing-data-change)).
+
 ## Saved calculations and leads
 
 A visitor can save an estimate and get a link to it, recalculate it later, and
@@ -337,6 +398,51 @@ pnpm --filter api db:seed
 pnpm --filter api seed:images
 pnpm --filter api admin:create --login owner
 ```
+
+Render never runs the seed, on the first deploy or later. `db:seed`
+(`apps/api/prisma/seed/seed.ts`) is always a manual step against the Neon
+`prod` branch. It applies the catalog dataset and then the pricing dataset,
+each in its own transaction, and ensures the demo admin. It is safe to
+repeat, but it does overwrite data that was edited in the admin panel:
+
+- Catalog: the entities in the dataset (room types, material types,
+  categories, products, styles, engineering package items, options and
+  their images) are matched by id and all their fields are overwritten.
+  Their product images, attributes, style default materials and option room
+  types are deleted and inserted again. Entities that are not in the
+  dataset are left alone.
+- Coefficients: an existing coefficient keeps its stored `value`, so rates
+  changed in the admin panel survive. Its name, unit and group are
+  refreshed from the dataset. New keys are created with the dataset value.
+- Pricing rules: matched by target (the id for `OBJECT` rules, the surface
+  for `SURFACE` rules, the category and material type otherwise). The
+  formulas and all other fields are overwritten by the dataset, and rules
+  that do not exist yet are created.
+- Pricing limits: overwritten by the dataset.
+
+### Releasing a pricing-data change
+
+When the shape of `GET /api/v1/public/pricing-data` changes, the API and the
+web app have to ship in one window: the deployed web app pins
+`@roomwise/calc-engine`, so it is built for the old payload shape and the
+new one is built for the new engine.
+
+1. Merge `develop` into `main` in this repository. Render builds the service
+   and applies the migrations.
+2. Right after that, run `pnpm --filter api db:seed` against the Neon `prod`
+   branch, so the new rules, limits and coefficients land.
+3. Immediately release `develop` into `main` in `roomwise-web` (Vercel).
+4. Check that `GET /api/v1/public/pricing-data` on production contains
+   `missingAreaHintSqm` in `limits`, then run an estimate in both scopes,
+   `FULL` and `PARTIAL`, on the production site.
+
+The API keeps the pricing payload in memory and the seed runs outside the
+service, so if `pricing-data` was requested between the deploy and the seed,
+restart the Render service after the seed to drop the stale copy.
+
+Before the real release, try the seed on a Neon branch created from `prod`
+and compare the coefficient values before and after: they must not change
+for existing keys.
 
 ### Scheduled maintenance
 

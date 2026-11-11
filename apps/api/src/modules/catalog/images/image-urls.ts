@@ -9,11 +9,16 @@ export interface ImageSource {
   publicId: string;
 }
 
+export interface TextureSource extends ImageSource {
+  realSizeMm: number | null;
+}
+
 const CLOUDINARY_TRANSFORMATIONS = {
   thumb: 'w_320,c_limit,f_auto,q_auto',
   card: 'w_640,c_limit,f_auto,q_auto',
   zoom: 'w_1600,c_limit,f_auto,q_auto',
   texture: 'w_1024,h_1024,c_fill,f_jpg,q_auto',
+  texturePreview: 'w_512,h_512,c_fill,f_jpg,q_auto',
 } as const;
 
 export function parseCloudinaryCloudName(cloudinaryUrl: string): string {
@@ -47,10 +52,15 @@ export class CloudinaryUrlBuilder {
     };
   }
 
-  toTextureRef({ id, publicId }: ImageSource): TextureRef {
+  toTextureRef({ id, publicId, realSizeMm }: TextureSource): TextureRef {
     return {
       id,
       url: this.build(publicId, CLOUDINARY_TRANSFORMATIONS.texture),
+      previewUrl: this.build(
+        publicId,
+        CLOUDINARY_TRANSFORMATIONS.texturePreview,
+      ),
+      realSizeMm,
     };
   }
 }
@@ -70,7 +80,7 @@ export class ImageUrlBuilder {
     return this.builder.toImageRef(source);
   }
 
-  toTextureRef(source: ImageSource): TextureRef {
+  toTextureRef(source: TextureSource): TextureRef {
     return this.builder.toTextureRef(source);
   }
 }
