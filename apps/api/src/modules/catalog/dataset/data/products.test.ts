@@ -40,6 +40,21 @@ describe('textured surface products', () => {
     expect(offenders, `Missing tile size: ${offenders.join(', ')}`).toEqual([]);
   });
 
+  it('have a fallback color and a known texture image', () => {
+    const offenders = texturedSurfaceProducts
+      .filter(
+        (product) =>
+          !product.fallbackColor ||
+          !imageById.has(product.textureImageId ?? ''),
+      )
+      .map((product) => product.name.en);
+
+    expect(
+      offenders,
+      `Missing fallback color or texture image: ${offenders.join(', ')}`,
+    ).toEqual([]);
+  });
+
   it('warn when the tile aspect ratio differs from the texture by more than 2x', () => {
     const mismatched = texturedSurfaceProducts.flatMap((product) => {
       const image = imageById.get(product.textureImageId ?? '');
