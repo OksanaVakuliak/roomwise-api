@@ -10,6 +10,7 @@ export const seedImages = {
     height: 1024,
     bytes: 641756,
     format: 'jpg',
+    realSizeMm: 1830,
   },
   greyOakParquet: {
     id: 'a1bba561-12c2-4cc2-8f7e-a0ccd049cd07',
@@ -20,6 +21,7 @@ export const seedImages = {
     height: 1024,
     bytes: 579526,
     format: 'jpg',
+    realSizeMm: 1000,
   },
   herringboneParquet: {
     id: 'a7b94e54-0e96-4041-bf28-f670566f4072',
@@ -30,6 +32,7 @@ export const seedImages = {
     height: 1024,
     bytes: 829046,
     format: 'jpg',
+    realSizeMm: 3400,
   },
   diagonalParquet: {
     id: '7d76dae3-97c1-4543-afd0-8dce6fa7be52',
@@ -40,6 +43,7 @@ export const seedImages = {
     height: 1024,
     bytes: 734933,
     format: 'jpg',
+    realSizeMm: 2360,
   },
   lightLaminateFloor: {
     id: '390904a8-b72e-40cf-b7a7-da4d3709cf1f',
@@ -50,6 +54,7 @@ export const seedImages = {
     height: 1024,
     bytes: 721641,
     format: 'jpg',
+    realSizeMm: 1700,
   },
   darkWalnutPlanks: {
     id: '8a99273a-d1e6-418d-b6e2-e77da4d6ac18',
@@ -60,6 +65,7 @@ export const seedImages = {
     height: 1024,
     bytes: 701221,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   lightFloorTiles: {
     id: '3e3981e4-78bd-410d-9000-18feec228aa5',
@@ -70,6 +76,7 @@ export const seedImages = {
     height: 1024,
     bytes: 694562,
     format: 'jpg',
+    realSizeMm: 1900,
   },
   whiteFloorTiles: {
     id: '12d36f5b-4fa5-4165-8cc6-492001b7e4b4',
@@ -80,6 +87,7 @@ export const seedImages = {
     height: 1024,
     bytes: 356257,
     format: 'jpg',
+    realSizeMm: 3000,
   },
   marbleFloorTile: {
     id: '097f7d97-a94d-458c-96f6-07613f94ea58',
@@ -90,6 +98,7 @@ export const seedImages = {
     height: 1024,
     bytes: 305029,
     format: 'jpg',
+    realSizeMm: 1500,
   },
   beigeMarbleTiles: {
     id: 'daaeefc5-f422-4460-9939-462141cd9d88',
@@ -100,6 +109,7 @@ export const seedImages = {
     height: 1024,
     bytes: 957660,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   terrazzoTile: {
     id: '83eefb98-09a1-47a0-a004-23bf9faf69cb',
@@ -110,6 +120,7 @@ export const seedImages = {
     height: 1024,
     bytes: 1166107,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   graniteTile: {
     id: 'b39a6690-a692-4c63-913d-e1df50646aca',
@@ -120,6 +131,7 @@ export const seedImages = {
     height: 1024,
     bytes: 681382,
     format: 'jpg',
+    realSizeMm: 1880,
   },
   rawConcreteFloor: {
     id: '75625786-1896-4060-bb38-30fe8dbaabc2',
@@ -130,6 +142,7 @@ export const seedImages = {
     height: 1024,
     bytes: 708284,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   paintedConcreteFloor: {
     id: '17b07cbc-8e71-469f-af67-0dd4429f7d43',
@@ -140,6 +153,7 @@ export const seedImages = {
     height: 1024,
     bytes: 995059,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   greyPlasterWall: {
     id: '602c6ef1-1ea1-46d1-884a-21f53aa6c811',
@@ -150,6 +164,7 @@ export const seedImages = {
     height: 1024,
     bytes: 704079,
     format: 'jpg',
+    realSizeMm: 1000,
   },
   whitePlasterWall: {
     id: '7de3094f-fa48-40c5-b199-56ead9e30967',
@@ -160,6 +175,7 @@ export const seedImages = {
     height: 1024,
     bytes: 527219,
     format: 'jpg',
+    realSizeMm: 1000,
   },
   patternedPlasterWall: {
     id: '2c0accb7-858a-4576-81df-32932afe803e',
@@ -170,6 +186,7 @@ export const seedImages = {
     height: 1024,
     bytes: 899541,
     format: 'jpg',
+    realSizeMm: 1800,
   },
   paintedPlasterWall: {
     id: 'd3c80605-c4e4-4de2-9079-dac78573e66f',
@@ -180,6 +197,7 @@ export const seedImages = {
     height: 1024,
     bytes: 686726,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   stoneTileWall: {
     id: '0a0fc782-0c2d-41bb-9437-e1ef8d030fa3',
@@ -190,6 +208,7 @@ export const seedImages = {
     height: 1024,
     bytes: 640274,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   roundedTiledWall: {
     id: 'a4622c73-5609-4efd-831d-7a7186ed5744',
@@ -200,6 +219,7 @@ export const seedImages = {
     height: 1024,
     bytes: 706150,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   squareTiledWall: {
     id: 'c3a70b8a-3fd5-4e44-b379-6615e5910cc4',
@@ -210,6 +230,7 @@ export const seedImages = {
     height: 1024,
     bytes: 612989,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   vintageWallpaper: {
     id: '7469323c-c5fc-417f-90fb-cba6999a34a1',
@@ -220,6 +241,7 @@ export const seedImages = {
     height: 1024,
     bytes: 814172,
     format: 'jpg',
+    realSizeMm: 2500,
   },
   patternedFabricWall: {
     id: '19131bff-0002-4804-b97b-b3ccd8dcfd5c',
@@ -230,6 +252,7 @@ export const seedImages = {
     height: 1024,
     bytes: 797220,
     format: 'jpg',
+    realSizeMm: 500,
   },
   geometricFabricWall: {
     id: '1b2a6f4a-257e-4079-a460-2dce640a73e5',
@@ -240,6 +263,7 @@ export const seedImages = {
     height: 1024,
     bytes: 788593,
     format: 'jpg',
+    realSizeMm: 400,
   },
   jacquardFabricPattern: {
     id: 'b0805622-448c-4ebc-9483-658edcf4c456',
@@ -250,6 +274,7 @@ export const seedImages = {
     height: 1037,
     bytes: 581799,
     format: 'jpg',
+    realSizeMm: 280,
   },
   denimFabricTexture: {
     id: 'ad2e623f-ad8f-4e45-93c6-58abbc1bfe2f',
@@ -260,6 +285,7 @@ export const seedImages = {
     height: 1024,
     bytes: 886486,
     format: 'jpg',
+    realSizeMm: 100,
   },
   leatherFabricTexture: {
     id: '7ae8e2bd-324a-4283-a2d1-4f6009894d55',
@@ -270,6 +296,7 @@ export const seedImages = {
     height: 1024,
     bytes: 510537,
     format: 'jpg',
+    realSizeMm: 400,
   },
   carpetFloorTexture: {
     id: '60787029-dbc5-4547-a948-a8198f4c56a9',
@@ -280,6 +307,7 @@ export const seedImages = {
     height: 1024,
     bytes: 978020,
     format: 'jpg',
+    realSizeMm: 600,
   },
   paintedBrickWall: {
     id: '8f32c25e-bdf8-4d5f-99de-061f9cbf2d4a',
@@ -290,6 +318,7 @@ export const seedImages = {
     height: 1024,
     bytes: 842226,
     format: 'jpg',
+    realSizeMm: 1800,
   },
   plasteredWallTexture: {
     id: 'ec79624d-13f6-4772-b6a4-5e070a71668f',
@@ -300,6 +329,7 @@ export const seedImages = {
     height: 1024,
     bytes: 617080,
     format: 'jpg',
+    realSizeMm: 2000,
   },
   scandinavianStyleCover: {
     id: 'ae50868b-8fab-4d03-a756-d5cd28250455',
@@ -340,6 +370,7 @@ export const seedImages = {
     height: 1024,
     bytes: 649304,
     format: 'jpg',
+    realSizeMm: 2080,
   },
   smartLightingOption: {
     id: 'a0a6d299-f302-41f2-b1b5-f2eaff08139c',
