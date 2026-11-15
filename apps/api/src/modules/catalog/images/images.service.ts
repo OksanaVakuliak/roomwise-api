@@ -3,6 +3,7 @@ import { fileTypeFromBuffer as detectFileType } from 'file-type';
 import { AppError } from '../../../common/http/app-error';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { isPrismaError } from '../../../common/prisma/prisma-error';
 import { CloudinaryService } from './cloudinary.service';
 import type { AdminImage } from './dto/admin-image.schema';
 import { ImageUrlBuilder } from './image-urls';
@@ -12,7 +13,7 @@ import {
   MAX_IMAGE_UPLOAD_BYTES,
 } from './images.constants';
 
-interface CreatedImage {
+interface ImageRow {
   id: string;
   publicId: string;
   width: number;
@@ -37,13 +38,14 @@ export class ImagesService {
   async upload(
     file: Express.Multer.File,
     createdById: string,
+    realSizeMm: number | null,
   ): Promise<AdminImage> {
     this.assertSize(file);
     await this.assertSignature(file);
 
     const uploaded = await this.uploadToCloudinary(file.buffer);
 
-    let image: CreatedImage;
+    let image: ImageRow;
     try {
       image = await this.prisma.image.create({
         data: {
@@ -52,6 +54,7 @@ export class ImagesService {
           height: uploaded.height,
           bytes: uploaded.bytes,
           format: uploaded.format,
+          realSizeMm,
           createdById,
         },
       });
@@ -61,6 +64,26 @@ export class ImagesService {
     }
 
     return this.toResponse(image);
+  }
+
+  async updateRealSize(
+    id: string,
+    realSizeMm: number | null,
+  ): Promise<AdminImage> {
+    try {
+      const image = await this.prisma.image.update({
+        where: { id },
+        data: { realSizeMm },
+      });
+
+      return this.toResponse(image);
+    } catch (error) {
+      if (isPrismaError(error, 'P2025')) {
+        throw new AppError(ERROR_CODES.NOT_FOUND);
+      }
+
+      throw error;
+    }
   }
 
   private assertSize(file: Express.Multer.File): void {
@@ -100,7 +123,7 @@ export class ImagesService {
     }
   }
 
-  private toResponse(image: CreatedImage): AdminImage {
+  private toResponse(image: ImageRow): AdminImage {
     const imageRef = this.imageUrls.toImageRef(image);
     const textureRef = this.imageUrls.toTextureRef(image);
 
@@ -112,6 +135,7 @@ export class ImagesService {
       texture: textureRef.url,
       width: image.width,
       height: image.height,
+      realSizeMm: image.realSizeMm,
     };
   }
 }

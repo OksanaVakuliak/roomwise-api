@@ -517,6 +517,11 @@
                   "file": {
                     "type": "string",
                     "format": "binary"
+                  },
+                  "realSizeMm": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
                   }
                 }
               }
@@ -586,6 +591,83 @@
           },
           "502": {
             "description": "IMAGE_STORAGE_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "rw_session": []
+          }
+        ],
+        "tags": [
+          "Images"
+        ]
+      }
+    },
+    "/api/v1/admin/images/{id}": {
+      "patch": {
+        "operationId": "ImagesController_updateRealSize",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchImageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminImageDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
             "content": {
               "application/json": {
                 "schema": {
@@ -5615,7 +5697,7 @@
                           {
                             "type": "integer",
                             "exclusiveMinimum": 0,
-                            "maximum": 9007199254740991
+                            "maximum": 10000
                           },
                           {
                             "type": "null"
@@ -6024,6 +6106,18 @@
             "type": "integer",
             "exclusiveMinimum": 0,
             "maximum": 9007199254740991
+          },
+          "realSizeMm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 10000
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -6033,9 +6127,30 @@
           "zoom",
           "texture",
           "width",
-          "height"
+          "height",
+          "realSizeMm"
         ],
         "additionalProperties": false
+      },
+      "PatchImageDto": {
+        "type": "object",
+        "properties": {
+          "realSizeMm": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 10000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "realSizeMm"
+        ]
       },
       "RoomTypeAdminListResponseDto_Output": {
         "type": "object",
@@ -7434,7 +7549,7 @@
                       {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 10000
                       },
                       {
                         "type": "null"
@@ -8321,7 +8436,7 @@
                       {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 10000
                       },
                       {
                         "type": "null"
