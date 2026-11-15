@@ -111,7 +111,6 @@ export class ImagesController {
   @Patch(':id')
   @UseInterceptors(CatalogChangeInterceptor)
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
-  @ApiBody({ type: PatchImageDto })
   @ZodResponse({ status: HttpStatus.OK, type: AdminImageDto })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,

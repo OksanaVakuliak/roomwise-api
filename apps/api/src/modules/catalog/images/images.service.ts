@@ -13,7 +13,7 @@ import {
   MAX_IMAGE_UPLOAD_BYTES,
 } from './images.constants';
 
-interface CreatedImage {
+interface ImageRow {
   id: string;
   publicId: string;
   width: number;
@@ -45,7 +45,7 @@ export class ImagesService {
 
     const uploaded = await this.uploadToCloudinary(file.buffer);
 
-    let image: CreatedImage;
+    let image: ImageRow;
     try {
       image = await this.prisma.image.create({
         data: {
@@ -123,7 +123,7 @@ export class ImagesService {
     }
   }
 
-  private toResponse(image: CreatedImage): AdminImage {
+  private toResponse(image: ImageRow): AdminImage {
     const imageRef = this.imageUrls.toImageRef(image);
     const textureRef = this.imageUrls.toTextureRef(image);
 
@@ -135,7 +135,7 @@ export class ImagesService {
       texture: textureRef.url,
       width: image.width,
       height: image.height,
-      realSizeMm: image.realSizeMm,
+      realSizeMm: textureRef.realSizeMm,
     };
   }
 }
