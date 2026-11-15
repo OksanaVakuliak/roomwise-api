@@ -135,7 +135,7 @@ export class ImagesService {
       texture: textureRef.url,
       width: image.width,
       height: image.height,
-      realSizeMm: textureRef.realSizeMm,
+      realSizeMm: image.realSizeMm,
     };
   }
 }
