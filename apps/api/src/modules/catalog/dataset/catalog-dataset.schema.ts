@@ -15,6 +15,7 @@ import {
   SurfaceKind,
 } from '../../../generated/prisma/enums';
 import { FALLBACK_COLOR_PATTERN } from '../common/fallback-color.schema';
+import { realSizeMmSchema } from '../images/dto/real-size-mm.schema';
 import {
   priceCoefficientKeysSchema,
   scopesSchema,
@@ -61,7 +62,7 @@ export const seedImageSchema = z.object({
   ]),
   width: z.int().positive(),
   height: z.int().positive(),
-  realSizeMm: z.int().positive().optional(),
+  realSizeMm: realSizeMmSchema.optional(),
   bytes: z.int().positive(),
   format: z.enum(['jpg', 'png', 'webp', 'svg']),
 });

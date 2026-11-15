@@ -7,6 +7,7 @@ import { CatalogDatasetService } from '../../src/modules/catalog/dataset/catalog
 import { catalogDataset } from '../../src/modules/catalog/dataset/data';
 import { categoryIds } from '../../src/modules/catalog/dataset/data/categories';
 import { engineeringItemIds } from '../../src/modules/catalog/dataset/data/engineering';
+import { seedImages } from '../../src/modules/catalog/dataset/data/images';
 import { materialTypeIds } from '../../src/modules/catalog/dataset/data/material-types';
 import { optionIds } from '../../src/modules/catalog/dataset/data/options';
 import { productIds } from '../../src/modules/catalog/dataset/data/products';
@@ -130,7 +131,7 @@ async function snapshotCatalogState(
     prisma.option.findMany({
       select: { id: true, revision: true, sortOrder: true },
     }),
-    prisma.image.findMany({ select: { id: true } }),
+    prisma.image.findMany({ select: { id: true, realSizeMm: true } }),
     prisma.roomTypeCategory.findMany({
       select: { roomTypeId: true, categoryId: true, sortOrder: true },
     }),
@@ -159,7 +160,7 @@ async function snapshotCatalogState(
     styles: revisionedRows(styles),
     engineeringItems: revisionedRows(engineeringItems),
     options: revisionedRows(options),
-    images: images.map((row) => row.id).sort(),
+    images: images.map((row) => `${row.id}:${row.realSizeMm}`).sort(),
     roomTypeCategories: roomTypeCategories
       .map((row) => `${row.roomTypeId}:${row.categoryId}:${row.sortOrder}`)
       .sort(),
@@ -223,6 +224,9 @@ function resolveRouteId(path: string): string {
   }
   if (path.startsWith('/api/v1/admin/options/')) {
     return optionIds.heatedFloor;
+  }
+  if (path.startsWith('/api/v1/admin/images/')) {
+    return seedImages.whiteOakParquet.id;
   }
   if (path.startsWith('/api/v1/admin/styles/')) {
     return styleIds.scandinavian;
