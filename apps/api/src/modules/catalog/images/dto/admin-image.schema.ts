@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { realSizeMmSchema } from './real-size-mm.schema';
 
 export const adminImageSchema = z.object({
   id: z.uuid(),
@@ -9,7 +10,7 @@ export const adminImageSchema = z.object({
   texture: z.url(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
-  realSizeMm: z.number().int().positive().nullable(),
+  realSizeMm: realSizeMmSchema.nullable(),
 });
 
 export type AdminImage = z.infer<typeof adminImageSchema>;

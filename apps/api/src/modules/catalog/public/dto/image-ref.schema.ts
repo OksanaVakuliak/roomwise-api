@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { realSizeMmSchema } from '../../images/dto/real-size-mm.schema';
 
 export const imageRefSchema = z.object({
   id: z.uuid(),
@@ -11,7 +12,7 @@ export const textureRefSchema = z.object({
   id: z.uuid(),
   url: z.url(),
   previewUrl: z.url(),
-  realSizeMm: z.number().int().positive().nullable(),
+  realSizeMm: realSizeMmSchema.nullable(),
 });
 
 export type ImageRef = z.infer<typeof imageRefSchema>;

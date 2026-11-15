@@ -1,5 +1,5 @@
-import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { realSizeMmSchema } from './real-size-mm.schema';
 
 export const uploadImageBodySchema = z.object({
   realSizeMm: z.preprocess(
@@ -8,9 +8,7 @@ export const uploadImageBodySchema = z.object({
       .string()
       .regex(/^\d+$/)
       .transform(Number)
-      .pipe(z.number().int().positive())
+      .pipe(realSizeMmSchema)
       .nullable(),
   ),
 });
-
-export class UploadImageBodyDto extends createZodDto(uploadImageBodySchema) {}

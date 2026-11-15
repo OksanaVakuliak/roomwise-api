@@ -62,6 +62,7 @@ interface FakeCloudinaryUploadResult {
 
 interface FakeCloudinaryService {
   shouldFail: boolean;
+  uploadCalls: number;
   upload(buffer: Buffer): Promise<FakeCloudinaryUploadResult>;
   destroy(publicId: string): Promise<void>;
   deleteByPrefix(prefix: string): Promise<void>;
@@ -70,7 +71,9 @@ interface FakeCloudinaryService {
 function createFakeCloudinaryService(): FakeCloudinaryService {
   const service: FakeCloudinaryService = {
     shouldFail: false,
+    uploadCalls: 0,
     async upload(buffer: Buffer): Promise<FakeCloudinaryUploadResult> {
+      service.uploadCalls += 1;
       if (service.shouldFail) {
         throw new Error('fake cloudinary upload failure');
       }
@@ -1142,10 +1145,11 @@ describe('admin catalog e2e', () => {
       expect(response.body.realSizeMm).toBeNull();
     });
 
-    it.each(['0', '-5', '1.5', 'abc'])(
+    it.each(['0', '-5', '1.5', 'abc', '10001'])(
       'rejects the upload with real size %s and creates no row',
       async (realSizeMm) => {
         const imagesBefore = await testApp.prisma.image.count();
+        const uploadsBefore = fakeCloudinary.uploadCalls;
 
         const response = await request(testApp.http)
           .post('/api/v1/admin/images')
@@ -1160,8 +1164,34 @@ describe('admin catalog e2e', () => {
         expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
         expect(response.body.error.fields[0].path).toBe('realSizeMm');
         expect(await testApp.prisma.image.count()).toBe(imagesBefore);
+        expect(fakeCloudinary.uploadCalls).toBe(uploadsBefore);
       },
     );
+
+    it('reports the missing file when the request has no body', async () => {
+      const response = await request(testApp.http)
+        .post('/api/v1/admin/images')
+        .set('Cookie', adminCookie);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+      expect(response.body.error.fields).toEqual([
+        { path: 'file', code: 'REQUIRED' },
+      ]);
+    });
+
+    it('reports the missing file before an invalid real size', async () => {
+      const response = await request(testApp.http)
+        .post('/api/v1/admin/images')
+        .set('Cookie', adminCookie)
+        .field('realSizeMm', 'abc');
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+      expect(response.body.error.fields).toEqual([
+        { path: 'file', code: 'REQUIRED' },
+      ]);
+    });
 
     it('sets and resets the real size and shows it in the public catalog right away', async () => {
       const category = await createCategoryFixture(testApp.prisma, {
@@ -1211,6 +1241,7 @@ describe('admin catalog e2e', () => {
       { realSizeMm: -1 },
       { realSizeMm: 1.5 },
       { realSizeMm: 'abc' },
+      { realSizeMm: 10001 },
       {},
     ])('rejects PATCH with body %j', async (body) => {
       const image = await createImageFixture(testApp.prisma);
