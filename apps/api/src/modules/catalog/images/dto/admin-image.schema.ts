@@ -9,6 +9,7 @@ export const adminImageSchema = z.object({
   texture: z.url(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
+  realSizeMm: z.number().int().positive().nullable(),
 });
 
 export type AdminImage = z.infer<typeof adminImageSchema>;

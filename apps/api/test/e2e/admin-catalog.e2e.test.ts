@@ -35,7 +35,7 @@ function delay(ms: number): Promise<void> {
 
 function sendRequest(
   http: TestApp['http'],
-  method: 'get' | 'post' | 'put' | 'delete',
+  method: 'get' | 'post' | 'put' | 'patch' | 'delete',
   path: string,
 ) {
   switch (method) {
@@ -45,6 +45,8 @@ function sendRequest(
       return request(http).post(path);
     case 'put':
       return request(http).put(path);
+    case 'patch':
+      return request(http).patch(path);
     case 'delete':
       return request(http).delete(path);
   }
@@ -95,7 +97,7 @@ function assertCloudinaryVariant(url: unknown, expectedToken: string): void {
 }
 
 const PROTECTED_ROUTES: Array<{
-  method: 'get' | 'post' | 'put' | 'delete';
+  method: 'get' | 'post' | 'put' | 'patch' | 'delete';
   path: string;
 }> = [
   { method: 'get', path: '/api/v1/admin/categories' },
@@ -109,6 +111,7 @@ const PROTECTED_ROUTES: Array<{
   { method: 'delete', path: `/api/v1/admin/products/${RANDOM_UUID}` },
   { method: 'delete', path: `/api/v1/admin/categories/${RANDOM_UUID}` },
   { method: 'post', path: '/api/v1/admin/images' },
+  { method: 'patch', path: `/api/v1/admin/images/${RANDOM_UUID}` },
 ];
 
 interface ProductInputOverrides {
@@ -1105,6 +1108,130 @@ describe('admin catalog e2e', () => {
       assertCloudinaryVariant(response.body.texture, 'f_jpg');
       expect(typeof response.body.width).toBe('number');
       expect(typeof response.body.height).toBe('number');
+    });
+
+    it('stores the real size sent with the upload', async () => {
+      const response = await request(testApp.http)
+        .post('/api/v1/admin/images')
+        .set('Cookie', adminCookie)
+        .field('realSizeMm', '1200')
+        .attach('file', validPngBuffer(), {
+          filename: 'small.png',
+          contentType: 'image/png',
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.realSizeMm).toBe(1200);
+
+      const stored = await testApp.prisma.image.findUnique({
+        where: { id: response.body.id },
+      });
+      expect(stored?.realSizeMm).toBe(1200);
+    });
+
+    it('leaves the real size empty when the upload omits it', async () => {
+      const response = await request(testApp.http)
+        .post('/api/v1/admin/images')
+        .set('Cookie', adminCookie)
+        .attach('file', validPngBuffer(), {
+          filename: 'small.png',
+          contentType: 'image/png',
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.realSizeMm).toBeNull();
+    });
+
+    it.each(['0', '-5', '1.5', 'abc'])(
+      'rejects the upload with real size %s and creates no row',
+      async (realSizeMm) => {
+        const imagesBefore = await testApp.prisma.image.count();
+
+        const response = await request(testApp.http)
+          .post('/api/v1/admin/images')
+          .set('Cookie', adminCookie)
+          .field('realSizeMm', realSizeMm)
+          .attach('file', validPngBuffer(), {
+            filename: 'small.png',
+            contentType: 'image/png',
+          });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+        expect(response.body.error.fields[0].path).toBe('realSizeMm');
+        expect(await testApp.prisma.image.count()).toBe(imagesBefore);
+      },
+    );
+
+    it('sets and resets the real size and shows it in the public catalog right away', async () => {
+      const category = await createCategoryFixture(testApp.prisma, {
+        surface: SurfaceKind.FLOOR,
+        status: PublicationStatus.PUBLISHED,
+      });
+      const materialType = await createMaterialTypeFixture(testApp.prisma);
+      const image = await createImageFixture(testApp.prisma);
+      const product = await createProductFixture(testApp.prisma, {
+        categoryId: category.id,
+        materialTypeId: materialType.id,
+        textureImageId: image.id,
+        status: PublicationStatus.PUBLISHED,
+      });
+      const productUrl = `/api/v1/public/products/${product.id}`;
+
+      const before = await request(testApp.http).get(productUrl);
+      expect(before.status).toBe(200);
+      expect(before.body.surface.texture.realSizeMm).toBeNull();
+
+      const set = await request(testApp.http)
+        .patch(`/api/v1/admin/images/${image.id}`)
+        .set('Cookie', adminCookie)
+        .send({ realSizeMm: 1200 });
+
+      expect(set.status).toBe(200);
+      expect(set.body.id).toBe(image.id);
+      expect(set.body.realSizeMm).toBe(1200);
+
+      const afterSet = await request(testApp.http).get(productUrl);
+      expect(afterSet.body.surface.texture.realSizeMm).toBe(1200);
+
+      const reset = await request(testApp.http)
+        .patch(`/api/v1/admin/images/${image.id}`)
+        .set('Cookie', adminCookie)
+        .send({ realSizeMm: null });
+
+      expect(reset.status).toBe(200);
+      expect(reset.body.realSizeMm).toBeNull();
+
+      const afterReset = await request(testApp.http).get(productUrl);
+      expect(afterReset.body.surface.texture.realSizeMm).toBeNull();
+    });
+
+    it.each([
+      { realSizeMm: 0 },
+      { realSizeMm: -1 },
+      { realSizeMm: 1.5 },
+      { realSizeMm: 'abc' },
+      {},
+    ])('rejects PATCH with body %j', async (body) => {
+      const image = await createImageFixture(testApp.prisma);
+
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/images/${image.id}`)
+        .set('Cookie', adminCookie)
+        .send(body);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+    });
+
+    it('returns NOT_FOUND when patching an unknown image', async () => {
+      const response = await request(testApp.http)
+        .patch(`/api/v1/admin/images/${randomUUID()}`)
+        .set('Cookie', adminCookie)
+        .send({ realSizeMm: 1200 });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.code).toBe(ERROR_CODES.NOT_FOUND);
     });
 
     it('returns IMAGE_STORAGE_FAILED and creates no row when storage fails', async () => {

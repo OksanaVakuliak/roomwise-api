@@ -1,7 +1,10 @@
 import {
+  Body,
   Controller,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -10,6 +13,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiCookieAuth,
+  ApiParam,
   ApiResponse,
 } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
@@ -21,7 +25,11 @@ import {
   CurrentAdmin,
 } from '../../auth/current-admin.decorator';
 import { SESSION_COOKIE_NAME } from '../../auth/session-cookie';
+import { CatalogChangeInterceptor } from '../common/catalog-change.interceptor';
 import { type AdminImage, AdminImageDto } from './dto/admin-image.schema';
+import { ImageIdParamDto } from './dto/image-id-param.schema';
+import { PatchImageDto } from './dto/patch-image.schema';
+import { UploadImageBodyDto } from './dto/upload-image-body.schema';
 import { ImageUploadInterceptor } from './image-upload.interceptor';
 import { IMAGE_FILE_FIELD_NAME } from './images.constants';
 import { ImagesService } from './images.service';
@@ -41,6 +49,7 @@ export class ImagesController {
       required: [IMAGE_FILE_FIELD_NAME],
       properties: {
         [IMAGE_FILE_FIELD_NAME]: { type: 'string', format: 'binary' },
+        realSizeMm: { type: 'integer', minimum: 1 },
       },
     },
   })
@@ -77,6 +86,7 @@ export class ImagesController {
   })
   async upload(
     @UploadedFile() file: Express.Multer.File | undefined,
+    @Body() body: UploadImageBodyDto,
     @CurrentAdmin() admin: AuthenticatedAdmin,
   ): Promise<AdminImage> {
     if (!file) {
@@ -85,6 +95,33 @@ export class ImagesController {
       });
     }
 
-    return this.imagesService.upload(file, admin.id);
+    return this.imagesService.upload(file, admin.id, body.realSizeMm);
+  }
+
+  @Patch(':id')
+  @UseInterceptors(CatalogChangeInterceptor)
+  @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiBody({ type: PatchImageDto })
+  @ZodResponse({ status: HttpStatus.OK, type: AdminImageDto })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'VALIDATION_FAILED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'UNAUTHENTICATED',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'NOT_FOUND',
+    type: ErrorResponseDto,
+  })
+  async updateRealSize(
+    @Param() params: ImageIdParamDto,
+    @Body() body: PatchImageDto,
+  ): Promise<AdminImage> {
+    return this.imagesService.updateRealSize(params.id, body.realSizeMm);
   }
 }

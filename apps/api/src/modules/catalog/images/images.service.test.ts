@@ -2,6 +2,7 @@ import { Readable } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { Prisma } from '../../../generated/prisma/client';
 import type { CloudinaryService } from './cloudinary.service';
 import type { ImageUrlBuilder } from './image-urls';
 import {
@@ -58,7 +59,7 @@ function createCloudinary(
 }
 
 function createPrisma(
-  image: Partial<Record<'create', unknown>> = {},
+  image: Partial<Record<'create' | 'update', unknown>> = {},
 ): PrismaService {
   return {
     image: {
@@ -97,7 +98,7 @@ describe('ImagesService', () => {
     const prisma = createPrisma();
     const service = new ImagesService(prisma, cloudinary, createImageUrls());
 
-    const result = await service.upload(multerFile(), ADMIN_ID);
+    const result = await service.upload(multerFile(), ADMIN_ID, null);
 
     expect(cloudinary.upload).toHaveBeenCalledWith(PNG_FILE);
     expect(prisma.image.create).toHaveBeenCalledWith({
@@ -107,6 +108,7 @@ describe('ImagesService', () => {
         height: UPLOADED_HEIGHT,
         bytes: PNG_FILE.length,
         format: 'png',
+        realSizeMm: null,
         createdById: ADMIN_ID,
       },
     });
@@ -118,7 +120,32 @@ describe('ImagesService', () => {
       texture: `https://cdn.test/texture/${PUBLIC_ID}`,
       width: UPLOADED_WIDTH,
       height: UPLOADED_HEIGHT,
+      realSizeMm: null,
     });
+  });
+
+  it('stores the real size on upload and returns it', async () => {
+    const prisma = createPrisma({
+      create: vi.fn().mockResolvedValue({
+        id: IMAGE_ID,
+        publicId: PUBLIC_ID,
+        width: UPLOADED_WIDTH,
+        height: UPLOADED_HEIGHT,
+        realSizeMm: 1200,
+      }),
+    });
+    const service = new ImagesService(
+      prisma,
+      createCloudinary(),
+      createImageUrls(),
+    );
+
+    const result = await service.upload(multerFile(), ADMIN_ID, 1200);
+
+    expect(prisma.image.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ realSizeMm: 1200 }),
+    });
+    expect(result.realSizeMm).toBe(1200);
   });
 
   it('rejects a file over the size limit before touching Cloudinary', async () => {
@@ -133,6 +160,7 @@ describe('ImagesService', () => {
       service.upload(
         multerFile({ size: MAX_IMAGE_UPLOAD_BYTES + 1 }),
         ADMIN_ID,
+        null,
       ),
     ).rejects.toMatchObject({
       code: ERROR_CODES.PAYLOAD_TOO_LARGE,
@@ -158,6 +186,7 @@ describe('ImagesService', () => {
           originalname: 'upload.pdf',
         }),
         ADMIN_ID,
+        null,
       ),
     ).rejects.toMatchObject({
       code: ERROR_CODES.UNSUPPORTED_IMAGE_TYPE,
@@ -173,7 +202,9 @@ describe('ImagesService', () => {
     const prisma = createPrisma();
     const service = new ImagesService(prisma, cloudinary, createImageUrls());
 
-    await expect(service.upload(multerFile(), ADMIN_ID)).rejects.toMatchObject({
+    await expect(
+      service.upload(multerFile(), ADMIN_ID, null),
+    ).rejects.toMatchObject({
       code: ERROR_CODES.IMAGE_STORAGE_FAILED,
     });
     expect(prisma.image.create).not.toHaveBeenCalled();
@@ -185,9 +216,76 @@ describe('ImagesService', () => {
     const prisma = createPrisma({ create: vi.fn().mockRejectedValue(dbError) });
     const service = new ImagesService(prisma, cloudinary, createImageUrls());
 
-    await expect(service.upload(multerFile(), ADMIN_ID)).rejects.toThrow(
+    await expect(service.upload(multerFile(), ADMIN_ID, null)).rejects.toThrow(
       dbError,
     );
     expect(cloudinary.destroy).toHaveBeenCalledWith(PUBLIC_ID);
+  });
+
+  describe('updateRealSize', () => {
+    function updatedImage(realSizeMm: number | null) {
+      return {
+        id: IMAGE_ID,
+        publicId: PUBLIC_ID,
+        width: UPLOADED_WIDTH,
+        height: UPLOADED_HEIGHT,
+        realSizeMm,
+      };
+    }
+
+    it('sets the real size and returns it', async () => {
+      const prisma = createPrisma({
+        update: vi.fn().mockResolvedValue(updatedImage(1200)),
+      });
+      const service = new ImagesService(
+        prisma,
+        createCloudinary(),
+        createImageUrls(),
+      );
+
+      const result = await service.updateRealSize(IMAGE_ID, 1200);
+
+      expect(prisma.image.update).toHaveBeenCalledWith({
+        where: { id: IMAGE_ID },
+        data: { realSizeMm: 1200 },
+      });
+      expect(result.realSizeMm).toBe(1200);
+    });
+
+    it('resets the real size with null', async () => {
+      const prisma = createPrisma({
+        update: vi.fn().mockResolvedValue(updatedImage(null)),
+      });
+      const service = new ImagesService(
+        prisma,
+        createCloudinary(),
+        createImageUrls(),
+      );
+
+      const result = await service.updateRealSize(IMAGE_ID, null);
+
+      expect(prisma.image.update).toHaveBeenCalledWith({
+        where: { id: IMAGE_ID },
+        data: { realSizeMm: null },
+      });
+      expect(result.realSizeMm).toBeNull();
+    });
+
+    it('maps a missing image to NOT_FOUND', async () => {
+      const p2025 = new Prisma.PrismaClientKnownRequestError('Not found', {
+        code: 'P2025',
+        clientVersion: 'test',
+      });
+      const prisma = createPrisma({ update: vi.fn().mockRejectedValue(p2025) });
+      const service = new ImagesService(
+        prisma,
+        createCloudinary(),
+        createImageUrls(),
+      );
+
+      await expect(
+        service.updateRealSize(IMAGE_ID, 1200),
+      ).rejects.toMatchObject({ code: ERROR_CODES.NOT_FOUND });
+    });
   });
 });
