@@ -71,6 +71,7 @@ function createService() {
       typeof arg === 'function' ? arg(tx) : Promise.all(arg),
     ),
     idempotencyKey: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    $queryRaw: vi.fn().mockResolvedValue([{ id: LEAD_ID }]),
     lead: {
       findMany: vi.fn().mockResolvedValue([listRow]),
       count: vi.fn().mockResolvedValue(1),
@@ -147,6 +148,48 @@ describe('AdminLeadsService.list', () => {
     expect(prisma.lead.count).toHaveBeenCalledWith({
       where: { status: LeadStatus.SPAM },
     });
+  });
+
+  it('restricts the list and the total to the leads matching q', async () => {
+    const { service, prisma } = createService();
+
+    await service.list({ q: 'Олена', page: 1, pageSize: 50 }, ADMIN);
+
+    const where = {
+      status: { not: LeadStatus.SPAM },
+      id: { in: [LEAD_ID] },
+    };
+    expect(prisma.lead.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where }),
+    );
+    expect(prisma.lead.count).toHaveBeenCalledWith({ where });
+  });
+
+  it('searches by name only when q has no digits', async () => {
+    const { service, prisma } = createService();
+
+    await service.list({ q: 'Olena', page: 1, pageSize: 50 }, ADMIN);
+
+    const [, conditions] = prisma.$queryRaw.mock.calls[0];
+    expect(conditions.values).toEqual(['%Olena%']);
+  });
+
+  it('searches phone by the digits of q and the number by an integer q', async () => {
+    const { service, prisma } = createService();
+
+    await service.list({ q: '7', page: 1, pageSize: 50 }, ADMIN);
+
+    const [, conditions] = prisma.$queryRaw.mock.calls[0];
+    expect(conditions.values).toEqual(['%7%', '%7%', 7]);
+  });
+
+  it('keeps only the phone digits of a formatted q and skips the number', async () => {
+    const { service, prisma } = createService();
+
+    await service.list({ q: '+38 (067)', page: 1, pageSize: 50 }, ADMIN);
+
+    const [, conditions] = prisma.$queryRaw.mock.calls[0];
+    expect(conditions.values).toEqual(['%+38 (067)%', '%38067%']);
   });
 
   it('masks contact data for the demo admin', async () => {

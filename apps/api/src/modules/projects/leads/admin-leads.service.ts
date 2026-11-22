@@ -6,7 +6,8 @@ import { ERROR_CODES } from '../../../common/http/error-codes';
 import type { Language } from '../../../common/i18n/resolve-lang';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { isPrismaError } from '../../../common/prisma/prisma-error';
-import type { Prisma } from '../../../generated/prisma/client';
+import { containsPattern } from '../../../common/search/search.schema';
+import { Prisma } from '../../../generated/prisma/client';
 import {
   IdempotencyScope,
   LeadStatus,
@@ -30,6 +31,7 @@ import {
   maskPhone,
 } from './lead-masking';
 
+const MAX_LEAD_NUMBER = 2_147_483_647;
 const DEFAULT_LANGUAGE: Language = 'en';
 
 const LANGUAGE_BY_LOCALE: Record<Locale, Language> = {
@@ -115,9 +117,11 @@ export class AdminLeadsService {
     query: LeadListQuery,
     admin: Pick<AuthenticatedAdmin, 'isDemo'>,
   ): Promise<LeadListResponse> {
-    const where: Prisma.LeadWhereInput = query.status
-      ? { status: query.status }
-      : { status: { not: LeadStatus.SPAM } };
+    const matchingIds = query.q ? await this.searchIds(query.q) : null;
+    const where: Prisma.LeadWhereInput = {
+      status: query.status ?? { not: LeadStatus.SPAM },
+      ...(matchingIds ? { id: { in: matchingIds } } : {}),
+    };
 
     const [rows, total] = await Promise.all([
       this.prisma.lead.findMany({
@@ -136,6 +140,25 @@ export class AdminLeadsService {
       pageSize: query.pageSize,
       total,
     };
+  }
+
+  private async searchIds(term: string): Promise<string[]> {
+    const conditions = [Prisma.sql`"name" ILIKE ${containsPattern(term)}`];
+    const digits = term.replace(/\D/g, '');
+
+    if (digits) {
+      conditions.push(Prisma.sql`"phone" LIKE ${`%${digits}%`}`);
+    }
+
+    if (/^\d+$/.test(term) && Number(term) <= MAX_LEAD_NUMBER) {
+      conditions.push(Prisma.sql`"number" = ${Number(term)}`);
+    }
+
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "leads" WHERE ${Prisma.join(conditions, ' OR ')}
+    `;
+
+    return rows.map((row) => row.id);
   }
 
   async get(

@@ -56,6 +56,7 @@ export class ProductsController {
   @Get()
   @ApiQuery({ name: 'categoryId', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, enum: PublicationStatus })
+  @ApiQuery({ name: 'q', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ZodResponse({ status: HttpStatus.OK, type: ProductAdminListResponseDto })
