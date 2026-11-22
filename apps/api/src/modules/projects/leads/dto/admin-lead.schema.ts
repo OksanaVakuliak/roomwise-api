@@ -5,6 +5,7 @@ import {
   paginatedResponseSchema,
   paginationQuerySchema,
 } from '../../../../common/pagination/pagination.schema';
+import { searchTermSchema } from '../../../../common/search/search.schema';
 import { LeadStatus } from '../../../../generated/prisma/enums';
 import { versionViewSchema } from '../../presenters/version-view.schema';
 
@@ -18,6 +19,7 @@ export const leadIdParamSchema = z.object({ id: z.uuid() });
 
 export const leadListQuerySchema = paginationQuerySchema.extend({
   status: leadStatusSchema.optional(),
+  q: searchTermSchema.optional(),
 });
 
 export const leadListItemSchema = z.object({

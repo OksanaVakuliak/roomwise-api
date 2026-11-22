@@ -1448,6 +1448,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4666,6 +4676,16 @@
                 "REJECTED",
                 "SPAM"
               ]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
             }
           }
         ],

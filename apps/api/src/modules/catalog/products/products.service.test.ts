@@ -249,6 +249,45 @@ describe('ProductsService.list', () => {
   });
 });
 
+describe('ProductsService.list search', () => {
+  it('restricts the list and the total to the products matching q', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const count = vi.fn().mockResolvedValue(0);
+    const queryRaw = vi.fn().mockResolvedValue([{ id: PRODUCT_ID }]);
+    const prisma = createPrisma({
+      product: { findMany, count },
+      $queryRaw: queryRaw,
+    });
+    const service = new ProductsService(prisma, createImageUrls());
+
+    await service.list({
+      q: '50%',
+      categoryId: CATEGORY_ID,
+      page: 1,
+      pageSize: 50,
+    });
+
+    const [, pattern] = queryRaw.mock.calls[0];
+    expect(pattern).toBe('%50\\%%');
+    const where = {
+      categoryId: CATEGORY_ID,
+      id: { in: [PRODUCT_ID] },
+    };
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where }));
+    expect(count).toHaveBeenCalledWith({ where });
+  });
+
+  it('does not search without q', async () => {
+    const queryRaw = vi.fn();
+    const prisma = createPrisma({ $queryRaw: queryRaw });
+    const service = new ProductsService(prisma, createImageUrls());
+
+    await service.list({ page: 1, pageSize: 50 });
+
+    expect(queryRaw).not.toHaveBeenCalled();
+  });
+});
+
 describe('ProductsService.get', () => {
   it('throws NOT_FOUND for an unknown product', async () => {
     const prisma = createPrisma({

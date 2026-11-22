@@ -6,6 +6,7 @@ import type { LocalizedText } from '../../../common/i18n/localized-text.schema';
 import { toLocalizedText } from '../../../common/i18n/to-localized-text';
 import { assertTranslations } from '../../../common/i18n/translation-check';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { containsPattern } from '../../../common/search/search.schema';
 import { Prisma } from '../../../generated/prisma/client';
 import {
   PublicationStatus,
@@ -107,9 +108,11 @@ export class ProductsService {
   ) {}
 
   async list(query: ListProductsQuery): Promise<ProductAdminListResponse> {
-    const where = {
+    const matchingIds = query.q ? await this.searchIds(query.q) : null;
+    const where: Prisma.ProductWhereInput = {
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.status ? { status: query.status } : {}),
+      ...(matchingIds ? { id: { in: matchingIds } } : {}),
     };
 
     const [items, total] = await Promise.all([
@@ -129,6 +132,18 @@ export class ProductsService {
       pageSize: query.pageSize,
       total,
     };
+  }
+
+  private async searchIds(term: string): Promise<string[]> {
+    const pattern = containsPattern(term);
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "products"
+      WHERE "name"->>'en' ILIKE ${pattern}
+        OR "name"->>'uk' ILIKE ${pattern}
+        OR "brand" ILIKE ${pattern}
+    `;
+
+    return rows.map((row) => row.id);
   }
 
   async get(id: string): Promise<ProductAdmin> {

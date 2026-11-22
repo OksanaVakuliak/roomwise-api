@@ -298,6 +298,140 @@ describe('admin leads e2e', () => {
       expect(response.status).toBe(400);
       expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
     });
+
+    describe('search', () => {
+      const OLENA = { name: 'Olena Searchable', phone: '+380501112233' };
+      const IHOR = { name: 'Ihor Findable', phone: '+380679998877' };
+      let olena: { id: string; number: number };
+      let ihor: { id: string; number: number };
+
+      function search(q: string, extra = '') {
+        return asAdmin(
+          'get',
+          `${ADMIN_LEADS}?q=${encodeURIComponent(q)}${extra}`,
+        );
+      }
+
+      function idsOf(body: { items: Array<{ id: string }> }): string[] {
+        return body.items.map((item) => item.id);
+      }
+
+      beforeEach(async () => {
+        olena = await createLead(OLENA);
+        ihor = await createLead(IHOR);
+      });
+
+      it('finds a lead by a part of the name, ignoring case', async () => {
+        const response = await search('SEARCH').expect(200);
+
+        expect(idsOf(response.body)).toEqual([olena.id]);
+        expect(response.body.total).toBe(1);
+      });
+
+      it('finds a lead by the last digits of the phone', async () => {
+        const response = await search('8877').expect(200);
+
+        expect(idsOf(response.body)).toEqual([ihor.id]);
+      });
+
+      it('uses only the digits of a formatted phone query', async () => {
+        const response = await search('+38 (067)').expect(200);
+
+        expect(idsOf(response.body)).toEqual([ihor.id]);
+      });
+
+      it('finds a lead by the exact number', async () => {
+        const response = await search(String(olena.number)).expect(200);
+
+        expect(idsOf(response.body)).toContain(olena.id);
+        expect(response.body.items).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: olena.id, number: olena.number }),
+          ]),
+        );
+      });
+
+      it('does not match a number by a part of it', async () => {
+        const response = await search(`${olena.number}9999`).expect(200);
+
+        expect(idsOf(response.body)).not.toContain(olena.id);
+      });
+
+      it('treats wildcards as plain characters', async () => {
+        const percent = await search('%').expect(200);
+        const underscore = await search('_').expect(200);
+
+        expect(percent.body.total).toBe(0);
+        expect(underscore.body.total).toBe(0);
+      });
+
+      it('combines with the status filter and the default spam exclusion', async () => {
+        await setStatus(olena.id, LeadStatus.IN_PROGRESS).then((response) =>
+          expect(response.status).toBe(200),
+        );
+        await setStatus(ihor.id, LeadStatus.SPAM).then((response) =>
+          expect(response.status).toBe(200),
+        );
+
+        const byStatus = await search(
+          'Olena',
+          `&status=${LeadStatus.NEW}`,
+        ).expect(200);
+        const inProgress = await search(
+          'Olena',
+          `&status=${LeadStatus.IN_PROGRESS}`,
+        ).expect(200);
+        const hiddenSpam = await search('Ihor').expect(200);
+        const spam = await search('Ihor', `&status=${LeadStatus.SPAM}`).expect(
+          200,
+        );
+
+        expect(byStatus.body.total).toBe(0);
+        expect(idsOf(inProgress.body)).toEqual([olena.id]);
+        expect(hiddenSpam.body.total).toBe(0);
+        expect(idsOf(spam.body)).toEqual([ihor.id]);
+      });
+
+      it('reports the filtered total across pages', async () => {
+        const response = await search('+380', '&page=2&pageSize=1').expect(200);
+
+        expect(response.body).toMatchObject({ page: 2, pageSize: 1, total: 2 });
+        expect(response.body.items).toHaveLength(1);
+      });
+
+      it('limits the demo admin to the exact lead number and keeps the response masked', async () => {
+        for (const q of ['8877', IHOR.phone, 'Ihor']) {
+          const response = await asDemo(
+            'get',
+            `${ADMIN_LEADS}?q=${encodeURIComponent(q)}`,
+          ).expect(200);
+
+          expect(response.body).toMatchObject({ items: [], total: 0 });
+        }
+
+        const response = await asDemo(
+          'get',
+          `${ADMIN_LEADS}?q=${ihor.number}`,
+        ).expect(200);
+
+        expect(idsOf(response.body)).toEqual([ihor.id]);
+        expect(response.body.items[0]).toMatchObject({
+          masked: true,
+          name: `I${MASK}`,
+          phone: `+380${MASK}77`,
+        });
+        expect(JSON.stringify(response.body)).not.toContain(IHOR.phone);
+      });
+
+      it('answers 400 for an empty, blank or too long q', async () => {
+        for (const q of ['', '   ', 'a'.repeat(101)]) {
+          const response = await search(q);
+
+          expect(response.status).toBe(400);
+          expect(response.body.error.code).toBe(ERROR_CODES.VALIDATION_FAILED);
+        }
+      });
+    });
   });
 
   describe('card', () => {
