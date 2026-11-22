@@ -192,6 +192,26 @@ describe('AdminLeadsService.list', () => {
     expect(conditions.values).toEqual(['%+38 (067)%', '%38067%']);
   });
 
+  it('searches only the exact number for the demo admin', async () => {
+    const { service, prisma } = createService();
+
+    await service.list({ q: '42', page: 1, pageSize: 50 }, DEMO);
+
+    const [, conditions] = prisma.$queryRaw.mock.calls[0];
+    expect(conditions.values).toEqual([42]);
+  });
+
+  it('skips the query for a non-numeric q from the demo admin', async () => {
+    const { service, prisma } = createService();
+
+    await service.list({ q: 'Olena', page: 1, pageSize: 50 }, DEMO);
+
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
+    expect(prisma.lead.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({ id: { in: [] } }),
+    });
+  });
+
   it('masks contact data for the demo admin', async () => {
     const { service } = createService();
 

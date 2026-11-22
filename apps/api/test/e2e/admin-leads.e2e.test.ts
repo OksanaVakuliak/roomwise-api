@@ -399,10 +399,19 @@ describe('admin leads e2e', () => {
         expect(response.body.items).toHaveLength(1);
       });
 
-      it('searches the full phone for the demo admin and keeps the response masked', async () => {
+      it('limits the demo admin to the exact lead number and keeps the response masked', async () => {
+        for (const q of ['8877', IHOR.phone, 'Ihor']) {
+          const response = await asDemo(
+            'get',
+            `${ADMIN_LEADS}?q=${encodeURIComponent(q)}`,
+          ).expect(200);
+
+          expect(response.body).toMatchObject({ items: [], total: 0 });
+        }
+
         const response = await asDemo(
           'get',
-          `${ADMIN_LEADS}?q=${encodeURIComponent('8877')}`,
+          `${ADMIN_LEADS}?q=${ihor.number}`,
         ).expect(200);
 
         expect(idsOf(response.body)).toEqual([ihor.id]);

@@ -117,7 +117,9 @@ export class AdminLeadsService {
     query: LeadListQuery,
     admin: Pick<AuthenticatedAdmin, 'isDemo'>,
   ): Promise<LeadListResponse> {
-    const matchingIds = query.q ? await this.searchIds(query.q) : null;
+    const matchingIds = query.q
+      ? await this.searchIds(query.q, admin.isDemo)
+      : null;
     const where: Prisma.LeadWhereInput = {
       status: query.status ?? { not: LeadStatus.SPAM },
       ...(matchingIds ? { id: { in: matchingIds } } : {}),
@@ -142,16 +144,24 @@ export class AdminLeadsService {
     };
   }
 
-  private async searchIds(term: string): Promise<string[]> {
-    const conditions = [Prisma.sql`"name" ILIKE ${containsPattern(term)}`];
+  private async searchIds(term: string, isDemo: boolean): Promise<string[]> {
+    const conditions: Prisma.Sql[] = [];
     const digits = term.replace(/\D/g, '');
 
-    if (digits) {
+    if (!isDemo) {
+      conditions.push(Prisma.sql`"name" ILIKE ${containsPattern(term)}`);
+    }
+
+    if (!isDemo && digits) {
       conditions.push(Prisma.sql`"phone" LIKE ${`%${digits}%`}`);
     }
 
     if (/^\d+$/.test(term) && Number(term) <= MAX_LEAD_NUMBER) {
       conditions.push(Prisma.sql`"number" = ${Number(term)}`);
+    }
+
+    if (conditions.length === 0) {
+      return [];
     }
 
     const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
